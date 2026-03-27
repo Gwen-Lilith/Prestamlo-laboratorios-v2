@@ -14,11 +14,14 @@
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     :root{
       --upb-purple:#6B1F7C;--upb-purple-dark:#4A1258;--upb-pink:#C0186A;
-      --bg-page:#F0F0F5;--sidebar-bg:#FFFFFF;--text-dark:#1A1A2E;
-      --text-medium:#666680;--text-light:#AAAABC;--border:#E8E8F0;
-      --font:'Nunito',sans-serif;--green:#059669;--orange:#D97706;--red:#DC2626;--blue:#2563EB;
+      --sidebar-bg:#fff;--bg-page:#F0F0F5;
+      --text-dark:#1A1A2E;--text-medium:#666680;--text-light:#AAAABC;
+      --border:#E8E8F0;--font:'Nunito',sans-serif;
+      --green:#059669;--orange:#D97706;--red:#DC2626;--blue:#2563EB;
     }
     body{font-family:var(--font);background:var(--bg-page);min-height:100vh;display:flex;flex-direction:column}
+
+    /* NAVBAR */
     .navbar{background:var(--upb-purple);height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 16px 0 0;box-shadow:0 2px 8px rgba(0,0,0,.25);flex-shrink:0;z-index:100}
     .navbar-left{display:flex;align-items:center}
     .btn-menu-toggle{background:none;border:none;color:#fff;font-size:18px;cursor:pointer;padding:0 16px;height:52px;display:flex;align-items:center;transition:background .2s}
@@ -28,11 +31,13 @@
     .acciones-wrap{position:relative;margin-left:12px}
     .btn-acciones{background:rgba(255,255,255,.15);border:none;color:#fff;font-family:var(--font);font-size:13px;font-weight:600;padding:6px 14px;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:background .2s}
     .btn-acciones:hover{background:rgba(255,255,255,.25)}
-    .dropdown-acciones{display:none;position:absolute;top:calc(100% + 8px);left:0;background:#fff;border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,.15);border:1px solid var(--border);min-width:210px;z-index:999;overflow:hidden}
+    .dropdown-acciones{display:none;position:absolute;top:calc(100% + 8px);left:0;background:#fff;border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,.15);border:1px solid var(--border);min-width:220px;z-index:999;overflow:hidden;padding:4px 0}
     .dropdown-acciones.open{display:block}
     .dropdown-item{display:flex;align-items:center;gap:10px;padding:10px 16px;font-size:13px;font-weight:600;color:var(--text-dark);transition:background .15s;cursor:pointer;width:100%;border:none;background:none;font-family:var(--font);text-align:left;text-decoration:none}
     .dropdown-item:hover{background:#F5EEF8;color:var(--upb-purple)}
     .dropdown-item i{width:16px;text-align:center;color:var(--upb-pink)}
+    .dropdown-sep{height:1px;background:#E8E8F0;margin:4px 0}
+    .dropdown-label{padding:6px 16px 2px;font-size:10px;font-weight:800;color:var(--text-light);text-transform:uppercase;letter-spacing:.06em}
     .navbar-right{display:flex;align-items:center;gap:10px}
     .nav-user-info{text-align:right}
     .nav-user-name{color:#fff;font-size:13px;font-weight:700;display:block}
@@ -42,29 +47,37 @@
     .btn-salir{background:rgba(255,255,255,.15);border:none;color:#fff;font-family:var(--font);font-size:11px;font-weight:700;padding:5px 10px;border-radius:5px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px;transition:background .2s}
     .btn-salir:hover{background:rgba(255,255,255,.25)}
     .btn-salir i{font-size:14px}
+
+    /* LAYOUT */
     .layout{display:flex;flex:1;overflow:hidden}
+
+    /* SIDEBAR */
     .sidebar{width:200px;background:var(--sidebar-bg);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;transition:width .25s ease;overflow:hidden}
     .sidebar.collapsed{width:0}
     .sidebar-nav{padding:12px 0;flex:1;overflow-y:auto}
     .nav-item{position:relative}
-    .nav-link{display:flex;align-items:center;justify-content:space-between;padding:10px 18px;color:var(--text-medium);font-size:13px;font-weight:600;text-decoration:none;cursor:pointer;transition:background .15s,color .15s;user-select:none;white-space:nowrap}
+    .nav-link{display:flex;align-items:center;justify-content:space-between;padding:10px 18px;color:var(--text-medium);font-size:13px;font-weight:600;cursor:pointer;transition:background .15s,color .15s;user-select:none;white-space:nowrap;text-decoration:none}
     .nav-link:hover,.nav-link.active{color:var(--upb-pink);background:#FDF0F7}
     .nav-link .nav-icon{margin-right:8px;font-size:14px;width:16px;text-align:center;flex-shrink:0}
     .nav-link .nav-label{flex:1}
     .nav-link .nav-arrow{font-size:11px;transition:transform .2s;color:var(--text-light)}
     .nav-item.open>.nav-link .nav-arrow{transform:rotate(90deg)}
     .nav-link.home{color:var(--upb-purple);font-weight:700}
-    .nav-link.home:hover{background:#F5EEF8}
+    .nav-link.home:hover,.nav-link.home.active{color:var(--upb-purple);background:#F5EEF8}
     .submenu{display:none;background:#FAFAFA;border-left:3px solid var(--upb-pink);margin-left:18px}
     .nav-item.open>.submenu{display:block}
-    .submenu-link{display:flex;align-items:center;gap:8px;padding:8px 16px;color:var(--text-medium);font-size:12px;font-weight:500;text-decoration:none;transition:color .15s,background .15s;white-space:nowrap}
+    .submenu-link{display:flex;align-items:center;gap:8px;padding:8px 16px;color:var(--text-medium);font-size:12px;font-weight:500;transition:color .15s,background .15s;white-space:nowrap;cursor:pointer;text-decoration:none}
     .submenu-link:hover,.submenu-link.active{color:var(--upb-purple);background:#F5EEF8;font-weight:700}
     .submenu-link i{width:14px;text-align:center;font-size:12px}
+
+    /* MAIN */
     .main-content{flex:1;overflow-y:auto}
     .page-header{padding:16px 24px 0;display:flex;align-items:baseline;gap:10px}
     .page-title{font-size:18px;font-weight:800;color:var(--text-dark);text-transform:uppercase;letter-spacing:.03em}
     .page-breadcrumb{font-size:12px;color:var(--text-light);font-weight:500;text-transform:uppercase}
     .page-body{padding:16px 24px 32px}
+
+    /* STATS */
     .stats-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px}
     .stat-card{background:#fff;border-radius:10px;border:1px solid var(--border);padding:14px 16px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 6px rgba(0,0,0,.04);transition:transform .2s,box-shadow .2s}
     .stat-card:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(0,0,0,.08)}
@@ -76,6 +89,8 @@
     .stat-icon.red{background:#FEF2F2;color:var(--red)}
     .stat-value{font-size:22px;font-weight:800;color:var(--text-dark);line-height:1}
     .stat-label{font-size:10px;color:var(--text-light);font-weight:600;margin-top:2px;text-transform:uppercase;letter-spacing:.04em}
+
+    /* CHARTS */
     .charts-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:16px}
     .chart-card{background:#fff;border-radius:10px;border:1px solid var(--border);box-shadow:0 2px 6px rgba(0,0,0,.04);overflow:hidden;transition:box-shadow .2s,border-color .2s}
     .chart-card.chart-activo{border:2px solid var(--upb-pink);box-shadow:0 4px 16px rgba(192,24,106,.18)}
@@ -87,6 +102,8 @@
     .chart-body{padding:14px;height:210px;display:flex;align-items:center;justify-content:center}
     .chart-body canvas{max-height:182px;cursor:pointer}
     .chart-hint{text-align:center;font-size:10px;color:var(--text-light);padding:0 14px 10px;font-style:italic}
+
+    /* FILTROS ACTIVOS */
     .filtros-activos-bar{display:none;align-items:center;gap:8px;padding:10px 16px;background:#FDF0F7;border-radius:10px;border:1.5px solid #f0c0d8;flex-wrap:wrap;margin-bottom:16px}
     .filtros-activos-bar.visible{display:flex}
     .filtros-activos-label{font-size:11px;font-weight:800;color:var(--upb-purple);text-transform:uppercase;letter-spacing:.04em}
@@ -94,6 +111,8 @@
     .filtro-chip:hover{background:var(--upb-pink);color:#fff}
     .btn-limpiar-todos{height:28px;padding:0 12px;background:var(--upb-purple);color:#fff;border:none;border-radius:6px;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;transition:background .2s}
     .btn-limpiar-todos:hover{background:var(--upb-purple-dark)}
+
+    /* FILTER CARD */
     .filter-card{background:#fff;border-radius:10px;border:1px solid var(--border);box-shadow:0 2px 6px rgba(0,0,0,.04);overflow:hidden;margin-bottom:16px}
     .card-header{background:var(--upb-purple);color:#fff;padding:10px 16px;font-size:12px;font-weight:700;display:flex;align-items:center;gap:7px;letter-spacing:.03em}
     .filter-body{padding:16px}
@@ -108,6 +127,8 @@
     .btn-buscar:hover{opacity:.9;transform:translateY(-1px)}
     .btn-limpiar{height:36px;padding:0 16px;background:#fff;color:var(--text-medium);border:1.5px solid var(--border);border-radius:7px;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;transition:background .2s}
     .btn-limpiar:hover{background:#F5F5FA}
+
+    /* RESULTS */
     .results-card{background:#fff;border-radius:10px;border:1px solid var(--border);box-shadow:0 2px 6px rgba(0,0,0,.04);overflow:hidden}
     .results-header{background:var(--upb-purple);color:#fff;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
     .results-header-left{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;letter-spacing:.03em;flex-wrap:wrap}
@@ -127,6 +148,8 @@
     .table-search::placeholder{color:rgba(255,255,255,.6)}
     .table-search:focus{border-color:rgba(255,255,255,.6)}
     .table-search-icon{position:absolute;left:8px;top:50%;transform:translateY(-50%);color:rgba(255,255,255,.6);font-size:11px;pointer-events:none}
+
+    /* TABLE */
     .table-wrap{overflow-x:auto}
     table{width:100%;border-collapse:collapse;font-size:12px;min-width:1060px}
     thead tr{background:#F5EEF8}
@@ -148,6 +171,8 @@
     .badge-vencido{background:#FEF2F2;color:#991B1B;border:1px solid #FECACA}
     .inv-tag{background:#F5EEF8;color:var(--upb-purple);padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;font-family:monospace}
     .modulo-tag{font-size:10px;color:var(--text-light);display:block;margin-top:1px}
+
+    /* PAGINATION */
     .pagination-wrap{padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--border);background:#FAFAFA}
     .pagination-info{font-size:11px;color:var(--text-light);font-weight:600}
     .pagination-btns{display:flex;gap:3px}
@@ -158,6 +183,8 @@
     .empty-state{padding:40px 24px;text-align:center}
     .empty-state i{font-size:36px;color:var(--text-light);display:block;margin-bottom:10px}
     .empty-state p{color:var(--text-light);font-size:13px;font-weight:600}
+
+    /* MODAL */
     .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:2000;align-items:center;justify-content:center;padding:16px}
     .modal-overlay.open{display:flex}
     .modal-box{background:#fff;border-radius:14px;width:100%;max-width:900px;max-height:92vh;overflow-y:auto;box-shadow:0 24px 60px rgba(0,0,0,.3)}
@@ -175,6 +202,8 @@
     .btn-modal-action.dark{background:var(--upb-purple-dark)}
     .btn-modal-cancel{background:#F3F4F6;color:var(--text-medium);border:none;font-family:var(--font);font-size:13px;font-weight:700;padding:8px 16px;border-radius:8px;cursor:pointer;transition:background .2s}
     .btn-modal-cancel:hover{background:#E5E7EB}
+
+    /* FORMATO DOC */
     .formato-doc{font-family:'Nunito',sans-serif;color:#111;font-size:11.5px}
     .formato-copy{border:1.5px solid #ccc;border-radius:8px;padding:18px 20px;margin-bottom:18px;background:#fff}
     .fc-label{font-size:9px;font-weight:800;color:#999;text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px;padding-bottom:7px;border-bottom:2px dashed #e0e0e0;display:flex;align-items:center;gap:6px}
@@ -217,11 +246,14 @@
     .fmt-corte{margin:22px 0;border:none;border-top:2px dashed #bbb;position:relative}
     .fmt-corte::before{content:'✂';position:absolute;top:-10px;left:12px;background:#fff;padding:0 6px;color:#bbb;font-size:14px}
     .fmt-corte::after{content:'CORTAR POR ESTA LÍNEA';position:absolute;top:-8px;left:40px;background:#fff;padding:0 8px;color:#ccc;font-size:9px;font-weight:700;letter-spacing:.06em}
+
+    /* SPINNER */
     .spinner-overlay{display:none;position:fixed;inset:0;background:rgba(107,31,124,.65);z-index:3000;align-items:center;justify-content:center;flex-direction:column;gap:16px}
     .spinner-overlay.visible{display:flex}
     .spinner{width:48px;height:48px;border:4px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite}
     .spinner-text{color:#fff;font-size:15px;font-weight:700;font-family:var(--font)}
     @keyframes spin{to{transform:rotate(360deg)}}
+
     @media print{
       body>*:not(#modal-formato){display:none!important}
       #modal-formato{display:block!important;position:static!important;background:none!important;padding:0}
@@ -245,6 +277,7 @@
   <div class="spinner-text">Generando archivo...</div>
 </div>
 
+<!-- NAVBAR -->
 <header class="navbar">
   <div class="navbar-left">
     <button class="btn-menu-toggle" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
@@ -253,9 +286,18 @@
       <button class="btn-acciones" onclick="toggleDropdown()">Acciones Rápidas <i class="fa-solid fa-chevron-down" style="font-size:10px"></i></button>
       <div class="dropdown-acciones" id="dropdown-acciones">
         <a class="dropdown-item" href="dashboard.html"><i class="fa-solid fa-house"></i> Menú Principal</a>
+        <a class="dropdown-item" href="seleccion-modulo.html"><i class="fa-solid fa-th-large"></i> Selección de Módulos</a>
+        <div class="dropdown-sep"></div>
+        <div class="dropdown-label">Accesos Rápidos</div>
         <a class="dropdown-item" href="Admin-Usuarios.html"><i class="fa-solid fa-users"></i> Usuarios</a>
-        <a class="dropdown-item" href="reporte-resumen.html"><i class="fa-solid fa-file-lines"></i> Resumen Préstamos</a>
+        <a class="dropdown-item" href="Admin_Calendario.html"><i class="fa-solid fa-calendar"></i> Calendario</a>
         <a class="dropdown-item" href="Admin-Equipos.html"><i class="fa-solid fa-desktop"></i> Elementos</a>
+        <a class="dropdown-item" href="Admin-Informacion-Importante.html"><i class="fa-solid fa-bullhorn"></i> Información</a>
+        <a class="dropdown-item" href="reporte-resumen.html"><i class="fa-solid fa-file-lines"></i> Reportes</a>
+        <div class="dropdown-sep"></div>
+        <div class="dropdown-label">Usuarios</div>
+        <a class="dropdown-item" href="Admin-Usuarios.html"><i class="fa-solid fa-users"></i> Ver Usuarios</a>
+        <a class="dropdown-item" href="Admin-Crear-Usuario.html"><i class="fa-solid fa-user-plus"></i> Nuevo Usuario</a>
       </div>
     </div>
   </div>
@@ -269,7 +311,10 @@
   </div>
 </header>
 
+<!-- LAYOUT CON SIDEBAR -->
 <div class="layout">
+
+  <!-- SIDEBAR -->
   <aside class="sidebar" id="sidebar">
     <nav class="sidebar-nav">
       <div class="nav-item">
@@ -286,20 +331,22 @@
         <div class="nav-link"><i class="nav-icon fa-solid fa-users"></i><span class="nav-label">Usuarios</span><i class="nav-arrow fa-solid fa-chevron-right"></i></div>
         <div class="submenu">
           <a class="submenu-link" href="Admin-Usuarios.html"><i class="fa-solid fa-list"></i> Ver Usuarios</a>
-          <a class="submenu-link" href="#"><i class="fa-solid fa-user-plus"></i> Crear Usuario</a>
+          <a class="submenu-link" href="Admin-Crear-Usuario.html"><i class="fa-solid fa-user-plus"></i> Crear Usuario</a>
         </div>
       </div>
-      <div class="nav-item" onclick="toggleMenu(this)">
-        <div class="nav-link"><i class="nav-icon fa-solid fa-cart-shopping"></i><span class="nav-label">Solicitudes</span><i class="nav-arrow fa-solid fa-chevron-right"></i></div>
-        <div class="submenu">
-          <a class="submenu-link" href="#"><i class="fa-solid fa-clipboard-list"></i> Solicitud de Elementos</a>
-          <a class="submenu-link" href="#"><i class="fa-solid fa-file-alt"></i> Solicitud Detalle</a>
-          <a class="submenu-link" href="#"><i class="fa-solid fa-search"></i> Seleccionar</a>
-          <a class="submenu-link" href="#"><i class="fa-solid fa-ban"></i> Cancelados</a>
-          <a class="submenu-link" href="#"><i class="fa-solid fa-star"></i> Solicitud Especial Admin</a>
-          <a class="submenu-link" href="#"><i class="fa-solid fa-star-half"></i> Solicitud Especial Persona</a>
-        </div>
-      </div>
+       <div class="nav-item" onclick="toggleMenu(this)">
+  <div class="nav-link">
+    <i class="nav-icon fa-solid fa-cart-shopping"></i>
+    <span class="nav-label">Solicitudes</span>
+    <i class="nav-arrow fa-solid fa-chevron-right"></i>
+  </div>
+  <div class="submenu">
+    <a class="submenu-link" href="Admin-Solicitud-Elementos.html"><i class="fa-solid fa-clipboard-list"></i> Solicitud de Elementos</a>
+    <a class="submenu-link" href="Admin-Solicitud-Detalle.html"><i class="fa-solid fa-file-alt"></i> Solicitud Detalle</a>
+    <a class="submenu-link" href="Admin-Solicitudes-Seleccionar.html"><i class="fa-solid fa-search"></i> Seleccionar</a>
+    <a class="submenu-link" href="Admin-Solicitudes-Canceladas.html"><i class="fa-solid fa-ban"></i> Cancelados</a>
+   </div>
+</div>
       <div class="nav-item" onclick="toggleMenu(this)">
         <div class="nav-link"><i class="nav-icon fa-solid fa-gear"></i><span class="nav-label">Administración</span><i class="nav-arrow fa-solid fa-chevron-right"></i></div>
         <div class="submenu">
@@ -309,24 +356,20 @@
           <a class="submenu-link" href="Admin-Foto-Perfil.html"><i class="fa-solid fa-camera"></i> Foto Perfil</a>
         </div>
       </div>
-      <div class="nav-item open" onclick="toggleMenu(this)">
-        <div class="nav-link active"><i class="nav-icon fa-solid fa-file-lines"></i><span class="nav-label">Reportes</span><i class="nav-arrow fa-solid fa-chevron-right"></i></div>
-        <div class="submenu">
-          <a class="submenu-link active" href="reporte-resumen.html"><i class="fa-solid fa-table"></i> Resumen Préstamos</a>
-          <a class="submenu-link" href="reporte-prestamos-activos.html"><i class="fa-solid fa-rotate"></i> Préstamos Activos</a>
-          <a class="submenu-link" href="reporte-inventario.html"><i class="fa-solid fa-boxes-stacked"></i> Inventario</a>
-          <a class="submenu-link" href="reporte-por-equipo.html"><i class="fa-solid fa-desktop"></i> Por Elemento</a>
-          <a class="submenu-link" href="reporte-por-usuario.html"><i class="fa-solid fa-user-clock"></i> Por Usuario</a>
-          <a class="submenu-link" href="reporte-cancelados.html"><i class="fa-solid fa-ban"></i> Cancelados</a>
-          <a class="submenu-link" href="reporte-equipos-dañados.html"><i class="fa-solid fa-triangle-exclamation"></i> Daños/Obs.</a>
-          <a class="submenu-link" href="reporte-comparativo.html"><i class="fa-solid fa-chart-bar"></i> Comparativo</a>
-          <a class="submenu-link" href="reporte-solicitudes-pendientes.html"><i class="fa-solid fa-clock"></i> Pendientes</a>
-          <a class="submenu-link" href="reporte-formato-salida.html"><i class="fa-solid fa-file-invoice"></i> Formato Salida</a>
-        </div>
-      </div>
+      <!-- Reportes abierto por defecto y Resumen Préstamos activo -->
+   <div class="nav-item open" onclick="toggleMenu(this)">
+  <div class="nav-link active"><i class="nav-icon fa-solid fa-file-lines"></i><span class="nav-label">Reportes</span><i class="nav-arrow fa-solid fa-chevron-right"></i></div>
+  <div class="submenu">
+    <a class="submenu-link" href="reporte-resumen.html"><i class="fa-solid fa-table"></i> Resumen Préstamos</a>
+    <a class="submenu-link" href="Prestamos_X_Elementos.html"><i class="fa-solid fa-desktop"></i> Préstamos x Elemento</a>
+    <a class="submenu-link" href="Elementos_Prestados.html"><i class="fa-solid fa-layer-group"></i> Elementos Prestados</a>
+    <a class="submenu-link" href="Inventario_General.html"><i class="fa-solid fa-clipboard-list"></i> Inventario General</a>
+  </div>
+</div>
     </nav>
   </aside>
 
+  <!-- MAIN CONTENT -->
   <main class="main-content">
     <div class="page-header">
       <span class="page-title">REPORTE RESUMEN</span>
@@ -371,9 +414,9 @@
 
       <div class="filtros-activos-bar" id="filtros-activos-bar">
         <span class="filtros-activos-label"><i class="fa-solid fa-filter"></i> Filtros activos:</span>
-        <span class="filtro-chip" id="chip-estado"   onclick="quitarFiltro('estado')"  style="display:none"></span>
-        <span class="filtro-chip" id="chip-lab"      onclick="quitarFiltro('lab')"     style="display:none"></span>
-        <span class="filtro-chip" id="chip-usuario"  onclick="quitarFiltro('usuario')" style="display:none"></span>
+        <span class="filtro-chip" id="chip-estado"  onclick="quitarFiltro('estado')"  style="display:none"></span>
+        <span class="filtro-chip" id="chip-lab"     onclick="quitarFiltro('lab')"     style="display:none"></span>
+        <span class="filtro-chip" id="chip-usuario" onclick="quitarFiltro('usuario')" style="display:none"></span>
         <button class="btn-limpiar-todos" onclick="limpiarTodosFiltrosGrafica()"><i class="fa-solid fa-xmark"></i> Limpiar todos</button>
       </div>
 
@@ -462,6 +505,7 @@
   </main>
 </div>
 
+<!-- MODAL FORMATO -->
 <div class="modal-overlay" id="modal-formato">
   <div class="modal-box">
     <div class="modal-header">
@@ -481,27 +525,30 @@
 </div>
 
 <script>
-// ══════════════════════════════════════════════
-//  AUTH
-// ══════════════════════════════════════════════
+// ── SESIÓN ──
 const usuarioGuardado = sessionStorage.getItem('usuario');
 if (!usuarioGuardado) { window.location.href = 'index.html'; }
 const usuario = JSON.parse(usuarioGuardado);
 document.getElementById('nav-nombre').textContent = usuario.nombre.toUpperCase();
 document.getElementById('nav-lab').textContent    = usuario.lab;
-const avatares = {
-  admin:   'assets/images/AVATARADMINISTRADOR.jpg',
-  profesor:'assets/images/AVATARPROFESOR.jpg',
-  usuario: 'assets/images/AVATARPROFESOR.jpg'
-};
+const avatares = { admin:'assets/images/AVATARADMINISTRADOR.jpg', profesor:'assets/images/AVATARPROFESOR.jpg', usuario:'assets/images/AVATARPROFESOR.jpg' };
 document.getElementById('nav-avatar-img').src = avatares[usuario.rol] || 'assets/images/AVATARADMINISTRADOR.jpg';
-document.getElementById('btn-salir').addEventListener('click', () => {
-  sessionStorage.removeItem('usuario'); window.location.href = 'index.html';
-});
+document.getElementById('btn-salir').addEventListener('click', () => { sessionStorage.removeItem('usuario'); window.location.href = 'index.html'; });
 
-// ══════════════════════════════════════════════
-//  DATOS
-// ══════════════════════════════════════════════
+// ── SIDEBAR / NAVBAR ──
+function toggleSidebar()  { document.getElementById('sidebar').classList.toggle('collapsed'); }
+function toggleDropdown() { document.getElementById('dropdown-acciones').classList.toggle('open'); }
+function toggleMenu(item) {
+  const isOpen = item.classList.contains('open');
+  document.querySelectorAll('.nav-item.open').forEach(el => { if(el !== item) el.classList.remove('open'); });
+  if (!isOpen) item.classList.add('open');
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('.acciones-wrap')) document.getElementById('dropdown-acciones').classList.remove('open');
+});
+document.querySelectorAll('.submenu-link').forEach(l => l.addEventListener('click', e => e.stopPropagation()));
+
+// ── DATOS ──
 const SOLICITANTES = {
   'Oscar Santoya': { modulo:'Lab Automatización Procesos Industriales', id:'USR-001' },
   'María García':  { modulo:'Lab de Física No 1',                       id:'USR-002' },
@@ -524,9 +571,6 @@ const DATOS = [
   { inventario:'INV-012', equipo:'Analizador de Espectro R&S',      lab:'Lab de Física No 1',                       solicitante:'Carlos Pérez',  salida:'2026-02-15', entrega:'2026-03-05', observacion:'Sin novedad',                    correccion:'',                        estado:'activo'   },
 ];
 
-// ══════════════════════════════════════════════
-//  ESTADO GLOBAL
-// ══════════════════════════════════════════════
 let datosFiltrados = [...DATOS];
 let currentPage    = 1;
 const rowsPerPage  = 8;
@@ -538,9 +582,6 @@ let itemsParaPDF   = [];
 
 window.onload = () => { aplicarFiltros(); renderStats(datosFiltrados); renderCharts(datosFiltrados); };
 
-// ══════════════════════════════════════════════
-//  STATS
-// ══════════════════════════════════════════════
 function renderStats(d) {
   document.getElementById('stat-total').textContent     = d.length;
   document.getElementById('stat-devueltos').textContent = d.filter(x=>x.estado==='devuelto').length;
@@ -549,108 +590,53 @@ function renderStats(d) {
   document.getElementById('stat-usuarios').textContent  = new Set(d.map(x=>x.solicitante)).size;
 }
 
-// ══════════════════════════════════════════════
-//  GRÁFICAS
-// ══════════════════════════════════════════════
 function renderCharts(datos) {
   Object.values(charts).forEach(c => c.destroy());
   charts = {};
-
   const cntEst = { activo:0, devuelto:0, vencido:0 };
   datos.forEach(d => cntEst[d.estado]++);
-
   charts.estado = new Chart(document.getElementById('chartEstado'), {
     type: 'doughnut',
-    data: {
-      labels: ['Activos','Devueltos','Vencidos'],
-      datasets:[{ data:[cntEst.activo,cntEst.devuelto,cntEst.vencido],
-        backgroundColor:['#C0186A','#2563EB','#DC2626'], borderWidth:3, borderColor:'#fff' }]
-    },
-    options:{
-      responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{ position:'bottom', labels:{ font:{family:'Nunito',size:11}, padding:10 }}},
-      onClick(evt,items){
-        if(!items.length) return;
-        const lbl=['activo','devuelto','vencido'][items[0].index];
-        filtrosGrafica.estado = filtrosGrafica.estado===lbl ? null : lbl;
-        aplicarFiltros(); actualizarChips();
-      }
-    }
+    data: { labels: ['Activos','Devueltos','Vencidos'], datasets:[{ data:[cntEst.activo,cntEst.devuelto,cntEst.vencido], backgroundColor:['#C0186A','#2563EB','#DC2626'], borderWidth:3, borderColor:'#fff' }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom', labels:{ font:{family:'Nunito',size:11}, padding:10 }}}, onClick(evt,items){ if(!items.length) return; const lbl=['activo','devuelto','vencido'][items[0].index]; filtrosGrafica.estado = filtrosGrafica.estado===lbl ? null : lbl; aplicarFiltros(); actualizarChips(); } }
   });
-
   const labMap = {};
   DATOS.forEach(d=>{ if(!labMap[d.lab]) labMap[d.lab]=0; });
   datos.forEach(d=> labMap[d.lab]++);
   const labLabels = Object.keys(labMap);
-
   charts.lab = new Chart(document.getElementById('chartLab'), {
     type:'bar',
-    data:{
-      labels: labLabels.map(l=>l.length>20?l.substring(0,18)+'…':l),
-      datasets:[{ label:'Préstamos', data:labLabels.map(l=>labMap[l]),
-        backgroundColor:labLabels.map(l=>filtrosGrafica.lab===l?'#C0186A':'#6B1F7C'), borderRadius:5 }]
-    },
-    options:{
-      responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{display:false} },
-      scales:{ y:{beginAtZero:true,ticks:{stepSize:1,font:{family:'Nunito',size:10}}}, x:{ticks:{font:{family:'Nunito',size:9}}} },
-      onClick(evt,items){
-        if(!items.length) return;
-        const lbl=labLabels[items[0].index];
-        filtrosGrafica.lab = filtrosGrafica.lab===lbl ? null : lbl;
-        aplicarFiltros(); actualizarChips(); renderCharts(DATOS);
-      }
-    }
+    data:{ labels: labLabels.map(l=>l.length>20?l.substring(0,18)+'…':l), datasets:[{ label:'Préstamos', data:labLabels.map(l=>labMap[l]), backgroundColor:labLabels.map(l=>filtrosGrafica.lab===l?'#C0186A':'#6B1F7C'), borderRadius:5 }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false} }, scales:{ y:{beginAtZero:true,ticks:{stepSize:1,font:{family:'Nunito',size:10}}}, x:{ticks:{font:{family:'Nunito',size:9}}} }, onClick(evt,items){ if(!items.length) return; const lbl=labLabels[items[0].index]; filtrosGrafica.lab = filtrosGrafica.lab===lbl ? null : lbl; aplicarFiltros(); actualizarChips(); renderCharts(DATOS); } }
   });
-
   const usrMap = {};
   datos.forEach(d=>{ usrMap[d.solicitante]=(usrMap[d.solicitante]||0)+1; });
   const usrLabels = Object.keys(usrMap);
   const COLORS = ['#6B1F7C','#2563EB','#D97706','#059669','#7C3AED'];
-
   charts.usuario = new Chart(document.getElementById('chartUsuario'), {
     type:'bar',
-    data:{
-      labels:usrLabels,
-      datasets:[{ label:'Préstamos', data:usrLabels.map(u=>usrMap[u]),
-        backgroundColor:usrLabels.map((u,i)=>filtrosGrafica.usuario===u?'#C0186A':COLORS[i%COLORS.length]), borderRadius:5 }]
-    },
-    options:{
-      indexAxis:'y', responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{display:false} },
-      scales:{ x:{beginAtZero:true,ticks:{stepSize:1,font:{family:'Nunito',size:10}}}, y:{ticks:{font:{family:'Nunito',size:10}}} },
-      onClick(evt,items){
-        if(!items.length) return;
-        const nombre=usrLabels[items[0].index];
-        filtrosGrafica.usuario = filtrosGrafica.usuario===nombre ? null : nombre;
-        aplicarFiltros(); actualizarChips(); renderCharts(DATOS);
-      }
-    }
+    data:{ labels:usrLabels, datasets:[{ label:'Préstamos', data:usrLabels.map(u=>usrMap[u]), backgroundColor:usrLabels.map((u,i)=>filtrosGrafica.usuario===u?'#C0186A':COLORS[i%COLORS.length]), borderRadius:5 }] },
+    options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false} }, scales:{ x:{beginAtZero:true,ticks:{stepSize:1,font:{family:'Nunito',size:10}}}, y:{ticks:{font:{family:'Nunito',size:10}}} }, onClick(evt,items){ if(!items.length) return; const nombre=usrLabels[items[0].index]; filtrosGrafica.usuario = filtrosGrafica.usuario===nombre ? null : nombre; aplicarFiltros(); actualizarChips(); renderCharts(DATOS); } }
   });
 }
 
-// ══════════════════════════════════════════════
-//  FILTROS
-// ══════════════════════════════════════════════
 function aplicarFiltros() {
   const fi  = document.getElementById('filtro-fecha-inicio').value;
   const ff_ = document.getElementById('filtro-fecha-fin').value;
   const lab = document.getElementById('filtro-lab').value;
   const sol = document.getElementById('filtro-solicitante').value;
   const q   = (document.getElementById('table-search').value||'').toLowerCase();
-
   datosFiltrados = DATOS.filter(d => {
-    if (fi  && d.salida < fi)                                                   return false;
-    if (ff_ && d.salida > ff_)                                                  return false;
-    if (lab && d.lab !== lab)                                                   return false;
-    if (sol && d.solicitante !== sol)                                           return false;
-    if (filtrosGrafica.estado  && d.estado !== filtrosGrafica.estado)          return false;
-    if (filtrosGrafica.lab     && d.lab    !== filtrosGrafica.lab)             return false;
-    if (filtrosGrafica.usuario && d.solicitante !== filtrosGrafica.usuario)    return false;
-    if (q && !Object.values(d).some(v=>String(v).toLowerCase().includes(q)))  return false;
+    if (fi  && d.salida < fi)                                                  return false;
+    if (ff_ && d.salida > ff_)                                                 return false;
+    if (lab && d.lab !== lab)                                                  return false;
+    if (sol && d.solicitante !== sol)                                          return false;
+    if (filtrosGrafica.estado  && d.estado !== filtrosGrafica.estado)         return false;
+    if (filtrosGrafica.lab     && d.lab    !== filtrosGrafica.lab)            return false;
+    if (filtrosGrafica.usuario && d.solicitante !== filtrosGrafica.usuario)   return false;
+    if (q && !Object.values(d).some(v=>String(v).toLowerCase().includes(q))) return false;
     return true;
   });
-
   currentPage = 1;
   seleccionados.clear();
   renderStats(datosFiltrados);
@@ -658,28 +644,15 @@ function aplicarFiltros() {
 }
 
 function actualizarChips() {
-  const labels = {
-    estado:  v=>`Estado: ${v.charAt(0).toUpperCase()+v.slice(1)}`,
-    lab:     v=>`Lab: ${v.length>26?v.substring(0,24)+'…':v}`,
-    usuario: v=>`Solicitante: ${v}`
-  };
+  const labels = { estado: v=>`Estado: ${v.charAt(0).toUpperCase()+v.slice(1)}`, lab: v=>`Lab: ${v.length>26?v.substring(0,24)+'…':v}`, usuario: v=>`Solicitante: ${v}` };
   let alguno = false;
   ['estado','lab','usuario'].forEach(tipo=>{
     const val  = filtrosGrafica[tipo];
     const chip = document.getElementById('chip-'+tipo);
     const pill = document.getElementById('pill-'+tipo);
     const card = document.getElementById('card-'+tipo);
-    if(val){
-      alguno=true;
-      chip.textContent=labels[tipo](val)+' ✕';
-      chip.style.display='inline-flex';
-      pill.classList.add('visible');
-      card.classList.add('chart-activo');
-    } else {
-      chip.style.display='none';
-      pill.classList.remove('visible');
-      card.classList.remove('chart-activo');
-    }
+    if(val){ alguno=true; chip.textContent=labels[tipo](val)+' ✕'; chip.style.display='inline-flex'; pill.classList.add('visible'); card.classList.add('chart-activo'); }
+    else   { chip.style.display='none'; pill.classList.remove('visible'); card.classList.remove('chart-activo'); }
   });
   document.getElementById('filtros-activos-bar').classList.toggle('visible',alguno);
 }
@@ -689,62 +662,38 @@ function limpiarTodosFiltrosGrafica(){ filtrosGrafica={estado:null,lab:null,usua
 function buscar(){ aplicarFiltros(); renderCharts(datosFiltrados); }
 function filtrarTabla(){ aplicarFiltros(); }
 function limpiarFormulario(){
-  ['filtro-fecha-inicio','filtro-fecha-fin','filtro-lab','filtro-solicitante','table-search']
-    .forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  ['filtro-fecha-inicio','filtro-fecha-fin','filtro-lab','filtro-solicitante','table-search'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
   filtrosGrafica={estado:null,lab:null,usuario:null};
   aplicarFiltros(); actualizarChips(); renderCharts(DATOS);
 }
 
-// ══════════════════════════════════════════════
-//  TABLA
-// ══════════════════════════════════════════════
 function renderTabla() {
   const tbody  = document.getElementById('tabla-body');
   const start  = (currentPage-1)*rowsPerPage;
   const end    = start+rowsPerPage;
   const pagina = datosFiltrados.slice(start,end);
-
-  document.getElementById('results-count').textContent =
-    datosFiltrados.length+' registro'+(datosFiltrados.length!==1?'s':'');
-  document.getElementById('pagination-info').textContent = datosFiltrados.length===0
-    ? 'Sin resultados'
-    : `Mostrando ${start+1} – ${Math.min(end,datosFiltrados.length)} de ${datosFiltrados.length} registros`;
-
+  document.getElementById('results-count').textContent = datosFiltrados.length+' registro'+(datosFiltrados.length!==1?'s':'');
+  document.getElementById('pagination-info').textContent = datosFiltrados.length===0 ? 'Sin resultados' : `Mostrando ${start+1} – ${Math.min(end,datosFiltrados.length)} de ${datosFiltrados.length} registros`;
   actualizarBadgeSeleccion();
-
-  if(!pagina.length){
-    tbody.innerHTML=`<tr><td colspan="11"><div class="empty-state">
-      <i class="fa-solid fa-magnifying-glass"></i><p>No se encontraron registros</p>
-    </div></td></tr>`;
-    renderPaginacion(); return;
-  }
-
+  if(!pagina.length){ tbody.innerHTML=`<tr><td colspan="11"><div class="empty-state"><i class="fa-solid fa-magnifying-glass"></i><p>No se encontraron registros</p></div></td></tr>`; renderPaginacion(); return; }
   const bCls={activo:'badge-activo',devuelto:'badge-devuelto',vencido:'badge-vencido'};
   const bLbl={activo:'Activo',devuelto:'Devuelto',vencido:'Vencido'};
   const bIco={activo:'fa-rotate',devuelto:'fa-circle-check',vencido:'fa-triangle-exclamation'};
-
   tbody.innerHTML = pagina.map((d,i)=>{
-    const idx=DATOS.indexOf(d);
-    const checked=seleccionados.has(idx);
-    const sol=SOLICITANTES[d.solicitante];
+    const idx=DATOS.indexOf(d); const checked=seleccionados.has(idx); const sol=SOLICITANTES[d.solicitante];
     return `<tr class="${checked?'selected-row':''}">
       <td><div class="cb-wrap"><input type="checkbox" data-idx="${idx}" ${checked?'checked':''} onchange="toggleFila(this)"/></div></td>
       <td style="color:var(--text-light);font-weight:700">${start+i+1}</td>
       <td><span class="inv-tag">${d.inventario}</span></td>
       <td style="font-weight:600;color:var(--text-dark)">${d.equipo}</td>
       <td style="font-size:11px">${d.lab}</td>
-      <td>${ff(d.salida)}</td>
-      <td>${ff(d.entrega)}</td>
-      <td>
-        <div style="font-weight:600;color:var(--text-dark)">${d.solicitante}</div>
-        <div class="modulo-tag"><i class="fa-solid fa-flask" style="font-size:8px"></i> ${sol?sol.modulo:'—'}</div>
-      </td>
+      <td>${ff(d.salida)}</td><td>${ff(d.entrega)}</td>
+      <td><div style="font-weight:600;color:var(--text-dark)">${d.solicitante}</div><div class="modulo-tag"><i class="fa-solid fa-flask" style="font-size:8px"></i> ${sol?sol.modulo:'—'}</div></td>
       <td style="font-size:11px;color:${d.observacion?'var(--text-medium)':'var(--text-light)'}">${d.observacion||'—'}</td>
       <td style="font-size:11px;color:${d.correccion?'#D97706':'var(--text-light)'}">${d.correccion||'—'}</td>
       <td><span class="badge ${bCls[d.estado]}"><i class="fa-solid ${bIco[d.estado]}"></i> ${bLbl[d.estado]}</span></td>
     </tr>`;
   }).join('');
-
   const idsEnPagina=pagina.map(d=>DATOS.indexOf(d));
   const cbAll=document.getElementById('cb-all');
   cbAll.checked       = idsEnPagina.length>0 && idsEnPagina.every(i=>seleccionados.has(i));
@@ -779,10 +728,7 @@ function actualizarBadgeSeleccion(){
   document.getElementById('btn-ver-seleccion').classList.toggle('visible',n>0);
 }
 
-function ff(f){
-  if(!f) return '—';
-  const [y,m,d]=f.split('-'); return `${d}/${m}/${y}`;
-}
+function ff(f){ if(!f) return '—'; const [y,m,d]=f.split('-'); return `${d}/${m}/${y}`; }
 
 function renderPaginacion(){
   const total=Math.ceil(datosFiltrados.length/rowsPerPage);
@@ -790,535 +736,132 @@ function renderPaginacion(){
   if(total<=1){ wrap.innerHTML=''; return; }
   let html=`<button class="page-btn" onclick="goPage(${currentPage-1})" ${currentPage===1?'disabled':''}><i class="fa-solid fa-chevron-left" style="font-size:10px"></i></button>`;
   for(let i=1;i<=total;i++){
-    if(i===1||i===total||Math.abs(i-currentPage)<=1)
-      html+=`<button class="page-btn ${i===currentPage?'active':''}" onclick="goPage(${i})">${i}</button>`;
-    else if(Math.abs(i-currentPage)===2)
-      html+=`<button class="page-btn" disabled>…</button>`;
+    if(i===1||i===total||Math.abs(i-currentPage)<=1) html+=`<button class="page-btn ${i===currentPage?'active':''}" onclick="goPage(${i})">${i}</button>`;
+    else if(Math.abs(i-currentPage)===2) html+=`<button class="page-btn" disabled>…</button>`;
   }
   html+=`<button class="page-btn" onclick="goPage(${currentPage+1})" ${currentPage===total?'disabled':''}><i class="fa-solid fa-chevron-right" style="font-size:10px"></i></button>`;
   wrap.innerHTML=html;
 }
 
-function goPage(p){
-  const total=Math.ceil(datosFiltrados.length/rowsPerPage);
-  if(p<1||p>total) return;
-  currentPage=p; renderTabla();
-}
+function goPage(p){ const total=Math.ceil(datosFiltrados.length/rowsPerPage); if(p<1||p>total) return; currentPage=p; renderTabla(); }
 
 function sortTable(col){
   if(sortCol===col) sortAsc=!sortAsc; else { sortCol=col; sortAsc=true; }
   const keys=[null,'_idx','inventario','equipo','lab','salida','entrega','solicitante','observacion','correccion','estado'];
   const key=keys[col];
-  datosFiltrados.sort((a,b)=>{
-    const va=String(a[key]||'').toLowerCase(), vb=String(b[key]||'').toLowerCase();
-    return sortAsc?va.localeCompare(vb):vb.localeCompare(va);
-  });
-  document.querySelectorAll('th.sortable').forEach((th,i)=>{
-    const rc=i+1;
-    th.classList.toggle('sorted',rc===col);
-    const ic=th.querySelector('.sort-icon');
-    if(ic) ic.className=`fa-solid ${rc===col?(sortAsc?'fa-sort-up':'fa-sort-down'):'fa-sort'} sort-icon`;
-  });
+  datosFiltrados.sort((a,b)=>{ const va=String(a[key]||'').toLowerCase(), vb=String(b[key]||'').toLowerCase(); return sortAsc?va.localeCompare(vb):vb.localeCompare(va); });
+  document.querySelectorAll('th.sortable').forEach((th,i)=>{ const rc=i+1; th.classList.toggle('sorted',rc===col); const ic=th.querySelector('.sort-icon'); if(ic) ic.className=`fa-solid ${rc===col?(sortAsc?'fa-sort-up':'fa-sort-down'):'fa-sort'} sort-icon`; });
   renderTabla();
 }
 
-// ══════════════════════════════════════════════
-//  HTML FORMATO (vista previa modal)
-// ══════════════════════════════════════════════
 function generarHTMLFormato(items){
   const fechaHoy=new Date().toLocaleDateString('es-CO',{day:'2-digit',month:'long',year:'numeric'});
-  const solPrincipal=items[0]?.solicitante||'—';
-  const labPrincipal=items[0]?.lab||'—';
-  const solInfo=SOLICITANTES[solPrincipal];
-
-  const filas=items.map((d,i)=>{
-    const estCls=d.estado==='activo'?'est-activo':d.estado==='vencido'?'est-vencido':'est-devuelto';
-    return `<tr>
-      <td class="center" style="font-weight:700">${i+1}</td>
-      <td><span class="inv">${d.inventario}</span></td>
-      <td style="font-weight:600">${d.equipo}</td>
-      <td style="font-size:9px">${d.lab}</td>
-      <td class="center">${ff(d.salida)}</td>
-      <td class="center">${ff(d.entrega)}</td>
-      <td style="font-weight:600">${d.solicitante}</td>
-      <td style="font-size:9px">${d.observacion||'—'}</td>
-      <td class="center ${estCls}">${d.estado.charAt(0).toUpperCase()+d.estado.slice(1)}</td>
-    </tr>`;
-  }).join('');
-
+  const solPrincipal=items[0]?.solicitante||'—'; const labPrincipal=items[0]?.lab||'—'; const solInfo=SOLICITANTES[solPrincipal];
+  const filas=items.map((d,i)=>{ const estCls=d.estado==='activo'?'est-activo':d.estado==='vencido'?'est-vencido':'est-devuelto'; return `<tr><td class="center" style="font-weight:700">${i+1}</td><td><span class="inv">${d.inventario}</span></td><td style="font-weight:600">${d.equipo}</td><td style="font-size:9px">${d.lab}</td><td class="center">${ff(d.salida)}</td><td class="center">${ff(d.entrega)}</td><td style="font-weight:600">${d.solicitante}</td><td style="font-size:9px">${d.observacion||'—'}</td><td class="center ${estCls}">${d.estado.charAt(0).toUpperCase()+d.estado.slice(1)}</td></tr>`; }).join('');
   const obs=items.map(d=>d.correccion).filter(Boolean).join(' | ')||'Sin observaciones adicionales.';
-
-  const copia=(num)=>`
-    <div class="formato-copy">
-      <div class="fc-label"><i class="fa-solid fa-copy"></i>
-        COPIA ${num} — ${num===1?'LABORATORIO / ADMINISTRACIÓN (ORIGINAL)':'SOLICITANTE / USUARIO (DUPLICADO)'}
-      </div>
-      <div class="fmt-header">
-        <div class="fmt-logo">
-          <img src="assets/images/LOGOUPB.jpg" alt="UPB"
-            onerror="this.style.display='none';this.parentElement.innerHTML='<div style=\'text-align:center;padding:6px\'><b style=\'font-size:14px;color:#6B1F7C\'>UPB</b></div>'"/>
-        </div>
-        <div class="fmt-title-block">
-          <h2>Formato de Préstamo de Elementos de Laboratorio</h2>
-          <p>Universidad Pontificia Bolivariana — Seccional Bucaramanga</p>
-          <div class="fmt-subtitulo">Vigilada Mineducación · Sistema de Préstamo de Laboratorios</div>
-        </div>
-        <div class="fmt-uni-block">
-          <div class="nombre">UPB Bucaramanga</div>
-          <div class="sub">Escuela de Ingeniería</div>
-          <div class="sub">Laboratorios y Talleres</div>
-          <div class="fecha-badge"><i class="fa-solid fa-calendar-day" style="font-size:8px"></i> ${fechaHoy}</div>
-        </div>
-      </div>
-      <div class="fmt-meta">
-        <div class="fmt-meta-item"><span class="lbl"><i class="fa-solid fa-flask"></i> Laboratorio</span><span class="val">${labPrincipal}</span></div>
-        <div class="fmt-meta-item"><span class="lbl"><i class="fa-solid fa-user"></i> Solicitante</span><span class="val">${solPrincipal}${solInfo?' · '+solInfo.id:''}</span></div>
-        <div class="fmt-meta-item"><span class="lbl"><i class="fa-solid fa-boxes-stacked"></i> Total elementos</span><span class="val">${items.length} elemento${items.length>1?'s':''}</span></div>
-        <div class="fmt-meta-item"><span class="lbl"><i class="fa-solid fa-user-shield"></i> Generado por</span><span class="val">${usuario.nombre}</span></div>
-      </div>
-      <table class="fmt-table">
-        <thead><tr>
-          <th class="center">#</th><th>No. Inv.</th><th>Equipo / Elemento</th><th>Laboratorio</th>
-          <th class="center">F. Salida</th><th class="center">F. Entrega</th><th>Solicitante</th><th>Observación</th><th class="center">Estado</th>
-        </tr></thead>
-        <tbody>${filas}</tbody>
-      </table>
-      <div class="fmt-obs">
-        <div class="obs-tit"><i class="fa-solid fa-clipboard-list"></i> Observaciones y Correcciones</div>
-        <div class="obs-texto">${obs}</div>
-      </div>
-      <div class="fmt-firmas">
-        <div class="fmt-firma"><div class="fmt-firma-espacio"></div><div class="fmt-firma-nombre">Encargado de Laboratorio</div><div class="fmt-firma-rol">Firma y Sello Oficial</div><div class="fmt-firma-extra">Nombre: _________________________</div></div>
-        <div class="fmt-firma"><div class="fmt-firma-espacio"></div><div class="fmt-firma-nombre">${solPrincipal}</div><div class="fmt-firma-rol">Solicitante — Firma de Recibido</div><div class="fmt-firma-extra">Módulo: ${solInfo?solInfo.modulo:'—'}</div></div>
-        <div class="fmt-firma"><div class="fmt-firma-espacio"></div><div class="fmt-firma-nombre">Visto Bueno — Dirección</div><div class="fmt-firma-rol">Director de Laboratorio</div><div class="fmt-firma-extra">Nombre: _________________________</div></div>
-      </div>
-      <div class="fmt-pie">Sistema de Préstamo de Laboratorio — Universidad Pontificia Bolivariana, Seccional Bucaramanga<br>
-        Generado automáticamente el ${fechaHoy} · Documento válido únicamente con las firmas requeridas</div>
-    </div>`;
-
+  const copia=(num)=>`<div class="formato-copy"><div class="fc-label"><i class="fa-solid fa-copy"></i> COPIA ${num} — ${num===1?'LABORATORIO / ADMINISTRACIÓN (ORIGINAL)':'SOLICITANTE / USUARIO (DUPLICADO)'}</div><div class="fmt-header"><div class="fmt-logo"><img src="assets/images/LOGOUPB.jpg" alt="UPB" onerror="this.style.display='none';this.parentElement.innerHTML='<div style=\'text-align:center;padding:6px\'><b style=\'font-size:14px;color:#6B1F7C\'>UPB</b></div>'"/></div><div class="fmt-title-block"><h2>Formato de Préstamo de Elementos de Laboratorio</h2><p>Universidad Pontificia Bolivariana — Seccional Bucaramanga</p><div class="fmt-subtitulo">Vigilada Mineducación · Sistema de Préstamo de Laboratorios</div></div><div class="fmt-uni-block"><div class="nombre">UPB Bucaramanga</div><div class="sub">Escuela de Ingeniería</div><div class="sub">Laboratorios y Talleres</div><div class="fecha-badge"><i class="fa-solid fa-calendar-day" style="font-size:8px"></i> ${fechaHoy}</div></div></div><div class="fmt-meta"><div class="fmt-meta-item"><span class="lbl"><i class="fa-solid fa-flask"></i> Laboratorio</span><span class="val">${labPrincipal}</span></div><div class="fmt-meta-item"><span class="lbl"><i class="fa-solid fa-user"></i> Solicitante</span><span class="val">${solPrincipal}${solInfo?' · '+solInfo.id:''}</span></div><div class="fmt-meta-item"><span class="lbl"><i class="fa-solid fa-boxes-stacked"></i> Total elementos</span><span class="val">${items.length} elemento${items.length>1?'s':''}</span></div><div class="fmt-meta-item"><span class="lbl"><i class="fa-solid fa-user-shield"></i> Generado por</span><span class="val">${usuario.nombre}</span></div></div><table class="fmt-table"><thead><tr><th class="center">#</th><th>No. Inv.</th><th>Equipo / Elemento</th><th>Laboratorio</th><th class="center">F. Salida</th><th class="center">F. Entrega</th><th>Solicitante</th><th>Observación</th><th class="center">Estado</th></tr></thead><tbody>${filas}</tbody></table><div class="fmt-obs"><div class="obs-tit"><i class="fa-solid fa-clipboard-list"></i> Observaciones y Correcciones</div><div class="obs-texto">${obs}</div></div><div class="fmt-firmas"><div class="fmt-firma"><div class="fmt-firma-espacio"></div><div class="fmt-firma-nombre">Encargado de Laboratorio</div><div class="fmt-firma-rol">Firma y Sello Oficial</div><div class="fmt-firma-extra">Nombre: _________________________</div></div><div class="fmt-firma"><div class="fmt-firma-espacio"></div><div class="fmt-firma-nombre">${solPrincipal}</div><div class="fmt-firma-rol">Solicitante — Firma de Recibido</div><div class="fmt-firma-extra">Módulo: ${solInfo?solInfo.modulo:'—'}</div></div><div class="fmt-firma"><div class="fmt-firma-espacio"></div><div class="fmt-firma-nombre">Visto Bueno — Dirección</div><div class="fmt-firma-rol">Director de Laboratorio</div><div class="fmt-firma-extra">Nombre: _________________________</div></div></div><div class="fmt-pie">Sistema de Préstamo de Laboratorio — Universidad Pontificia Bolivariana, Seccional Bucaramanga<br>Generado automáticamente el ${fechaHoy} · Documento válido únicamente con las firmas requeridas</div></div>`;
   return `<div class="formato-doc">${copia(1)}<hr class="fmt-corte">${copia(2)}</div>`;
 }
 
-// ══════════════════════════════════════════════
-//  VER SELECCIÓN — abre modal vista previa
-// ══════════════════════════════════════════════
 function abrirFormatoSeleccionados(){
   if(!seleccionados.size){ alert('Selecciona al menos un registro con el checkbox.'); return; }
   const items=[...seleccionados].sort((a,b)=>a-b).map(i=>DATOS[i]);
   itemsParaPDF=items;
   document.getElementById('modal-formato-body').innerHTML=generarHTMLFormato(items);
-  document.getElementById('modal-footer-info').textContent=
-    `${items.length} elemento${items.length>1?'s':''} seleccionado${items.length>1?'s':''}`;
+  document.getElementById('modal-footer-info').textContent=`${items.length} elemento${items.length>1?'s':''} seleccionado${items.length>1?'s':''}`;
   document.getElementById('modal-formato').classList.add('open');
 }
 
 function cerrarFormato(){ document.getElementById('modal-formato').classList.remove('open'); }
 document.getElementById('modal-formato').addEventListener('click',function(e){ if(e.target===this) cerrarFormato(); });
 
-// ══════════════════════════════════════════════
-//  IMAGEN A BASE64
-// ══════════════════════════════════════════════
 function imgToBase64(src){
   return new Promise(resolve=>{
-    const img=new Image();
-    img.crossOrigin='anonymous';
-    img.onload=()=>{
-      try{
-        const c=document.createElement('canvas');
-        c.width=img.naturalWidth||img.width||200;
-        c.height=img.naturalHeight||img.height||200;
-        c.getContext('2d').drawImage(img,0,0);
-        resolve(c.toDataURL('image/jpeg',0.92));
-      }catch(e){ resolve(null); }
-    };
+    const img=new Image(); img.crossOrigin='anonymous';
+    img.onload=()=>{ try{ const c=document.createElement('canvas'); c.width=img.naturalWidth||img.width||200; c.height=img.naturalHeight||img.height||200; c.getContext('2d').drawImage(img,0,0); resolve(c.toDataURL('image/jpeg',0.92)); }catch(e){ resolve(null); } };
     img.onerror=()=>resolve(null);
     img.src=src+(src.includes('?')?'&':'?')+'cb='+Date.now();
   });
 }
 
-// ══════════════════════════════════════════════
-//  GENERAR PDF FORMATO (dos copias + línea corte)
-//  Función compartida por Ver Selección y botón PDF
-// ══════════════════════════════════════════════
 async function generarPDFFormato(items){
   if(!items||!items.length){ alert('No hay registros para generar el PDF.'); return; }
   document.getElementById('spinner').classList.add('visible');
-
   const logoB64=await imgToBase64('assets/images/LOGOUPB.jpg');
   const {jsPDF}=window.jspdf;
   const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
   const fechaHoy=new Date().toLocaleDateString('es-CO',{day:'2-digit',month:'long',year:'numeric'});
-  const solPpal=items[0]?.solicitante||'—';
-  const labPpal=items[0]?.lab||'—';
-  const solInfo=SOLICITANTES[solPpal];
-
+  const solPpal=items[0]?.solicitante||'—'; const labPpal=items[0]?.lab||'—'; const solInfo=SOLICITANTES[solPpal];
   const dibujarCopia=(top,numCopia)=>{
-    const labelCopia=numCopia===1
-      ?'COPIA 1 — LABORATORIO / ADMINISTRACIÓN (ORIGINAL)'
-      :'COPIA 2 — SOLICITANTE / USUARIO (DUPLICADO)';
-
-    doc.setDrawColor(210,210,210); doc.setLineWidth(0.4);
-    doc.roundedRect(10,top,190,133,3,3);
-
-    doc.setFontSize(6.5); doc.setFont('helvetica','bold'); doc.setTextColor(155,155,155);
-    doc.text(labelCopia,14,top+5.5);
-    doc.setDrawColor(107,31,124); doc.setLineWidth(0.9);
-    doc.line(14,top+7.5,196,top+7.5);
-
-    if(logoB64){ doc.addImage(logoB64,'JPEG',14,top+9.5,20,20); }
-    else{
-      doc.setFillColor(245,238,248); doc.roundedRect(14,top+9.5,20,20,2,2,'F');
-      doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(107,31,124);
-      doc.text('UPB',24,top+21,{align:'center'});
-    }
-
-    doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(107,31,124);
-    doc.text('FORMATO DE PRÉSTAMO DE ELEMENTOS DE LABORATORIO',105,top+14,{align:'center'});
-    doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(100,100,100);
-    doc.text('Universidad Pontificia Bolivariana — Seccional Bucaramanga',105,top+19,{align:'center'});
-    doc.setFontSize(7);
-    doc.text('Vigilada Mineducación · Sistema de Préstamo de Laboratorios',105,top+23,{align:'center'});
-
-    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(107,31,124);
-    doc.text('UPB Bucaramanga',196,top+12,{align:'right'});
-    doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(120);
-    doc.text('Escuela de Ingeniería',196,top+16.5,{align:'right'});
-    doc.text('Laboratorios y Talleres',196,top+20.5,{align:'right'});
-    doc.setFillColor(107,31,124); doc.roundedRect(171,top+23,25,5.5,1.5,1.5,'F');
-    doc.setTextColor(255); doc.setFontSize(6.5); doc.setFont('helvetica','bold');
-    doc.text(fechaHoy,183.5,top+27,{align:'center'});
-
-    const metas=[
-      ['Laboratorio',   labPpal.length>26?labPpal.substring(0,24)+'…':labPpal],
-      ['Solicitante',   solPpal+(solInfo?' · '+solInfo.id:'')],
-      ['Total elementos',items.length+' elemento'+(items.length!==1?'s':'')],
-      ['Generado por',  usuario.nombre],
-    ];
-    metas.forEach((m,i)=>{
-      const x=14+i*47;
-      doc.setFillColor(249,245,251); doc.setDrawColor(220,200,230); doc.setLineWidth(0.3);
-      doc.roundedRect(x,top+32,46,10,1.5,1.5,'FD');
-      doc.setTextColor(107,31,124); doc.setFontSize(6.5); doc.setFont('helvetica','bold');
-      doc.text(m[0],x+3,top+36.5);
-      doc.setTextColor(26,26,46); doc.setFontSize(7.5); doc.setFont('helvetica','bold');
-      doc.text(String(m[1]),x+3,top+40.5);
+    const labelCopia=numCopia===1?'COPIA 1 — LABORATORIO / ADMINISTRACIÓN (ORIGINAL)':'COPIA 2 — SOLICITANTE / USUARIO (DUPLICADO)';
+    doc.setDrawColor(210,210,210); doc.setLineWidth(0.4); doc.roundedRect(10,top,190,133,3,3);
+    doc.setFontSize(6.5); doc.setFont('helvetica','bold'); doc.setTextColor(155,155,155); doc.text(labelCopia,14,top+5.5);
+    doc.setDrawColor(107,31,124); doc.setLineWidth(0.9); doc.line(14,top+7.5,196,top+7.5);
+    if(logoB64){ doc.addImage(logoB64,'JPEG',14,top+9.5,20,20); } else { doc.setFillColor(245,238,248); doc.roundedRect(14,top+9.5,20,20,2,2,'F'); doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(107,31,124); doc.text('UPB',24,top+21,{align:'center'}); }
+    doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(107,31,124); doc.text('FORMATO DE PRÉSTAMO DE ELEMENTOS DE LABORATORIO',105,top+14,{align:'center'});
+    doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(100,100,100); doc.text('Universidad Pontificia Bolivariana — Seccional Bucaramanga',105,top+19,{align:'center'});
+    doc.setFontSize(7); doc.text('Vigilada Mineducación · Sistema de Préstamo de Laboratorios',105,top+23,{align:'center'});
+    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(107,31,124); doc.text('UPB Bucaramanga',196,top+12,{align:'right'});
+    doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(120); doc.text('Escuela de Ingeniería',196,top+16.5,{align:'right'}); doc.text('Laboratorios y Talleres',196,top+20.5,{align:'right'});
+    doc.setFillColor(107,31,124); doc.roundedRect(171,top+23,25,5.5,1.5,1.5,'F'); doc.setTextColor(255); doc.setFontSize(6.5); doc.setFont('helvetica','bold'); doc.text(fechaHoy,183.5,top+27,{align:'center'});
+    const metas=[['Laboratorio',labPpal.length>26?labPpal.substring(0,24)+'…':labPpal],['Solicitante',solPpal+(solInfo?' · '+solInfo.id:'')],['Total elementos',items.length+' elemento'+(items.length!==1?'s':'')],['Generado por',usuario.nombre]];
+    metas.forEach((m,i)=>{ const x=14+i*47; doc.setFillColor(249,245,251); doc.setDrawColor(220,200,230); doc.setLineWidth(0.3); doc.roundedRect(x,top+32,46,10,1.5,1.5,'FD'); doc.setTextColor(107,31,124); doc.setFontSize(6.5); doc.setFont('helvetica','bold'); doc.text(m[0],x+3,top+36.5); doc.setTextColor(26,26,46); doc.setFontSize(7.5); doc.setFont('helvetica','bold'); doc.text(String(m[1]),x+3,top+40.5); });
+    doc.autoTable({ startY:top+45, head:[['#','No. Inv.','Equipo / Elemento','Laboratorio','Salida','Entrega','Solicitante','Observación','Estado']], body:items.map((d,i)=>[i+1,d.inventario,d.equipo.length>32?d.equipo.substring(0,30)+'…':d.equipo,d.lab.length>22?d.lab.substring(0,20)+'…':d.lab,ff(d.salida),ff(d.entrega),d.solicitante,(d.observacion||'—').length>28?(d.observacion||'—').substring(0,26)+'…':(d.observacion||'—'),d.estado.charAt(0).toUpperCase()+d.estado.slice(1)]), headStyles:{fillColor:[107,31,124],textColor:255,fontSize:7,fontStyle:'bold',halign:'left',cellPadding:3}, bodyStyles:{fontSize:6.5,textColor:[50,50,80],cellPadding:2.5}, alternateRowStyles:{fillColor:[248,244,252]}, columnStyles:{0:{cellWidth:7,halign:'center'},1:{cellWidth:17},2:{cellWidth:34},3:{cellWidth:28},4:{cellWidth:14,halign:'center'},5:{cellWidth:14,halign:'center'},6:{cellWidth:22},7:{cellWidth:30},8:{cellWidth:14,halign:'center'}}, margin:{left:14,right:14}, tableWidth:182,
+      didDrawCell(data){ if(data.section==='body'&&data.column.index===8){ const v=data.cell.raw.toLowerCase(); const cfg={activo:{bg:[236,253,245],tx:[6,95,70]},devuelto:{bg:[239,246,255],tx:[29,78,216]},vencido:{bg:[254,242,242],tx:[153,27,27]}}; if(cfg[v]){ doc.setFillColor(...cfg[v].bg); doc.roundedRect(data.cell.x+1,data.cell.y+1,data.cell.width-2,data.cell.height-2,1,1,'F'); doc.setTextColor(...cfg[v].tx); doc.setFontSize(6.5); doc.setFont('helvetica','bold'); doc.text(data.cell.raw,data.cell.x+data.cell.width/2,data.cell.y+data.cell.height/2+1,{align:'center'}); } } }
     });
-
-    doc.autoTable({
-      startY:top+45,
-      head:[['#','No. Inv.','Equipo / Elemento','Laboratorio','Salida','Entrega','Solicitante','Observación','Estado']],
-      body:items.map((d,i)=>[
-        i+1, d.inventario,
-        d.equipo.length>32?d.equipo.substring(0,30)+'…':d.equipo,
-        d.lab.length>22?d.lab.substring(0,20)+'…':d.lab,
-        ff(d.salida), ff(d.entrega), d.solicitante,
-        (d.observacion||'—').length>28?(d.observacion||'—').substring(0,26)+'…':(d.observacion||'—'),
-        d.estado.charAt(0).toUpperCase()+d.estado.slice(1)
-      ]),
-      headStyles:{fillColor:[107,31,124],textColor:255,fontSize:7,fontStyle:'bold',halign:'left',cellPadding:3},
-      bodyStyles:{fontSize:6.5,textColor:[50,50,80],cellPadding:2.5},
-      alternateRowStyles:{fillColor:[248,244,252]},
-      columnStyles:{
-        0:{cellWidth:7,halign:'center'},1:{cellWidth:17},2:{cellWidth:34},3:{cellWidth:28},
-        4:{cellWidth:14,halign:'center'},5:{cellWidth:14,halign:'center'},6:{cellWidth:22},
-        7:{cellWidth:30},8:{cellWidth:14,halign:'center'}
-      },
-      margin:{left:14,right:14}, tableWidth:182,
-      didDrawCell(data){
-        if(data.section==='body'&&data.column.index===8){
-          const v=data.cell.raw.toLowerCase();
-          const cfg={activo:{bg:[236,253,245],tx:[6,95,70]},devuelto:{bg:[239,246,255],tx:[29,78,216]},vencido:{bg:[254,242,242],tx:[153,27,27]}};
-          if(cfg[v]){
-            doc.setFillColor(...cfg[v].bg);
-            doc.roundedRect(data.cell.x+1,data.cell.y+1,data.cell.width-2,data.cell.height-2,1,1,'F');
-            doc.setTextColor(...cfg[v].tx); doc.setFontSize(6.5); doc.setFont('helvetica','bold');
-            doc.text(data.cell.raw,data.cell.x+data.cell.width/2,data.cell.y+data.cell.height/2+1,{align:'center'});
-          }
-        }
-      }
-    });
-
     const afterTable=doc.lastAutoTable.finalY+4;
     const obs=items.map(d=>d.correccion).filter(Boolean).join(' | ')||'Sin observaciones adicionales.';
-    doc.setFillColor(250,249,252); doc.setDrawColor(220,200,230); doc.setLineWidth(0.3);
-    doc.roundedRect(14,afterTable,182,11,2,2,'FD');
-    doc.setTextColor(107,31,124); doc.setFontSize(6.5); doc.setFont('helvetica','bold');
-    doc.text('OBSERVACIONES Y CORRECCIONES:',17,afterTable+5);
-    doc.setTextColor(80,80,80); doc.setFont('helvetica','normal');
-    doc.text(obs.length>115?obs.substring(0,113)+'…':obs,17,afterTable+9);
-
+    doc.setFillColor(250,249,252); doc.setDrawColor(220,200,230); doc.setLineWidth(0.3); doc.roundedRect(14,afterTable,182,11,2,2,'FD');
+    doc.setTextColor(107,31,124); doc.setFontSize(6.5); doc.setFont('helvetica','bold'); doc.text('OBSERVACIONES Y CORRECCIONES:',17,afterTable+5);
+    doc.setTextColor(80,80,80); doc.setFont('helvetica','normal'); doc.text(obs.length>115?obs.substring(0,113)+'…':obs,17,afterTable+9);
     const firmY=afterTable+18;
-    const firmas=[
-      {nombre:'Encargado de Laboratorio',rol:'Firma y Sello Oficial',    extra:'Nombre: ______________________'},
-      {nombre:solPpal,                   rol:'Solicitante — Recibido',   extra:'Módulo: '+(solInfo?solInfo.modulo.substring(0,22)+'…':'—')},
-      {nombre:'Director de Laboratorio', rol:'Visto Bueno — Dirección',  extra:'Nombre: ______________________'},
-    ];
-    firmas.forEach((f,i)=>{
-      const x=14+i*63;
-      doc.setDrawColor(50,50,50); doc.setLineWidth(0.6);
-      doc.line(x+3,firmY+14,x+59,firmY+14);
-      doc.setTextColor(26,26,46); doc.setFontSize(7); doc.setFont('helvetica','bold');
-      doc.text(f.nombre,x+31,firmY+18.5,{align:'center',maxWidth:56});
-      doc.setTextColor(120); doc.setFontSize(6.5); doc.setFont('helvetica','normal');
-      doc.text(f.rol,x+31,firmY+22.5,{align:'center'});
-      doc.setTextColor(160);
-      doc.text(f.extra,x+31,firmY+26.5,{align:'center'});
-    });
-
-    doc.setTextColor(185); doc.setFontSize(6); doc.setFont('helvetica','normal');
-    doc.text(`Sistema de Préstamo de Laboratorio — UPB Bucaramanga · ${fechaHoy} · Válido con firmas requeridas`,
-      105,top+132,{align:'center'});
+    const firmas=[{nombre:'Encargado de Laboratorio',rol:'Firma y Sello Oficial',extra:'Nombre: ______________________'},{nombre:solPpal,rol:'Solicitante — Recibido',extra:'Módulo: '+(solInfo?solInfo.modulo.substring(0,22)+'…':'—')},{nombre:'Director de Laboratorio',rol:'Visto Bueno — Dirección',extra:'Nombre: ______________________'}];
+    firmas.forEach((f,i)=>{ const x=14+i*63; doc.setDrawColor(50,50,50); doc.setLineWidth(0.6); doc.line(x+3,firmY+14,x+59,firmY+14); doc.setTextColor(26,26,46); doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.text(f.nombre,x+31,firmY+18.5,{align:'center',maxWidth:56}); doc.setTextColor(120); doc.setFontSize(6.5); doc.setFont('helvetica','normal'); doc.text(f.rol,x+31,firmY+22.5,{align:'center'}); doc.setTextColor(160); doc.text(f.extra,x+31,firmY+26.5,{align:'center'}); });
+    doc.setTextColor(185); doc.setFontSize(6); doc.setFont('helvetica','normal'); doc.text(`Sistema de Préstamo de Laboratorio — UPB Bucaramanga · ${fechaHoy} · Válido con firmas requeridas`,105,top+132,{align:'center'});
   };
-
   dibujarCopia(8,1);
-  doc.setDrawColor(170); doc.setLineWidth(0.3);
-  doc.setLineDashPattern([2,2],0);
-  doc.line(10,149,200,149);
-  doc.setLineDashPattern([],0);
-  doc.setTextColor(170); doc.setFontSize(7); doc.setFont('helvetica','normal');
-  doc.text('✂   CORTAR POR ESTA LÍNEA',105,153,{align:'center'});
+  doc.setDrawColor(170); doc.setLineWidth(0.3); doc.setLineDashPattern([2,2],0); doc.line(10,149,200,149); doc.setLineDashPattern([],0);
+  doc.setTextColor(170); doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.text('✂   CORTAR POR ESTA LÍNEA',105,153,{align:'center'});
   dibujarCopia(157,2);
-
   document.getElementById('spinner').classList.remove('visible');
   doc.save(`formato-prestamo-UPB-${items.length}items-${hoy()}.pdf`);
 }
 
-// ══════════════════════════════════════════════
-//  BOTÓN PDF — usa los checkboxes seleccionados
-//  igual que Ver Selección pero sin abrir modal
-// ══════════════════════════════════════════════
 async function exportarPDF(){
   if(!seleccionados.size){ alert('Selecciona al menos un registro con el checkbox para exportar el PDF.'); return; }
   const items=[...seleccionados].sort((a,b)=>a-b).map(i=>DATOS[i]);
   await generarPDFFormato(items);
 }
 
-// ══════════════════════════════════════════════
-//  EXPORTAR CSV
-// ══════════════════════════════════════════════
 function exportarCSV(){
   const h=['No. Inventario','Equipo','Laboratorio','Salida','Entrega','Solicitante','Módulo','Observación','Corrección','Estado'];
-  const rows=datosFiltrados.map(d=>{
-    const s=SOLICITANTES[d.solicitante];
-    return [d.inventario,d.equipo,d.lab,ff(d.salida),ff(d.entrega),d.solicitante,s?s.modulo:'',d.observacion,d.correccion,d.estado];
-  });
-  dl('\uFEFF'+[h,...rows].map(r=>r.map(v=>`"${v}"`).join(',')).join('\n'),
-    `reporte-resumen-${hoy()}.csv`,'text/csv;charset=utf-8;');
+  const rows=datosFiltrados.map(d=>{ const s=SOLICITANTES[d.solicitante]; return [d.inventario,d.equipo,d.lab,ff(d.salida),ff(d.entrega),d.solicitante,s?s.modulo:'',d.observacion,d.correccion,d.estado]; });
+  dl('\uFEFF'+[h,...rows].map(r=>r.map(v=>`"${v}"`).join(',')).join('\n'),`reporte-resumen-${hoy()}.csv`,'text/csv;charset=utf-8;');
 }
 
-// ══════════════════════════════════════════════
-//  EXPORTAR XLS — tabla bonita con SheetJS
-//  Hoja 1: Datos con encabezado coloreado UPB
-//  Hoja 2: Resumen estadístico
-// ══════════════════════════════════════════════
 function exportarXLS(){
-  const wb = XLSX.utils.book_new();
-
-  // ── HOJA 1: DATOS ──
-  const fechaHoy = new Date().toLocaleDateString('es-CO',{day:'2-digit',month:'long',year:'numeric'});
-
-  // Fila de título principal (fila 1)
-  const titulo = [['REPORTE RESUMEN DE PRÉSTAMOS — UNIVERSIDAD PONTIFICIA BOLIVARIANA','','','','','','','','','']];
-  const subtit  = [[`Generado: ${fechaHoy}   |   Usuario: ${usuario.nombre}   |   ${usuario.lab}`,'','','','','','','','','']];
-  const vacia   = [['','','','','','','','','','']];
-
-  // Encabezados de columna
-  const headers = [['#','No. Inventario','Equipo / Elemento','Laboratorio','F. Salida','F. Entrega','Solicitante','Módulo','Observación','Corrección','Estado']];
-
-  // Filas de datos
-  const rows = datosFiltrados.map((d,i)=>{
-    const s=SOLICITANTES[d.solicitante];
-    return [
-      i+1,
-      d.inventario,
-      d.equipo,
-      d.lab,
-      ff(d.salida),
-      ff(d.entrega),
-      d.solicitante,
-      s?s.modulo:'—',
-      d.observacion||'—',
-      d.correccion||'—',
-      d.estado.charAt(0).toUpperCase()+d.estado.slice(1)
-    ];
-  });
-
-  // Combinar todo
-  const sheetData = [...titulo, ...subtit, ...vacia, ...headers, ...rows];
-  const ws = XLSX.utils.aoa_to_sheet(sheetData);
-
-  // Anchos de columna
-  ws['!cols'] = [
-    {wch:5},{wch:14},{wch:36},{wch:34},{wch:12},{wch:12},
-    {wch:20},{wch:34},{wch:30},{wch:28},{wch:12}
-  ];
-
-  // Combinar celdas del título y subtítulo
-  ws['!merges'] = [
-    {s:{r:0,c:0}, e:{r:0,c:10}},
-    {s:{r:1,c:0}, e:{r:1,c:10}},
-  ];
-
-  // Estilos: título (morado UPB), encabezados (morado), filas alternas
-  const purpleFill  = {patternType:'solid', fgColor:{rgb:'6B1F7C'}};
-  const pinkFill    = {patternType:'solid', fgColor:{rgb:'C0186A'}};
-  const lightFill   = {patternType:'solid', fgColor:{rgb:'F5EEF8'}};
-  const altFill     = {patternType:'solid', fgColor:{rgb:'F9F5FB'}};
-  const whiteFill   = {patternType:'solid', fgColor:{rgb:'FFFFFF'}};
-  const whiteFont   = {bold:true, color:{rgb:'FFFFFF'}, name:'Arial', sz:11};
-  const boldPurple  = {bold:true, color:{rgb:'6B1F7C'}, name:'Arial', sz:10};
-  const normalFont  = {name:'Arial', sz:10};
-  const thinBorder  = {style:'thin', color:{rgb:'D0B8E0'}};
-  const border      = {top:thinBorder, bottom:thinBorder, left:thinBorder, right:thinBorder};
-
-  // Estilo celda título
-  const A1 = ws['A1'] || (ws['A1']={t:'s',v:sheetData[0][0]});
-  A1.s = { fill:purpleFill, font:{bold:true,color:{rgb:'FFFFFF'},name:'Arial',sz:14}, alignment:{horizontal:'center',vertical:'center'} };
-
-  // Estilo subtítulo
-  const A2 = ws['A2'] || (ws['A2']={t:'s',v:sheetData[1][0]});
-  A2.s = { fill:lightFill, font:{bold:false,color:{rgb:'4A1258'},name:'Arial',sz:10}, alignment:{horizontal:'center',vertical:'center'} };
-
-  // Estilos encabezados (fila 4, índice 3)
-  const colLetters=['A','B','C','D','E','F','G','H','I','J','K'];
-  colLetters.forEach((col,ci)=>{
-    const cellRef = `${col}4`;
-    if(ws[cellRef]){
-      ws[cellRef].s = {
-        fill: pinkFill,
-        font: {bold:true, color:{rgb:'FFFFFF'}, name:'Arial', sz:10},
-        alignment: {horizontal:'center', vertical:'center', wrapText:true},
-        border
-      };
-    }
-  });
-
-  // Estilos filas de datos (desde fila 5)
-  rows.forEach((row, ri)=>{
-    const excelRow = ri + 5; // fila Excel (1-based): título=1,subtit=2,vacia=3,header=4,datos=5+
-    const isAlt = ri % 2 === 1;
-    colLetters.forEach((col, ci)=>{
-      const cellRef = `${col}${excelRow}`;
-      if(ws[cellRef]){
-        // Color de estado en columna K (índice 10)
-        let fontColor = '333333';
-        let cellFill  = isAlt ? altFill : whiteFill;
-        if(ci === 10){
-          const v = String(ws[cellRef].v).toLowerCase();
-          if(v==='activo')   { fontColor='065F46'; cellFill={patternType:'solid',fgColor:{rgb:'D1FAE5'}}; }
-          if(v==='vencido')  { fontColor='991B1B'; cellFill={patternType:'solid',fgColor:{rgb:'FEE2E2'}}; }
-          if(v==='devuelto') { fontColor='1D4ED8'; cellFill={patternType:'solid',fgColor:{rgb:'DBEAFE'}}; }
-        }
-        // Columna # centrada
-        const align = (ci===0||ci===4||ci===5||ci===10)
-          ? {horizontal:'center',vertical:'center',wrapText:true}
-          : {horizontal:'left',  vertical:'center',wrapText:true};
-        ws[cellRef].s = {
-          fill: cellFill,
-          font: {bold: ci===1||ci===6, color:{rgb:fontColor}, name:'Arial', sz:10},
-          alignment: align,
-          border
-        };
-      }
-    });
-  });
-
-  // Altura de filas
-  ws['!rows'] = [
-    {hpt:28},  // título
-    {hpt:18},  // subtítulo
-    {hpt:8},   // vacía
-    {hpt:22},  // encabezados
-    ...rows.map(()=>({hpt:18}))
-  ];
-
-  XLSX.utils.book_append_sheet(wb, ws, 'Préstamos');
-
-  // ── HOJA 2: RESUMEN ESTADÍSTICO ──
-  const total     = datosFiltrados.length;
-  const devueltos = datosFiltrados.filter(d=>d.estado==='devuelto').length;
-  const activos   = datosFiltrados.filter(d=>d.estado==='activo').length;
-  const vencidos  = datosFiltrados.filter(d=>d.estado==='vencido').length;
-  const solicitantes = new Set(datosFiltrados.map(d=>d.solicitante)).size;
-
-  const resumenData = [
-    ['RESUMEN ESTADÍSTICO — REPORTE UPB',''],
-    [`Generado: ${fechaHoy}`,''],
-    ['',''],
-    ['INDICADOR','VALOR'],
-    ['Total de Préstamos', total],
-    ['Préstamos Devueltos', devueltos],
-    ['Préstamos Activos', activos],
-    ['Préstamos Vencidos', vencidos],
-    ['Solicitantes Únicos', solicitantes],
-    ['',''],
-    ['DISTRIBUCIÓN POR LABORATORIO',''],
-    ['Laboratorio','Cantidad'],
-  ];
-
-  // Por laboratorio
-  const labMap={};
-  datosFiltrados.forEach(d=>{ labMap[d.lab]=(labMap[d.lab]||0)+1; });
-  Object.entries(labMap).forEach(([lab,cnt])=>{ resumenData.push([lab,cnt]); });
-
-  resumenData.push(['','']);
-  resumenData.push(['DISTRIBUCIÓN POR SOLICITANTE','']);
-  resumenData.push(['Solicitante','Cantidad']);
-  const usrMap={};
-  datosFiltrados.forEach(d=>{ usrMap[d.solicitante]=(usrMap[d.solicitante]||0)+1; });
-  Object.entries(usrMap).forEach(([u,cnt])=>{ resumenData.push([u,cnt]); });
-
-  const ws2 = XLSX.utils.aoa_to_sheet(resumenData);
-  ws2['!cols'] = [{wch:40},{wch:16}];
-  ws2['!merges'] = [
-    {s:{r:0,c:0},e:{r:0,c:1}},
-    {s:{r:1,c:0},e:{r:1,c:1}},
-  ];
-
-  // Estilos resumen
-  if(ws2['A1']) ws2['A1'].s={ fill:purpleFill, font:{bold:true,color:{rgb:'FFFFFF'},name:'Arial',sz:13}, alignment:{horizontal:'center',vertical:'center'} };
-  if(ws2['A2']) ws2['A2'].s={ fill:lightFill,  font:{bold:false,color:{rgb:'4A1258'},name:'Arial',sz:10}, alignment:{horizontal:'center'} };
-  // Encabezados de secciones y tablas
-  [[3,'A4'],[3,'B4'],[10,'A11'],[11,'A12'],[11,'B12']].forEach(([ri,ref])=>{
-    if(ws2[ref]) ws2[ref].s={ fill:pinkFill, font:{bold:true,color:{rgb:'FFFFFF'},name:'Arial',sz:10}, alignment:{horizontal:'center',vertical:'center'}, border };
-  });
-  // Filas de datos estadísticos (filas 5-9)
-  for(let ri=4;ri<=8;ri++){
-    const refa=`A${ri+1}`, refb=`B${ri+1}`;
-    const isAlt=ri%2===0;
-    if(ws2[refa]) ws2[refa].s={ fill:isAlt?altFill:whiteFill, font:{bold:true,color:{rgb:'4A1258'},name:'Arial',sz:10}, alignment:{horizontal:'left',vertical:'center'}, border };
-    if(ws2[refb]) ws2[refb].s={ fill:isAlt?altFill:whiteFill, font:{bold:true,color:{rgb:'6B1F7C'},name:'Arial',sz:11}, alignment:{horizontal:'center',vertical:'center'}, border };
-  }
-  ws2['!rows']=[{hpt:26},{hpt:16},{hpt:8},{hpt:20}];
-
-  XLSX.utils.book_append_sheet(wb, ws2, 'Resumen');
-
-  // Descargar
-  XLSX.writeFile(wb, `reporte-resumen-UPB-${hoy()}.xlsx`);
+  const wb=XLSX.utils.book_new();
+  const fechaHoy=new Date().toLocaleDateString('es-CO',{day:'2-digit',month:'long',year:'numeric'});
+  const titulo=[['REPORTE RESUMEN DE PRÉSTAMOS — UNIVERSIDAD PONTIFICIA BOLIVARIANA','','','','','','','','','']];
+  const subtit=[[`Generado: ${fechaHoy}   |   Usuario: ${usuario.nombre}   |   ${usuario.lab}`,'','','','','','','','','']];
+  const vacia=[['','','','','','','','','','']];
+  const headers=[['#','No. Inventario','Equipo / Elemento','Laboratorio','F. Salida','F. Entrega','Solicitante','Módulo','Observación','Corrección','Estado']];
+  const rows=datosFiltrados.map((d,i)=>{ const s=SOLICITANTES[d.solicitante]; return [i+1,d.inventario,d.equipo,d.lab,ff(d.salida),ff(d.entrega),d.solicitante,s?s.modulo:'—',d.observacion||'—',d.correccion||'—',d.estado.charAt(0).toUpperCase()+d.estado.slice(1)]; });
+  const sheetData=[...titulo,...subtit,...vacia,...headers,...rows];
+  const ws=XLSX.utils.aoa_to_sheet(sheetData);
+  ws['!cols']=[{wch:5},{wch:14},{wch:36},{wch:34},{wch:12},{wch:12},{wch:20},{wch:34},{wch:30},{wch:28},{wch:12}];
+  ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:10}},{s:{r:1,c:0},e:{r:1,c:10}}];
+  XLSX.utils.book_append_sheet(wb,ws,'Préstamos');
+  const total=datosFiltrados.length; const devueltos=datosFiltrados.filter(d=>d.estado==='devuelto').length; const activos=datosFiltrados.filter(d=>d.estado==='activo').length; const vencidos=datosFiltrados.filter(d=>d.estado==='vencido').length; const solicitantes=new Set(datosFiltrados.map(d=>d.solicitante)).size;
+  const resumenData=[['RESUMEN ESTADÍSTICO — REPORTE UPB',''],['',''],['INDICADOR','VALOR'],['Total de Préstamos',total],['Préstamos Devueltos',devueltos],['Préstamos Activos',activos],['Préstamos Vencidos',vencidos],['Solicitantes Únicos',solicitantes]];
+  const ws2=XLSX.utils.aoa_to_sheet(resumenData);
+  ws2['!cols']=[{wch:40},{wch:16}];
+  XLSX.utils.book_append_sheet(wb,ws2,'Resumen');
+  XLSX.writeFile(wb,`reporte-resumen-UPB-${hoy()}.xlsx`);
 }
 
-// ══════════════════════════════════════════════
-//  UTILIDADES
-// ══════════════════════════════════════════════
-function dl(content,filename,type){
-  const blob=new Blob([content],{type});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url; a.download=filename; a.click();
-  URL.revokeObjectURL(url);
-}
+function dl(content,filename,type){ const blob=new Blob([content],{type}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=filename; a.click(); URL.revokeObjectURL(url); }
 function hoy(){ return new Date().toLocaleDateString('es-CO').replace(/\//g,'-'); }
-function toggleSidebar(){ document.getElementById('sidebar').classList.toggle('collapsed'); }
-function toggleDropdown(){ document.getElementById('dropdown-acciones').classList.toggle('open'); }
-function toggleMenu(item){
-  const isOpen=item.classList.contains('open');
-  document.querySelectorAll('.nav-item.open').forEach(el=>el.classList.remove('open'));
-  if(!isOpen) item.classList.add('open');
-}
-document.addEventListener('click',e=>{
-  if(!e.target.closest('.acciones-wrap'))
-    document.getElementById('dropdown-acciones').classList.remove('open');
-});
 </script>
 </body>
 </html>

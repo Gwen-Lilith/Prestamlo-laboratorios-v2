@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Solicitud de Elementos - UPB</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --upb-purple:#6B1F7C;--upb-purple-dark:#4A1258;--upb-pink:#C0186A;
+      --sidebar-bg:#fff;--bg-page:#F0F0F5;
+      --text-dark:#1A1A2E;--text-medium:#666680;--text-light:#AAAABC;
+      --border:#E8E8F0;--font:'Nunito',sans-serif;
+      --success:#16A34A;--success-bg:#DCFCE7;
+      --warning:#D97706;--warning-bg:#FFFBEB;
+      --danger:#DC2626;--danger-bg:#FEF2F2;
+    }
+    body{font-family:var(--font);background:var(--bg-page);min-height:100vh;display:flex;flex-direction:column}
+    /* NAVBAR */
+    .navbar{background:var(--upb-purple);height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 16px 0 0;box-shadow:0 2px 8px rgba(0,0,0,.25);flex-shrink:0;z-index:100}
+    .navbar-left{display:flex;align-items:center}
+    .btn-menu-toggle{background:none;border:none;color:#fff;font-size:18px;cursor:pointer;padding:0 16px;height:52px;display:flex;align-items:center;transition:background .2s}
+    .btn-menu-toggle:hover{background:rgba(255,255,255,.1)}
+    .navbar-logo{display:flex;align-items:center;padding:0 12px}
+    .navbar-logo img{height:32px;width:auto;object-fit:contain;border-radius:3px}
+    .acciones-wrap{position:relative;margin-left:12px}
+    .btn-acciones{background:rgba(255,255,255,.15);border:none;color:#fff;font-family:var(--font);font-size:13px;font-weight:600;padding:6px 14px;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:background .2s}
+    .btn-acciones:hover{background:rgba(255,255,255,.25)}
+    .dropdown-acciones{display:none;position:absolute;top:calc(100% + 8px);left:0;background:#fff;border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,.15);border:1px solid var(--border);min-width:220px;z-index:999;overflow:hidden;padding:4px 0}
+    .dropdown-acciones.open{display:block}
+    .dropdown-item{display:flex;align-items:center;gap:10px;padding:10px 16px;font-size:13px;font-weight:600;color:var(--text-dark);transition:background .15s;cursor:pointer;width:100%;border:none;background:none;font-family:var(--font);text-align:left;text-decoration:none}
+    .dropdown-item:hover{background:#F5EEF8;color:var(--upb-purple)}
+    .dropdown-item i{width:16px;text-align:center;color:var(--upb-pink)}
+    .dropdown-sep{height:1px;background:#E8E8F0;margin:4px 0}
+    .dropdown-label{padding:6px 16px 2px;font-size:10px;font-weight:800;color:var(--text-light);text-transform:uppercase;letter-spacing:.06em}
+    .navbar-right{display:flex;align-items:center;gap:10px}
+    .nav-user-info{text-align:right}
+    .nav-user-name{color:#fff;font-size:13px;font-weight:700;display:block}
+    .nav-user-lab{color:rgba(255,255,255,.7);font-size:11px;display:block}
+    .nav-avatar{width:34px;height:34px;border-radius:50%;overflow:hidden;border:2px solid rgba(255,255,255,.4)}
+    .nav-avatar img{width:100%;height:100%;object-fit:cover}
+    .btn-salir{background:rgba(255,255,255,.15);border:none;color:#fff;font-family:var(--font);font-size:11px;font-weight:700;padding:5px 10px;border-radius:5px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px;transition:background .2s}
+    .btn-salir:hover{background:rgba(255,255,255,.25)}
+    .btn-salir i{font-size:14px}
+    /* LAYOUT */
+    .layout{display:flex;flex:1;overflow:hidden}
+    .sidebar{width:200px;background:var(--sidebar-bg);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;transition:width .25s ease;overflow:hidden}
+    .sidebar.collapsed{width:0}
+    .sidebar-nav{padding:12px 0;flex:1;overflow-y:auto}
+    .nav-item{position:relative}
+    .nav-link{display:flex;align-items:center;justify-content:space-between;padding:10px 18px;color:var(--text-medium);font-size:13px;font-weight:600;cursor:pointer;transition:background .15s,color .15s;user-select:none;white-space:nowrap;text-decoration:none}
+    .nav-link:hover,.nav-link.active{color:var(--upb-pink);background:#FDF0F7}
+    .nav-link .nav-icon{margin-right:8px;font-size:14px;width:16px;text-align:center;flex-shrink:0}
+    .nav-link .nav-label{flex:1}
+    .nav-link .nav-arrow{font-size:11px;transition:transform .2s;color:var(--text-light)}
+    .nav-item.open>.nav-link .nav-arrow{transform:rotate(90deg)}
+    .nav-link.home{color:var(--upb-purple);font-weight:700}
+    .nav-link.home:hover{color:var(--upb-purple);background:#F5EEF8}
+    .submenu{display:none;background:#FAFAFA;border-left:3px solid var(--upb-pink);margin-left:18px}
+    .nav-item.open>.submenu{display:block}
+    .submenu-link{display:flex;align-items:center;gap:8px;padding:8px 16px;color:var(--text-medium);font-size:12px;font-weight:500;transition:color .15s,background .15s;white-space:nowrap;cursor:pointer;text-decoration:none}
+    .submenu-link:hover{color:var(--upb-purple);background:#F5EEF8;font-weight:700}
+    .submenu-link.active{color:var(--upb-purple);background:#F5EEF8;font-weight:700}
+    .submenu-link i{width:14px;text-align:center;font-size:12px}
+    /* MAIN */
+    .main-content{flex:1;overflow-y:auto;padding:0}
+    .page-header{background:var(--bg-page);padding:14px 24px 0;display:flex;align-items:baseline;gap:10px}
+    .page-title{font-size:18px;font-weight:800;color:var(--text-dark);text-transform:uppercase;letter-spacing:.03em}
+    .page-breadcrumb{font-size:12px;color:var(--text-light);font-weight:500;text-transform:uppercase;letter-spacing:.05em}
+    .page-body{padding:16px 24px 32px}
+    /* STATS */
+    .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+    .stat-card{background:#fff;border-radius:10px;border:1px solid var(--border);padding:16px 18px;display:flex;align-items:center;gap:14px;box-shadow:0 2px 6px rgba(0,0,0,.04)}
+    .stat-icon{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+    .stat-icon.purple{background:#F3E8FF;color:var(--upb-purple)}
+    .stat-icon.yellow{background:var(--warning-bg);color:var(--warning)}
+    .stat-icon.green{background:var(--success-bg);color:var(--success)}
+    .stat-icon.red{background:var(--danger-bg);color:var(--danger)}
+    .stat-info .stat-num{font-size:22px;font-weight:800;color:var(--text-dark);line-height:1}
+    .stat-info .stat-label{font-size:11px;color:var(--text-light);font-weight:600;margin-top:2px}
+    /* ALERT */
+    .alert-pending{background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;padding:10px 16px;display:flex;align-items:center;gap:10px;margin-bottom:18px;font-size:13px;font-weight:600;color:#92400E}
+    .alert-pending i{color:var(--warning);font-size:16px}
+    /* TABLA */
+    .table-card{background:#fff;border-radius:10px;border:1px solid var(--border);box-shadow:0 2px 8px rgba(0,0,0,.05);overflow:hidden}
+    .table-toolbar{padding:14px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+    .table-toolbar-title{font-size:14px;font-weight:800;color:var(--text-dark);flex:1}
+    .search-box{position:relative;display:flex;align-items:center}
+    .search-box i{position:absolute;left:10px;color:var(--text-light);font-size:13px}
+    .search-box input{border:1px solid var(--border);border-radius:7px;padding:7px 12px 7px 30px;font-family:var(--font);font-size:12px;color:var(--text-dark);outline:none;background:#F9F9FC;width:180px;transition:border-color .2s}
+    .search-box input:focus{border-color:var(--upb-purple)}
+    .filter-select{border:1px solid var(--border);border-radius:7px;padding:7px 10px;font-family:var(--font);font-size:12px;color:var(--text-medium);outline:none;background:#F9F9FC;cursor:pointer}
+    .filter-select:focus{border-color:var(--upb-purple)}
+    table{width:100%;border-collapse:collapse}
+    thead th{background:#F8F8FC;padding:10px 14px;text-align:left;font-size:11px;font-weight:800;color:var(--text-light);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border);white-space:nowrap}
+    tbody tr{border-bottom:1px solid var(--border);transition:background .15s}
+    tbody tr:last-child{border-bottom:none}
+    tbody tr:hover{background:#FAFAFA}
+    tbody td{padding:10px 14px;font-size:12px;color:var(--text-dark);vertical-align:middle}
+    .badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700}
+    .badge.pendiente{background:#FEF9C3;color:#854D0E}
+    .badge.aprobada{background:var(--success-bg);color:#14532D}
+    .badge.rechazada{background:var(--danger-bg);color:#7F1D1D}
+    .btn-aprobar{background:var(--success-bg);color:var(--success);border:1px solid #86EFAC;border-radius:6px;padding:5px 10px;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer;transition:background .15s;display:inline-flex;align-items:center;gap:4px}
+    .btn-aprobar:hover{background:#BBF7D0}
+    .btn-rechazar{background:var(--danger-bg);color:var(--danger);border:1px solid #FECACA;border-radius:6px;padding:5px 10px;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer;transition:background .15s;display:inline-flex;align-items:center;gap:4px;margin-left:4px}
+    .btn-rechazar:hover{background:#FEE2E2}
+    .actions-dash{color:var(--text-light);font-size:11px;font-style:italic}
+    .empty-state{padding:40px;text-align:center;color:var(--text-light);font-size:13px}
+    /* MODALES */
+    .modal-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:999;align-items:center;justify-content:center}
+    .modal-backdrop.open{display:flex}
+    .modal-box{background:#fff;border-radius:14px;padding:28px;width:100%;max-width:420px;margin:16px;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+    .modal-box h3{font-size:17px;font-weight:800;color:var(--text-dark);margin-bottom:6px}
+    .modal-box p{font-size:13px;color:var(--text-medium);margin-bottom:18px}
+    .modal-label{display:block;font-size:12px;font-weight:700;color:var(--text-dark);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em}
+    .modal-textarea{width:100%;border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-family:var(--font);font-size:13px;color:var(--text-dark);resize:vertical;min-height:80px;outline:none;transition:border-color .2s}
+    .modal-textarea:focus{border-color:var(--upb-purple)}
+    .modal-actions{display:flex;gap:10px;margin-top:20px}
+    .btn-modal-confirm{flex:1;height:40px;border:none;border-radius:8px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;transition:opacity .2s}
+    .btn-modal-confirm.green{background:var(--success);color:#fff}
+    .btn-modal-confirm.green:hover{opacity:.85}
+    .btn-modal-confirm.red{background:var(--danger);color:#fff}
+    .btn-modal-confirm.red:hover{opacity:.85}
+    .btn-modal-cancel{flex:1;height:40px;border:1.5px solid var(--border);border-radius:8px;background:#fff;color:var(--text-medium);font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer}
+    .btn-modal-cancel:hover{background:#F5F5FA}
+    /* TOAST */
+    .toast-container{position:fixed;bottom:24px;right:24px;z-index:2000;display:flex;flex-direction:column;gap:8px}
+    .toast{background:#fff;border-radius:10px;padding:12px 16px;box-shadow:0 8px 24px rgba(0,0,0,.15);border-left:4px solid;display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;min-width:260px;animation:toastIn .25s ease}
+    @keyframes toastIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+    .toast.success{border-color:var(--success);color:var(--success)}
+    .toast.error{border-color:var(--danger);color:var(--danger)}
+    .toast i{font-size:16px}
+    .toast span{color:var(--text-dark)}
+  </style>
+</head>
+<body>
+
+<header class="navbar">
+  <div class="navbar-left">
+    <button class="btn-menu-toggle" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
+    <div class="navbar-logo"><img src="assets/images/LOGOUPB.jpg" alt="UPB"/></div>
+    <div class="acciones-wrap">
+      <button class="btn-acciones" onclick="toggleDropdown()">Acciones Rápidas <i class="fa-solid fa-chevron-down" style="font-size:10px"></i></button>
+      <div class="dropdown-acciones" id="dropdown-acciones">
+        <a class="dropdown-item" href="dashboard.html"><i class="fa-solid fa-house"></i> Menú Principal</a>
+        <div class="dropdown-sep"></div>
+        <div class="dropdown-label">Accesos Rápidos</div>
+        <a class="dropdown-item" href="Admin-Usuarios.html"><i class="fa-solid fa-users"></i> Usuarios</a>
+        <a class="dropdown-item" href="Admin-Equipos.html"><i class="fa-solid fa-desktop"></i> Elementos</a>
+        <a class="dropdown-item" href="reporte-resumen.html"><i class="fa-solid fa-file-lines"></i> Reportes</a>
+      </div>
+    </div>
+  </div>
+  <div class="navbar-right">
+    <div class="nav-user-info">
+      <span class="nav-user-name" id="nav-nombre">...</span>
+      <span class="nav-user-lab" id="nav-lab"></span>
+    </div>
+    <div class="nav-avatar"><img id="nav-avatar-img" src="" alt="Avatar"/></div>
+    <button class="btn-salir" id="btn-salir"><i class="fa-solid fa-right-from-bracket"></i> Salir</button>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <nav class="sidebar-nav">
+      <div class="nav-item">
+        <a class="nav-link home" href="dashboard.html"><i class="nav-icon fa-solid fa-house"></i><span class="nav-label">Menú Principal</span></a>
+      </div>
+      <div class="nav-item" onclick="toggleMenu(this)">
+        <div class="nav-link"><i class="nav-icon fa-solid fa-box-open"></i><span class="nav-label">Entregas</span><i class="nav-arrow fa-solid fa-chevron-right"></i></div>
+        <div class="submenu">
+          <a class="submenu-link" href="#"><i class="fa-solid fa-list"></i> Ver Entregas</a>
+          <a class="submenu-link" href="#"><i class="fa-solid fa-plus"></i> Nueva Entrega</a>
+        </div>
+      </div>
+      <div class="nav-item" onclick="toggleMenu(this)">
+        <div class="nav-link"><i class="nav-icon fa-solid fa-users"></i><span class="nav-label">Usuarios</span><i class="nav-arrow fa-solid fa-chevron-right"></i></div>
+        <div class="submenu">
+          <a class="submenu-link" href="Admin-Usuarios.html"><i class="fa-solid fa-list"></i> Ver Usuarios</a>
+          <a class="submenu-link" href="Admin-Crear-Usuario.html"><i class="fa-solid fa-user-plus"></i> Crear Usuario</a>
+        </div>
+      </div>
+      <div class="nav-item open" onclick="toggleMenu(this)">
+        <div class="nav-link active"><i class="nav-icon fa-solid fa-cart-shopping"></i><span class="nav-label">Solicitudes</span><i class="nav-arrow fa-solid fa-chevron-right"></i></div>
+        <div class="submenu">
+          <a class="submenu-link active" href="Admin-Solicitud-Elementos.html"><i class="fa-solid fa-clipboard-list"></i> Solicitud de Elementos</a>
+          <a class="submenu-link" href="Admin-Solicitud-Detalle.html"><i class="fa-solid fa-file-alt"></i> Solicitud Detalle</a>
+          <a class="submenu-link" href="Admin-Solicitudes-Seleccionar.html"><i class="fa-solid fa-search"></i> Seleccionar</a>
+          <a class="submenu-link" href="Admin-Solicitudes-Canceladas.html"><i class="fa-solid fa-ban"></i> Cancelados</a>
+        </div>
+      </div>
+      <div class="nav-item" onclick="toggleMenu(this)">
+        <div class="nav-link"><i class="nav-icon fa-solid fa-gear"></i><span class="nav-label">Administración</span><i class="nav-arrow fa-solid fa-chevron-right"></i></div>
+        <div class="submenu">
+          <a class="submenu-link" href="Admin-Equipos.html"><i class="fa-solid fa-desktop"></i> Elementos</a>
+          <a class="submenu-link" href="Admin_Calendario.html"><i class="fa-solid fa-calendar"></i> Calendario</a>
+          <a class="submenu-link" href="Admin-Informacion-Importante.html"><i class="fa-solid fa-bullhorn"></i> Información Importante</a>
+          <a class="submenu-link" href="Admin-Foto-Perfil.html"><i class="fa-solid fa-camera"></i> Foto Perfil</a>
+        </div>
+      </div>
+     <div class="nav-item" onclick="toggleMenu(this)">
+        <div class="nav-link"><i class="nav-icon fa-solid fa-file-lines"></i><span class="nav-label">Reportes</span><i class="nav-arrow fa-solid fa-chevron-right"></i></div>
+        <div class="submenu">
+          <a class="submenu-link" href="reporte-resumen.html"><i class="fa-solid fa-table"></i> Resumen Préstamos</a>
+          <a class="submenu-link" href="Prestamos_X_Elementos.html"><i class="fa-solid fa-desktop"></i> Préstamos x Elemento</a>
+         <a class="submenu-link" href="Elementos_Prestados.html"><i class="fa-solid fa-layer-group"></i> Elementos Prestados</a>
+          <a class="submenu-link" href="Inventario_General.html"><i class="fa-solid fa-clipboard-list"></i> Inventario General</a>
+        </div>
+      </div>
+    </nav>
+  </aside>
+
+  <main class="main-content">
+    <div class="page-header">
+      <span class="page-title">SOLICITUDES</span>
+      <span class="page-breadcrumb">SOLICITUDES › SOLICITUD DE ELEMENTOS</span>
+    </div>
+    <div class="page-body">
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon purple"><i class="fa-solid fa-clipboard-list"></i></div>
+          <div class="stat-info"><div class="stat-num" id="stat-total">0</div><div class="stat-label">Total Solicitudes</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon yellow"><i class="fa-solid fa-clock"></i></div>
+          <div class="stat-info"><div class="stat-num" id="stat-pendientes">0</div><div class="stat-label">Pendientes</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon green"><i class="fa-solid fa-circle-check"></i></div>
+          <div class="stat-info"><div class="stat-num" id="stat-aprobadas">0</div><div class="stat-label">Aprobadas</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon red"><i class="fa-solid fa-circle-xmark"></i></div>
+          <div class="stat-info"><div class="stat-num" id="stat-rechazadas">0</div><div class="stat-label">Rechazadas</div></div>
+        </div>
+      </div>
+
+      <div class="alert-pending" id="alert-pending" style="display:none">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span id="alert-pending-text"></span>
+      </div>
+
+      <div class="table-card">
+        <div class="table-toolbar">
+          <span class="table-toolbar-title"><i class="fa-solid fa-list" style="color:var(--upb-purple);margin-right:6px"></i>Lista de Solicitudes</span>
+          <div class="search-box"><i class="fa-solid fa-magnifying-glass"></i><input type="text" id="buscar" placeholder="Buscar..."/></div>
+          <select class="filter-select" id="filtro-estado">
+            <option value="">Todos los estados</option>
+            <option value="pendiente">Pendiente</option>
+            <option value="aprobada">Aprobada</option>
+            <option value="rechazada">Rechazada</option>
+          </select>
+          <select class="filter-select" id="filtro-lab">
+            <option value="">Todos los laboratorios</option>
+          </select>
+        </div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Solicitante</th>
+                <th>Elemento</th>
+                <th>Laboratorio</th>
+                <th>Inventario</th>
+                <th>Fecha Sol.</th>
+                <th>Fecha Uso</th>
+                <th>Justificación</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="tabla-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Modal Aprobar -->
+<div class="modal-backdrop" id="modal-aprobar">
+  <div class="modal-box">
+    <h3><i class="fa-solid fa-circle-check" style="color:var(--success);margin-right:8px"></i>Aprobar Solicitud</h3>
+    <p>¿Estás seguro de que deseas aprobar esta solicitud? Puedes agregar una observación opcional.</p>
+    <label class="modal-label">Observación (opcional)</label>
+    <textarea class="modal-textarea" id="obs-aprobar" placeholder="Escribe una observación..."></textarea>
+    <div class="modal-actions">
+      <button class="btn-modal-cancel" onclick="cerrarModal('modal-aprobar')">Cancelar</button>
+      <button class="btn-modal-confirm green" onclick="confirmarAprobar()"><i class="fa-solid fa-check"></i> Aprobar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Rechazar -->
+<div class="modal-backdrop" id="modal-rechazar">
+  <div class="modal-box">
+    <h3><i class="fa-solid fa-circle-xmark" style="color:var(--danger);margin-right:8px"></i>Rechazar Solicitud</h3>
+    <p>Indica el motivo del rechazo. Este campo es obligatorio.</p>
+    <label class="modal-label">Motivo del rechazo *</label>
+    <textarea class="modal-textarea" id="obs-rechazar" placeholder="Escribe el motivo..."></textarea>
+    <div class="modal-actions">
+      <button class="btn-modal-cancel" onclick="cerrarModal('modal-rechazar')">Cancelar</button>
+      <button class="btn-modal-confirm red" onclick="confirmarRechazar()"><i class="fa-solid fa-xmark"></i> Rechazar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+  const sesion = sessionStorage.getItem('usuario');
+  if (!sesion) window.location.href = 'index.html';
+  const usuario = JSON.parse(sesion);
+  document.getElementById('nav-nombre').textContent = usuario.nombre.toUpperCase();
+  document.getElementById('nav-lab').textContent = usuario.lab || '';
+  const avatares = { admin:'assets/images/AVATARADMINISTRADOR.jpg', profesor:'assets/images/AVATARPROFESOR.jpg', usuario:'assets/images/AVATARPROFESOR.jpg' };
+  document.getElementById('nav-avatar-img').src = avatares[usuario.rol] || 'assets/images/AVATARADMINISTRADOR.jpg';
+  document.getElementById('btn-salir').addEventListener('click', () => { sessionStorage.removeItem('usuario'); window.location.href = 'index.html'; });
+
+  // Datos demo
+  let solicitudes = [
+    { id:1, solicitante:'María García', elemento:'Microscopio Óptico', laboratorio:'Lab. Física No 1', inventario:'INV-001', fechaSol:'2025-07-01', fechaUso:'2025-07-05', justificacion:'Práctica de biología celular del semestre', estado:'pendiente' },
+    { id:2, solicitante:'Carlos Ruiz',  elemento:'Multímetro Digital',  laboratorio:'Lab. Electrónica',  inventario:'INV-042', fechaSol:'2025-07-02', fechaUso:'2025-07-08', justificacion:'Proyecto de circuitos eléctricos',         estado:'pendiente' },
+    { id:3, solicitante:'Ana Torres',   elemento:'Osciloscopio',        laboratorio:'Lab. Automatización', inventario:'INV-015', fechaSol:'2025-06-28', fechaUso:'2025-07-03', justificacion:'Análisis de señales eléctricas',          estado:'aprobada'  },
+    { id:4, solicitante:'Luis Peña',    elemento:'Centrifugadora',      laboratorio:'Lab. Física No 1', inventario:'INV-088', fechaSol:'2025-06-25', fechaUso:'2025-07-01', justificacion:'Separación de muestras para investigación', estado:'rechazada' },
+    { id:5, solicitante:'Sofia Mora',   elemento:'Balanza Analítica',   laboratorio:'Almacén General',  inventario:'INV-033', fechaSol:'2025-07-03', fechaUso:'2025-07-10', justificacion:'Medición de reactivos para laboratorio',   estado:'pendiente' },
+  ];
+
+  let solicitudActual = null;
+
+  function renderTabla() {
+    const buscar = document.getElementById('buscar').value.toLowerCase();
+    const estado = document.getElementById('filtro-estado').value;
+    const lab    = document.getElementById('filtro-lab').value;
+    const filtradas = solicitudes.filter(s =>
+      (!buscar || s.solicitante.toLowerCase().includes(buscar) || s.elemento.toLowerCase().includes(buscar) || s.laboratorio.toLowerCase().includes(buscar)) &&
+      (!estado || s.estado === estado) &&
+      (!lab    || s.laboratorio === lab)
+    );
+    const tbody = document.getElementById('tabla-body');
+    if (filtradas.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="10" class="empty-state"><i class="fa-solid fa-inbox" style="font-size:24px;display:block;margin-bottom:8px"></i>No hay solicitudes que coincidan</td></tr>';
+      return;
+    }
+    tbody.innerHTML = filtradas.map(s => `
+      <tr>
+        <td style="font-weight:700;color:var(--text-light)">#${s.id}</td>
+        <td><strong>${s.solicitante}</strong></td>
+        <td>${s.elemento}</td>
+        <td>${s.laboratorio}</td>
+        <td><code style="background:#F3F3F8;padding:2px 6px;border-radius:4px;font-size:11px">${s.inventario}</code></td>
+        <td>${formatFecha(s.fechaSol)}</td>
+        <td>${formatFecha(s.fechaUso)}</td>
+        <td style="max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${s.justificacion}">${s.justificacion}</td>
+        <td>${badgeEstado(s.estado)}</td>
+        <td>${s.estado === 'pendiente' ? `
+          <button class="btn-aprobar" onclick="abrirAprobar(${s.id})"><i class="fa-solid fa-check"></i> Aprobar</button>
+          <button class="btn-rechazar" onclick="abrirRechazar(${s.id})"><i class="fa-solid fa-xmark"></i> Rechazar</button>
+        ` : `<span class="actions-dash">—</span>`}</td>
+      </tr>
+    `).join('');
+  }
+
+  function badgeEstado(estado) {
+    const map = { pendiente:'<span class="badge pendiente"><i class="fa-solid fa-clock"></i> Pendiente</span>', aprobada:'<span class="badge aprobada"><i class="fa-solid fa-check"></i> Aprobada</span>', rechazada:'<span class="badge rechazada"><i class="fa-solid fa-xmark"></i> Rechazada</span>' };
+    return map[estado] || estado;
+  }
+
+  function formatFecha(f) {
+    if (!f) return '—';
+    const [y,m,d] = f.split('-');
+    return `${d}/${m}/${y}`;
+  }
+
+  function updateStats() {
+    const total     = solicitudes.length;
+    const pendientes= solicitudes.filter(s=>s.estado==='pendiente').length;
+    const aprobadas = solicitudes.filter(s=>s.estado==='aprobada').length;
+    const rechazadas= solicitudes.filter(s=>s.estado==='rechazada').length;
+    document.getElementById('stat-total').textContent     = total;
+    document.getElementById('stat-pendientes').textContent= pendientes;
+    document.getElementById('stat-aprobadas').textContent = aprobadas;
+    document.getElementById('stat-rechazadas').textContent= rechazadas;
+    const alerta = document.getElementById('alert-pending');
+    if (pendientes > 0) {
+      alerta.style.display = 'flex';
+      document.getElementById('alert-pending-text').textContent = `Hay ${pendientes} solicitud(es) pendiente(s) de revisión.`;
+    } else {
+      alerta.style.display = 'none';
+    }
+  }
+
+  function fillFiltroLab() {
+    const labs = [...new Set(solicitudes.map(s=>s.laboratorio))];
+    const sel  = document.getElementById('filtro-lab');
+    labs.forEach(l => { const o = document.createElement('option'); o.value=l; o.textContent=l; sel.appendChild(o); });
+  }
+
+  function abrirAprobar(id) { solicitudActual=id; document.getElementById('obs-aprobar').value=''; document.getElementById('modal-aprobar').classList.add('open'); }
+  function abrirRechazar(id){ solicitudActual=id; document.getElementById('obs-rechazar').value=''; document.getElementById('modal-rechazar').classList.add('open'); }
+  function cerrarModal(id)  { document.getElementById(id).classList.remove('open'); }
+
+  function confirmarAprobar() {
+    const s = solicitudes.find(x=>x.id===solicitudActual);
+    if (s) s.estado = 'aprobada';
+    cerrarModal('modal-aprobar');
+    updateStats(); renderTabla();
+    toast('Solicitud aprobada correctamente.','success');
+  }
+
+  function confirmarRechazar() {
+    const motivo = document.getElementById('obs-rechazar').value.trim();
+    if (!motivo) { alert('El motivo es obligatorio.'); return; }
+    const s = solicitudes.find(x=>x.id===solicitudActual);
+    if (s) s.estado = 'rechazada';
+    cerrarModal('modal-rechazar');
+    updateStats(); renderTabla();
+    toast('Solicitud rechazada.','error');
+  }
+
+  function toast(msg, type='success') {
+    const t = document.createElement('div');
+    t.className = `toast ${type}`;
+    t.innerHTML = `<i class="fa-solid fa-${type==='success'?'circle-check':'circle-xmark'}"></i><span>${msg}</span>`;
+    document.getElementById('toastContainer').appendChild(t);
+    setTimeout(()=>t.remove(), 3500);
+  }
+
+  document.getElementById('buscar').addEventListener('input', renderTabla);
+  document.getElementById('filtro-estado').addEventListener('change', renderTabla);
+  document.getElementById('filtro-lab').addEventListener('change', renderTabla);
+
+  function toggleSidebar()  { document.getElementById('sidebar').classList.toggle('collapsed'); }
+  function toggleDropdown() { document.getElementById('dropdown-acciones').classList.toggle('open'); }
+  function toggleMenu(item) {
+    const isOpen = item.classList.contains('open');
+    document.querySelectorAll('.nav-item.open').forEach(el => el.classList.remove('open'));
+    if (!isOpen) item.classList.add('open');
+  }
+  document.addEventListener('click', e => { if (!e.target.closest('.acciones-wrap')) document.getElementById('dropdown-acciones').classList.remove('open'); });
+  document.querySelectorAll('.submenu-link').forEach(l => l.addEventListener('click', e => e.stopPropagation()));
+
+  fillFiltroLab();
+  updateStats();
+  renderTabla();
+</script>
+</body>
+</html>
