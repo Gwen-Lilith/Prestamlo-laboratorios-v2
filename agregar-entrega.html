@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nueva Entrega</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+<style>
+body{
+  font-family:'Nunito',sans-serif;
+  background:#F0F0F5;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  min-height:100vh;
+}
+
+.card{
+  background:#fff;
+  padding:30px;
+  border-radius:12px;
+  width:100%;
+  max-width:450px;
+  box-shadow:0 10px 30px rgba(0,0,0,0.1);
+}
+
+h2{
+  margin-bottom:20px;
+  color:#6B1F7C;
+}
+
+.form-group{
+  margin-bottom:15px;
+}
+
+label{
+  font-weight:700;
+  font-size:13px;
+  display:block;
+  margin-bottom:5px;
+}
+
+input, select{
+  width:100%;
+  padding:10px;
+  border:1px solid #ddd;
+  border-radius:6px;
+}
+
+button{
+  width:100%;
+  background:#6B1F7C;
+  color:#fff;
+  border:none;
+  padding:12px;
+  border-radius:6px;
+  font-weight:700;
+  cursor:pointer;
+}
+
+button:hover{
+  background:#4A1258;
+}
+
+.success{
+  display:none;
+  background:#DCFCE7;
+  color:#166534;
+  padding:10px;
+  border-radius:6px;
+  margin-bottom:10px;
+  font-size:13px;
+  font-weight:600;
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+    <button onclick="volver()" style="background:#ddd;color:#333;padding:6px 12px;border:none;border-radius:6px;cursor:pointer;font-size:12px;">
+    <i class="fa-solid fa-arrow-left"></i> Volver
+  </button>
+  <h2>Registrar Nueva Entrega</h2>
+
+  <div class="success" id="msg-exito">
+    <i class="fa-solid fa-check"></i> Entrega guardada correctamente
+    
+</div>
+
+  
+  <div class="form-group">
+    <label>Equipo</label>
+    <input type="text" id="equipo" placeholder="Ej: Computador Dell">
+  </div>
+
+  <div class="form-group">
+    <label>Usuario</label>
+    <input type="text" id="usuario">
+  </div>
+
+  <div class="form-group">
+    <label>Fecha</label>
+    <input type="date" id="fecha">
+  </div>
+
+  <div class="form-group">
+    <label>Estado</label>
+    <select id="estado">
+      <option value="entregado">Entregado</option>
+      <option value="pendiente">Pendiente</option>
+    </select>
+  </div>
+
+  <button onclick="guardarEntrega()">Guardar Entrega</button>
+</div>
+
+<script>
+
+function volver(){
+  window.location.href = "dashboard.html";
+}
+
+function guardarEntrega(){
+  const equipo = document.getElementById('equipo').value.trim();
+  const usuario = document.getElementById('usuario').value.trim();
+  const fecha = document.getElementById('fecha').value;
+  const estado = document.getElementById('estado').value;
+
+  if(!equipo || !usuario || !fecha){
+    alert("Completa todos los campos");
+    return;
+  }
+
+  const entregas = JSON.parse(localStorage.getItem('entregas') || '[]');
+
+  entregas.push({
+    id: Date.now(),
+    equipo,
+    usuario,
+    fecha,
+    estado
+  });
+
+  localStorage.setItem('entregas', JSON.stringify(entregas));
+
+  document.getElementById('msg-exito').style.display = 'block';
+
+  // limpiar formulario
+  document.getElementById('equipo').value = '';
+  document.getElementById('usuario').value = '';
+  document.getElementById('fecha').value = '';
+  document.getElementById('estado').value = 'entregado';
+}
+
+</script>
+
+</body>
+</html>

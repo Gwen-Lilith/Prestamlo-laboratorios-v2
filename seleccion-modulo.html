@@ -424,12 +424,30 @@
     @media (max-width: 900px) {
       .content-grid { grid-template-columns: 1fr; }
     }
+     /* ── SIDEBAR COLAPSABLE ── */
+    .sidebar {
+      transition: width 0.3s ease;
+    }
+
+    .sidebar.collapsed {
+     width: 0;
+     overflow: hidden;
+    }
+
+    .layout {
+     transition: all 0.3s ease;
+    }
   </style>
 </head>
 <body>
 
   <header class="navbar">
     <div class="navbar-left">
+      
+  <button onclick="toggleSidebar()" style="margin-left:10px;">
+  ☰
+</button>
+
       <div class="navbar-logo">
         <img src="assets/images/LOGOUPB.jpg" alt="UPB" />
       </div>
@@ -450,7 +468,7 @@
   </header>
 
   <div class="layout">
-    <aside class="sidebar">
+    <aside class="sidebar" id="sidebar">
       <nav class="sidebar-nav">
         <a class="nav-link-home" href="#">
           <i class="fa-solid fa-house"></i>
@@ -594,6 +612,7 @@
   </div>
 
   <script>
+    
     const usuarioGuardado = sessionStorage.getItem('usuario');
     if (!usuarioGuardado) { window.location.href = 'index.html'; }
 
@@ -616,6 +635,12 @@
     if (usuario.rol !== 'admin') {
       document.getElementById('btn-lab-texto').textContent = 'Solicitar nuevo laboratorio';
       document.getElementById('btn-lab-icon').className = 'fa-solid fa-paper-plane';
+    }
+
+
+   // ───────── SIDEBAR TOGGLE (🔥 LO QUE TE FALLABA) ─────────
+    function toggleSidebar() {
+    document.querySelector('.sidebar').classList.toggle('collapsed');
     }
 
     // Cargar labs aprobados al dropdown
