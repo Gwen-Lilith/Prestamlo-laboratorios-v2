@@ -1,0 +1,2676 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>Inventario General — UPB</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0
+        }
+
+        :root {
+            --pu: #6B1F7C;
+            --pud: #4A1258;
+            --pk: #C0186A;
+            --bg: #F0F0F5;
+            --wh: #fff;
+            --bd: #E8E8F0;
+            --td: #1A1A2E;
+            --tm: #666680;
+            --tl: #AAAABC;
+            --gr: #059669;
+            --or: #D97706;
+            --re: #DC2626;
+            --bl: #2563EB;
+            --fn: 'Nunito', sans-serif;
+        }
+
+        body {
+            font-family: var(--fn);
+            background: var(--bg);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column
+        }
+
+        /* ── NAVBAR ── */
+        .navbar {
+            background: var(--pu);
+            height: 52px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, .25);
+            flex-shrink: 0;
+            z-index: 100
+        }
+
+        .nb-left {
+            display: flex;
+            align-items: center;
+            gap: 12px
+        }
+
+        .nb-logo {
+            color: #fff;
+            font-size: 17px;
+            font-weight: 800;
+            letter-spacing: .04em
+        }
+
+        .nb-sep {
+            color: rgba(255, 255, 255, .3);
+            font-size: 14px
+        }
+
+        .nb-title {
+            color: rgba(255, 255, 255, .75);
+            font-size: 12px;
+            font-weight: 600
+        }
+
+        .nb-right {
+            display: flex;
+            align-items: center;
+            gap: 10px
+        }
+
+        .nb-userblock {
+            text-align: right
+        }
+
+        .nb-name {
+            color: #fff;
+            font-size: 12px;
+            font-weight: 700;
+            display: block
+        }
+
+        .nb-lab {
+            color: rgba(255, 255, 255, .65);
+            font-size: 10px;
+            display: block
+        }
+
+        .nb-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, .2);
+            border: 2px solid rgba(255, 255, 255, .4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 13px;
+            font-weight: 700
+        }
+
+        .btn-salir {
+            background: rgba(255, 255, 255, .15);
+            border: none;
+            color: #fff;
+            font-family: var(--fn);
+            font-size: 11px;
+            font-weight: 700;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: background .2s
+        }
+
+        .btn-salir:hover {
+            background: rgba(255, 255, 255, .25)
+        }
+
+        /* ── PAGE ── */
+        .page {
+            padding: 16px 22px 40px;
+            flex: 1
+        }
+
+        .ph {
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+            margin-bottom: 14px
+        }
+
+        .pt {
+            font-size: 17px;
+            font-weight: 800;
+            color: var(--td);
+            text-transform: uppercase;
+            letter-spacing: .03em
+        }
+
+        .pb {
+            font-size: 11px;
+            color: var(--tl);
+            font-weight: 500;
+            text-transform: uppercase
+        }
+
+        /* ── STATS ── */
+        .sg {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin-bottom: 14px
+        }
+
+        .sc {
+            background: var(--wh);
+            border-radius: 10px;
+            border: 1px solid var(--bd);
+            padding: 12px 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, .04);
+            transition: transform .2s, box-shadow .2s
+        }
+
+        .sc:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, .08)
+        }
+
+        .si {
+            width: 38px;
+            height: 38px;
+            border-radius: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0
+        }
+
+        .si.pu {
+            background: #F5EEF8;
+            color: var(--pu)
+        }
+
+        .si.gr {
+            background: #ECFDF5;
+            color: var(--gr)
+        }
+
+        .si.or {
+            background: #FFFBEB;
+            color: var(--or)
+        }
+
+        .si.bl {
+            background: #EFF6FF;
+            color: var(--bl)
+        }
+
+        .si.re {
+            background: #FEF2F2;
+            color: var(--re)
+        }
+
+        .sv {
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--td);
+            line-height: 1
+        }
+
+        .sl {
+            font-size: 9px;
+            color: var(--tl);
+            font-weight: 600;
+            margin-top: 2px;
+            text-transform: uppercase;
+            letter-spacing: .04em
+        }
+
+        /* ── FILTER ── */
+        .fc {
+            background: var(--wh);
+            border-radius: 10px;
+            border: 1px solid var(--bd);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, .04);
+            overflow: hidden;
+            margin-bottom: 14px
+        }
+
+        .ch {
+            background: var(--pu);
+            color: #fff;
+            padding: 9px 16px;
+            font-size: 12px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            letter-spacing: .03em
+        }
+
+        .fb {
+            padding: 14px 16px
+        }
+
+        .fg {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 10px
+        }
+
+        .fgroup {
+            display: flex;
+            flex-direction: column;
+            gap: 4px
+        }
+
+        .fgroup label {
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--tm);
+            text-transform: uppercase;
+            letter-spacing: .04em
+        }
+
+        .fi,
+        .fs {
+            height: 34px;
+            border: 1.5px solid var(--bd);
+            border-radius: 7px;
+            padding: 0 10px;
+            font-family: var(--fn);
+            font-size: 13px;
+            color: var(--td);
+            background: #F9F9FC;
+            outline: none;
+            transition: border-color .2s, box-shadow .2s;
+            width: 100%
+        }
+
+        .fi:focus,
+        .fs:focus {
+            border-color: var(--pu);
+            box-shadow: 0 0 0 3px rgba(107, 31, 124, .08)
+        }
+
+        .fs {
+            cursor: pointer
+        }
+
+        .fa-row {
+            display: flex;
+            gap: 8px;
+            align-items: center
+        }
+
+        .btn-buscar {
+            height: 34px;
+            background: linear-gradient(135deg, var(--pu), var(--pk));
+            color: #fff;
+            border: none;
+            border-radius: 7px;
+            padding: 0 18px;
+            font-family: var(--fn);
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: opacity .2s
+        }
+
+        .btn-buscar:hover {
+            opacity: .9
+        }
+
+        .btn-limpiar {
+            height: 34px;
+            padding: 0 14px;
+            background: var(--wh);
+            color: var(--tm);
+            border: 1.5px solid var(--bd);
+            border-radius: 7px;
+            font-family: var(--fn);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: background .2s
+        }
+
+        .btn-limpiar:hover {
+            background: #F5F5FA
+        }
+
+        /* ── RESULTS ── */
+        .rc {
+            background: var(--wh);
+            border-radius: 10px;
+            border: 1px solid var(--bd);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, .04);
+            overflow: hidden
+        }
+
+        .rh {
+            background: var(--pu);
+            color: #fff;
+            padding: 9px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px
+        }
+
+        .rh-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: .03em;
+            flex-wrap: wrap
+        }
+
+        .rcount {
+            background: rgba(255, 255, 255, .2);
+            border-radius: 12px;
+            padding: 2px 10px;
+            font-size: 11px;
+            font-weight: 700
+        }
+
+        .sel-badge {
+            background: var(--pk);
+            border-radius: 12px;
+            padding: 2px 10px;
+            font-size: 11px;
+            font-weight: 700;
+            display: none;
+            align-items: center;
+            gap: 4px
+        }
+
+        .sel-badge.vis {
+            display: inline-flex
+        }
+
+        .ra {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap
+        }
+
+        .btn-exp {
+            height: 28px;
+            border: none;
+            border-radius: 6px;
+            padding: 0 10px;
+            font-family: var(--fn);
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: opacity .2s;
+            white-space: nowrap
+        }
+
+        .btn-exp:hover {
+            opacity: .85
+        }
+
+        .btn-exp.pdf {
+            background: #DC2626;
+            color: #fff
+        }
+
+        .btn-exp.csv {
+            background: #059669;
+            color: #fff
+        }
+
+        .btn-exp.xls {
+            background: #1D6F42;
+            color: #fff
+        }
+
+        .btn-exp.ver {
+            background: rgba(255, 255, 255, .25);
+            color: #fff;
+            border: 1.5px solid rgba(255, 255, 255, .5);
+            display: none
+        }
+
+        .btn-exp.ver.vis {
+            display: flex
+        }
+
+        .ts-wrap {
+            position: relative
+        }
+
+        .ts {
+            height: 28px;
+            border: 1.5px solid rgba(255, 255, 255, .3);
+            border-radius: 6px;
+            padding: 0 8px 0 26px;
+            font-family: var(--fn);
+            font-size: 12px;
+            color: #fff;
+            background: rgba(255, 255, 255, .15);
+            outline: none;
+            width: 150px;
+            transition: border-color .2s
+        }
+
+        .ts::placeholder {
+            color: rgba(255, 255, 255, .55)
+        }
+
+        .ts:focus {
+            border-color: rgba(255, 255, 255, .6)
+        }
+
+        .ts-ico {
+            position: absolute;
+            left: 7px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: rgba(255, 255, 255, .55);
+            font-size: 10px;
+            pointer-events: none
+        }
+
+        /* ── TABLE ── */
+        .tw {
+            overflow-x: auto
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            min-width: 1100px
+        }
+
+        thead tr {
+            background: #F5EEF8
+        }
+
+        th {
+            padding: 8px 12px;
+            text-align: left;
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--pu);
+            text-transform: uppercase;
+            letter-spacing: .05em;
+            border-bottom: 2px solid var(--bd);
+            white-space: nowrap;
+            user-select: none
+        }
+
+        th.sort {
+            cursor: pointer
+        }
+
+        th.sort:hover {
+            background: #EDE0F5
+        }
+
+        th .si-ico {
+            margin-left: 3px;
+            opacity: .4;
+            font-size: 9px
+        }
+
+        th.sorted .si-ico {
+            opacity: 1;
+            color: var(--pk)
+        }
+
+        th.cb-col {
+            width: 36px
+        }
+
+        td {
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--bd);
+            color: var(--tm);
+            vertical-align: middle
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none
+        }
+
+        tbody tr:hover td {
+            background: #FAFAFA
+        }
+
+        tbody tr.sel-row td {
+            background: #FDF0F7
+        }
+
+        tbody tr.clickable {
+            cursor: pointer
+        }
+
+        .cb-w {
+            display: flex;
+            align-items: center;
+            justify-content: center
+        }
+
+        .cb-w input[type=checkbox] {
+            width: 15px;
+            height: 15px;
+            cursor: pointer;
+            accent-color: var(--pu)
+        }
+
+        .inv-tag {
+            background: #F5EEF8;
+            color: var(--pu);
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 700;
+            font-family: monospace
+        }
+
+        .ser-tag {
+            background: #F0F9FF;
+            color: #0369A1;
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+            font-family: monospace
+        }
+
+        .tipo-tag {
+            font-size: 10px;
+            color: var(--pk);
+            background: #FDF0F7;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+            display: inline-block;
+            white-space: nowrap
+        }
+
+        .badge {
+            border-radius: 20px;
+            padding: 3px 9px;
+            font-size: 10px;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            white-space: nowrap
+        }
+
+        .b-activo {
+            background: #ECFDF5;
+            color: #065F46;
+            border: 1px solid #A7F3D0
+        }
+
+        .b-inactivo {
+            background: #F3F4F6;
+            color: #6B7280;
+            border: 1px solid #D1D5DB
+        }
+
+        .b-disp {
+            background: #EFF6FF;
+            color: #1D4ED8;
+            border: 1px solid #BFDBFE
+        }
+
+        .b-pres {
+            background: #FEF2F2;
+            color: #991B1B;
+            border: 1px solid #FECACA
+        }
+
+        .mod-cell {
+            font-size: 11px;
+            font-weight: 600;
+            min-width: 150px
+        }
+
+        .b-sinmod {
+            background: #FFF7ED;
+            color: #92400E;
+            border: 1px dashed #FCD34D;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 4px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap
+        }
+
+        .mod-warn {
+            border: 1.5px dashed #F59E0B !important;
+            background: #FFFBEB !important
+        }
+
+        .mod-warn-msg {
+            display: none;
+            font-size: 10px;
+            color: #92400E;
+            font-weight: 700;
+            margin-top: 4px;
+            align-items: center;
+            gap: 4px
+        }
+
+        .mod-warn-msg.vis {
+            display: flex
+        }
+
+        .car-cell {
+            max-width: 160px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 11px;
+            color: var(--tl)
+        }
+
+        .obs-cell {
+            max-width: 140px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 11px;
+            color: var(--or);
+            font-weight: 600
+        }
+
+        .detail-btn {
+            background: none;
+            border: none;
+            color: var(--pu);
+            cursor: pointer;
+            font-size: 12px;
+            padding: 3px 6px;
+            border-radius: 4px;
+            transition: background .15s;
+            opacity: .6
+        }
+
+        .detail-btn:hover {
+            background: #F5EEF8;
+            opacity: 1
+        }
+
+        /* ── PAGINATION ── */
+        .pw {
+            padding: 11px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-top: 1px solid var(--bd);
+            background: #FAFAFA
+        }
+
+        .pi {
+            font-size: 11px;
+            color: var(--tl);
+            font-weight: 600
+        }
+
+        .pb-wrap {
+            display: flex;
+            gap: 3px
+        }
+
+        .pgb {
+            width: 28px;
+            height: 28px;
+            border: 1.5px solid var(--bd);
+            border-radius: 6px;
+            background: var(--wh);
+            color: var(--tm);
+            font-family: var(--fn);
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all .15s
+        }
+
+        .pgb:hover {
+            border-color: var(--pu);
+            color: var(--pu)
+        }
+
+        .pgb.active {
+            background: var(--pu);
+            color: #fff;
+            border-color: var(--pu)
+        }
+
+        .pgb:disabled {
+            opacity: .4;
+            cursor: not-allowed
+        }
+
+        .empty-s {
+            padding: 36px;
+            text-align: center
+        }
+
+        .empty-s i {
+            font-size: 32px;
+            color: var(--tl);
+            display: block;
+            margin-bottom: 8px
+        }
+
+        .empty-s p {
+            color: var(--tl);
+            font-size: 13px;
+            font-weight: 600
+        }
+
+        /* ── MODAL BASE ── */
+        .mo {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .55);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            padding: 12px
+        }
+
+        .mo.open {
+            display: flex
+        }
+
+        .mb {
+            background: var(--wh);
+            border-radius: 14px;
+            width: 100%;
+            max-height: 92vh;
+            overflow-y: auto;
+            box-shadow: 0 24px 60px rgba(0, 0, 0, .3)
+        }
+
+        /* ── MODAL DETALLE/EDICION ── */
+        .mb-det {
+            max-width: 820px
+        }
+
+        .mh {
+            background: var(--pu);
+            color: #fff;
+            padding: 13px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-radius: 14px 14px 0 0;
+            position: sticky;
+            top: 0;
+            z-index: 1
+        }
+
+        .mh h3 {
+            font-size: 13px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 7px
+        }
+
+        .mh-actions {
+            display: flex;
+            align-items: center;
+            gap: 6px
+        }
+
+        .mclose {
+            background: rgba(255, 255, 255, .2);
+            border: none;
+            color: #fff;
+            width: 28px;
+            height: 28px;
+            border-radius: 7px;
+            cursor: pointer;
+            font-size: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background .2s
+        }
+
+        .mclose:hover {
+            background: rgba(255, 255, 255, .35)
+        }
+
+        .mbody {
+            padding: 18px
+        }
+
+        .mfooter {
+            padding: 12px 18px;
+            border-top: 1px solid var(--bd);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            bottom: 0;
+            background: var(--wh);
+            border-radius: 0 0 14px 14px
+        }
+
+        .mf-info {
+            font-size: 11px;
+            color: var(--tl);
+            font-weight: 600
+        }
+
+        .mf-btns {
+            display: flex;
+            gap: 8px
+        }
+
+        .btn-ma {
+            color: #fff;
+            border: none;
+            font-family: var(--fn);
+            font-size: 12px;
+            font-weight: 700;
+            padding: 7px 14px;
+            border-radius: 7px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: opacity .2s
+        }
+
+        .btn-ma:hover {
+            opacity: .85
+        }
+
+        .btn-ma.pu {
+            background: var(--pu)
+        }
+
+        .btn-ma.gr {
+            background: var(--gr)
+        }
+
+        .btn-ma.re {
+            background: var(--re)
+        }
+
+        .btn-ma.or {
+            background: var(--or)
+        }
+
+        .btn-mc {
+            background: #F3F4F6;
+            color: var(--tm);
+            border: none;
+            font-family: var(--fn);
+            font-size: 12px;
+            font-weight: 700;
+            padding: 7px 14px;
+            border-radius: 7px;
+            cursor: pointer;
+            transition: background .2s
+        }
+
+        .btn-mc:hover {
+            background: #E5E7EB
+        }
+
+        /* Modal tabs */
+        .mtabs {
+            display: flex;
+            border-bottom: 2px solid var(--bd);
+            margin-bottom: 16px
+        }
+
+        .mtab {
+            padding: 8px 16px;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--tl);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            transition: color .2s, border-color .2s;
+            display: flex;
+            align-items: center;
+            gap: 5px
+        }
+
+        .mtab.active {
+            color: var(--pu);
+            border-bottom-color: var(--pu)
+        }
+
+        .mtab-panel {
+            display: none
+        }
+
+        .mtab-panel.active {
+            display: block
+        }
+
+        /* Edit form */
+        .ef-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 14px
+        }
+
+        .ef-full {
+            grid-column: 1/-1
+        }
+
+        .ef-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px
+        }
+
+        .ef-group label {
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--tm);
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            display: flex;
+            align-items: center;
+            gap: 5px
+        }
+
+        .ef-group label .req {
+            color: var(--pk);
+            font-size: 12px
+        }
+
+        .ef-input,
+        .ef-select,
+        .ef-textarea {
+            border: 1.5px solid var(--bd);
+            border-radius: 7px;
+            padding: 0 10px;
+            font-family: var(--fn);
+            font-size: 13px;
+            color: var(--td);
+            background: #F9F9FC;
+            outline: none;
+            transition: border-color .2s, box-shadow .2s;
+            width: 100%
+        }
+
+        .ef-input {
+            height: 36px
+        }
+
+        .ef-select {
+            height: 36px;
+            cursor: pointer
+        }
+
+        .ef-textarea {
+            padding: 8px 10px;
+            height: 72px;
+            resize: vertical;
+            line-height: 1.4
+        }
+
+        .ef-input:focus,
+        .ef-select:focus,
+        .ef-textarea:focus {
+            border-color: var(--pu);
+            box-shadow: 0 0 0 3px rgba(107, 31, 124, .08)
+        }
+
+        .ef-input.modified,
+        .ef-select.modified,
+        .ef-textarea.modified {
+            border-color: #D97706;
+            background: #FFFBEB
+        }
+
+        .ef-row2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px
+        }
+
+        .ef-row4 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 10px
+        }
+
+        .status-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            background: #F5EEF8;
+            border-radius: 8px;
+            border: 1px solid #E0D0E8;
+            margin-bottom: 14px
+        }
+
+        .status-bar .sb-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--pu);
+            text-transform: uppercase;
+            letter-spacing: .04em
+        }
+
+        .sb-toggle {
+            display: flex;
+            gap: 6px
+        }
+
+        .sb-opt {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            border: 1.5px solid var(--bd);
+            background: var(--wh);
+            color: var(--tm);
+            transition: all .15s
+        }
+
+        .sb-opt.sel-activo {
+            background: #ECFDF5;
+            color: #065F46;
+            border-color: #A7F3D0
+        }
+
+        .sb-opt.sel-inactivo {
+            background: #F3F4F6;
+            color: #6B7280;
+            border-color: #D1D5DB
+        }
+
+        .sb-opt.sel-disp {
+            background: #EFF6FF;
+            color: #1D4ED8;
+            border-color: #BFDBFE
+        }
+
+        .sb-opt.sel-pres {
+            background: #FEF2F2;
+            color: #991B1B;
+            border-color: #FECACA
+        }
+
+        /* Historial */
+        .hist-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0
+        }
+
+        .hist-item {
+            display: grid;
+            grid-template-columns: 80px 1fr 90px 90px 90px;
+            gap: 10px;
+            align-items: center;
+            padding: 9px 12px;
+            border-bottom: 1px solid var(--bd);
+            font-size: 12px;
+            transition: background .15s
+        }
+
+        .hist-item:last-child {
+            border-bottom: none
+        }
+
+        .hist-item:hover {
+            background: #FAFAFA
+        }
+
+        .hist-item .h-num {
+            font-size: 10px;
+            color: var(--tl);
+            font-weight: 700;
+            font-family: monospace
+        }
+
+        .hist-item .h-sol {
+            font-weight: 700;
+            color: var(--td)
+        }
+
+        .hist-item .h-mod {
+            font-size: 10px;
+            color: var(--tl);
+            margin-top: 1px
+        }
+
+        .hist-item .h-date {
+            font-size: 11px;
+            color: var(--tm)
+        }
+
+        .hist-item .h-obs {
+            font-size: 11px;
+            color: var(--or);
+            font-weight: 600;
+            max-width: 140px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap
+        }
+
+        .hist-header {
+            display: grid;
+            grid-template-columns: 80px 1fr 90px 90px 90px;
+            gap: 10px;
+            padding: 7px 12px;
+            background: #F5EEF8;
+            border-bottom: 2px solid var(--bd);
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--pu);
+            text-transform: uppercase;
+            letter-spacing: .05em
+        }
+
+        /* save notice */
+        .save-notice {
+            display: none;
+            background: #ECFDF5;
+            border: 1.5px solid #A7F3D0;
+            border-radius: 8px;
+            padding: 8px 14px;
+            font-size: 12px;
+            font-weight: 700;
+            color: #065F46;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 12px
+        }
+
+        .save-notice.vis {
+            display: flex
+        }
+
+        /* ── MODAL FORMATO ── */
+        .mb-fmt {
+            max-width: 920px
+        }
+
+        .fmt-doc {
+            font-family: var(--fn);
+            color: #111;
+            font-size: 11.5px
+        }
+
+        .fmt-copy {
+            border: 1.5px solid #ccc;
+            border-radius: 8px;
+            padding: 16px 18px;
+            margin-bottom: 16px;
+            background: var(--wh)
+        }
+
+        .fc-label {
+            font-size: 9px;
+            font-weight: 800;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: .07em;
+            margin-bottom: 10px;
+            padding-bottom: 6px;
+            border-bottom: 2px dashed #e0e0e0;
+            display: flex;
+            align-items: center;
+            gap: 6px
+        }
+
+        .fc-label i {
+            color: var(--pu)
+        }
+
+        .fmt-hdr {
+            display: grid;
+            grid-template-columns: 70px 1fr 110px;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 12px;
+            padding-bottom: 10px;
+            border-bottom: 2.5px solid var(--pu)
+        }
+
+        .fmt-logo-box {
+            width: 68px;
+            height: 68px;
+            border-radius: 6px;
+            border: 2px solid var(--pu);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #F5EEF8;
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--pu)
+        }
+
+        .fmt-title {
+            text-align: center
+        }
+
+        .fmt-title h2 {
+            font-size: 13px;
+            font-weight: 800;
+            color: var(--pu);
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            margin-bottom: 3px;
+            line-height: 1.3
+        }
+
+        .fmt-title p {
+            font-size: 10px;
+            color: var(--tm);
+            font-weight: 600
+        }
+
+        .fmt-uni {
+            text-align: right
+        }
+
+        .fmt-uni .fn {
+            font-size: 11px;
+            font-weight: 800;
+            color: var(--pu);
+            line-height: 1.3
+        }
+
+        .fmt-uni .fs {
+            font-size: 9px;
+            color: var(--tm);
+            font-weight: 600;
+            line-height: 1.5
+        }
+
+        .fmt-uni .fb-date {
+            display: inline-block;
+            background: var(--pu);
+            color: #fff;
+            font-size: 9px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin-top: 3px
+        }
+
+        .fmt-meta {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 6px;
+            margin-bottom: 12px
+        }
+
+        .fmt-meta-i {
+            background: #F9F5FB;
+            border: 1px solid #E8D8F0;
+            border-radius: 6px;
+            padding: 5px 9px
+        }
+
+        .fmt-meta-i .lbl {
+            font-size: 9px;
+            font-weight: 800;
+            color: var(--pu);
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            display: block;
+            margin-bottom: 2px
+        }
+
+        .fmt-meta-i .val {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--td)
+        }
+
+        .fmt-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 10px;
+            margin-bottom: 10px
+        }
+
+        .fmt-table thead tr {
+            background: var(--pu)
+        }
+
+        .fmt-table th {
+            padding: 5px 7px;
+            text-align: left;
+            font-size: 9px;
+            font-weight: 700;
+            color: #fff;
+            text-transform: uppercase;
+            border: 1px solid var(--pud)
+        }
+
+        .fmt-table th.c,
+        .fmt-table td.c {
+            text-align: center
+        }
+
+        .fmt-table td {
+            padding: 5px 7px;
+            border: 1px solid #ddd;
+            vertical-align: middle;
+            color: #333
+        }
+
+        .fmt-table tbody tr:nth-child(even) {
+            background: #F9F5FB
+        }
+
+        .fmt-table .inv {
+            font-family: monospace;
+            font-weight: 800;
+            color: var(--pu);
+            background: #F0E8F5;
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-size: 9px
+        }
+
+        .fmt-obs-box {
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 7px 11px;
+            margin-bottom: 12px;
+            min-height: 40px;
+            background: #FAFAFA
+        }
+
+        .fmt-obs-box .ot {
+            font-size: 9px;
+            font-weight: 800;
+            color: var(--pu);
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 4px
+        }
+
+        .fmt-obs-box .oc {
+            font-size: 10.5px;
+            color: var(--tm);
+            line-height: 1.5
+        }
+
+        .fmt-firmas {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 18px;
+            margin-top: 6px
+        }
+
+        .fmt-firma {
+            text-align: center;
+            padding: 0 6px
+        }
+
+        .fmt-firma-esp {
+            height: 46px;
+            border-bottom: 1.5px solid #333;
+            margin-bottom: 5px
+        }
+
+        .fmt-firma-nom {
+            font-size: 10px;
+            font-weight: 800;
+            color: var(--td);
+            margin-bottom: 2px
+        }
+
+        .fmt-firma-rol {
+            font-size: 9px;
+            color: var(--tm);
+            font-weight: 600
+        }
+
+        .fmt-firma-ext {
+            font-size: 8px;
+            color: var(--tl);
+            margin-top: 1px
+        }
+
+        .fmt-pie {
+            margin-top: 10px;
+            padding-top: 7px;
+            border-top: 1px solid #eee;
+            font-size: 8.5px;
+            color: #bbb;
+            text-align: center;
+            line-height: 1.5
+        }
+
+        .fmt-corte {
+            margin: 18px 0;
+            border: none;
+            border-top: 2px dashed #bbb;
+            position: relative
+        }
+
+        .fmt-corte::before {
+            content: '✂';
+            position: absolute;
+            top: -10px;
+            left: 12px;
+            background: var(--wh);
+            padding: 0 5px;
+            color: #bbb;
+            font-size: 13px
+        }
+
+        .fmt-corte::after {
+            content: 'CORTAR POR ESTA LÍNEA';
+            position: absolute;
+            top: -8px;
+            left: 36px;
+            background: var(--wh);
+            padding: 0 6px;
+            color: #ccc;
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: .06em
+        }
+
+        /* ── SPINNER ── */
+        .spin-ov {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(107, 31, 124, .65);
+            z-index: 3000;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 14px
+        }
+
+        .spin-ov.vis {
+            display: flex
+        }
+
+        .spin {
+            width: 44px;
+            height: 44px;
+            border: 4px solid rgba(255, 255, 255, .3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: sp .8s linear infinite
+        }
+
+        .spin-txt {
+            color: #fff;
+            font-size: 14px;
+            font-weight: 700;
+            font-family: var(--fn)
+        }
+
+        @keyframes sp {
+            to {
+                transform: rotate(360deg)
+            }
+        }
+
+        @media print {
+            body>*:not(#modal-fmt) {
+                display: none !important
+            }
+
+            #modal-fmt {
+                display: block !important;
+                position: static !important;
+                background: none !important;
+                padding: 0
+            }
+
+            .mb-fmt {
+                box-shadow: none;
+                max-height: none;
+                border-radius: 0
+            }
+
+            .mh,
+            .mfooter {
+                display: none !important
+            }
+
+            .mbody {
+                padding: 4px
+            }
+
+            .fmt-copy {
+                break-inside: avoid
+            }
+        }
+
+        @media(max-width:1100px) {
+            .sg {
+                grid-template-columns: repeat(3, 1fr)
+            }
+
+            .fg {
+                grid-template-columns: 1fr 1fr 1fr
+            }
+        }
+
+        @media(max-width:700px) {
+            .sg {
+                grid-template-columns: repeat(2, 1fr)
+            }
+
+            .fg {
+                grid-template-columns: 1fr 1fr
+            }
+
+            .ef-grid {
+                grid-template-columns: 1fr
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="spin-ov" id="spinner">
+        <div class="spin"></div>
+        <div class="spin-txt">Generando archivo...</div>
+    </div>
+
+    <!-- NAVBAR -->
+    <header class="navbar">
+        <div class="nb-left">
+            <div class="nb-logo">UPB</div>
+            <span class="nb-sep">|</span>
+            <div class="nb-title">Sistema de Laboratorios</div>
+        </div>
+        <div class="nb-right">
+            <div class="nb-userblock">
+                <span class="nb-name" id="nav-nombre">...</span>
+                <span class="nb-lab" id="nav-lab"></span>
+            </div>
+            <div class="nb-avatar" id="nav-iniciales">AU</div>
+            <button class="btn-salir" id="btn-salir"><i class="fa-solid fa-right-from-bracket"></i> Salir</button>
+        </div>
+    </header>
+
+    <div class="page">
+        <nav
+            style="background:#fff;border-bottom:1px solid #E8E8F0;padding:6px 22px;display:flex;gap:8px;flex-wrap:wrap">
+            <a href="dashboard.html"
+                style="padding:5px 12px;border-radius:6px;font-size:12px;font-weight:700;color:#6B1F7C;text-decoration:none;background:#F5EEF8;display:flex;align-items:center;gap:5px;font-family:'Nunito',sans-serif"><i
+                    class="fa-solid fa-house"></i> Menu Principal</a>
+            <a href="Admin-Equipos.html"
+                style="padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600;color:#666680;text-decoration:none;background:#F0F0F5;font-family:'Nunito',sans-serif"><i
+                    class="fa-solid fa-desktop"></i> Elementos</a>
+            <a href="Admin-Usuarios.html"
+                style="padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600;color:#666680;text-decoration:none;background:#F0F0F5;font-family:'Nunito',sans-serif"><i
+                    class="fa-solid fa-users"></i> Usuarios</a>
+            <a href="reporte-resumen.html"
+                style="padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600;color:#666680;text-decoration:none;background:#F0F0F5;font-family:'Nunito',sans-serif"><i
+                    class="fa-solid fa-table"></i> Resumen</a>
+            <a href="Prestamos_X_Elementos.html"
+                style="padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600;color:#666680;text-decoration:none;background:#F0F0F5;font-family:'Nunito',sans-serif"><i
+                    class="fa-solid fa-desktop"></i> Prestamos x Elemento</a>
+            <a href="Elementos_Prestados.html"
+                style="padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600;color:#666680;text-decoration:none;background:#F0F0F5;font-family:'Nunito',sans-serif"><i
+                    class="fa-solid fa-layer-group"></i> Prestados</a>
+            <a href="Admin_Calendario.html"
+                style="padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600;color:#666680;text-decoration:none;background:#F0F0F5;font-family:'Nunito',sans-serif"><i
+                    class="fa-solid fa-calendar"></i> Calendario</a>
+        </nav>
+        <div class="page">
+
+            <!-- STATS -->
+            <div class="sg">
+                <div class="sc">
+                    <div class="si pu"><i class="fa-solid fa-boxes-stacked"></i></div>
+                    <div>
+                        <div class="sv" id="s-total">0</div>
+                        <div class="sl">Total Elementos</div>
+                    </div>
+                </div>
+                <div class="sc">
+                    <div class="si gr"><i class="fa-solid fa-circle-check"></i></div>
+                    <div>
+                        <div class="sv" id="s-activos">0</div>
+                        <div class="sl">Activos</div>
+                    </div>
+                </div>
+                <div class="sc">
+                    <div class="si or"><i class="fa-solid fa-ban"></i></div>
+                    <div>
+                        <div class="sv" id="s-inactivos">0</div>
+                        <div class="sl">Inactivos</div>
+                    </div>
+                </div>
+                <div class="sc">
+                    <div class="si bl"><i class="fa-solid fa-check-double"></i></div>
+                    <div>
+                        <div class="sv" id="s-disp">0</div>
+                        <div class="sl">Disponibles</div>
+                    </div>
+                </div>
+                <div class="sc">
+                    <div class="si re"><i class="fa-solid fa-rotate"></i></div>
+                    <div>
+                        <div class="sv" id="s-pres">0</div>
+                        <div class="sl">En Préstamo</div>
+                    </div>
+                </div>
+                <div class="sc" id="sc-sinmod" style="display:none;border:1.5px dashed #F59E0B;background:#FFFBEB">
+                    <div class="si" style="background:#FEF3C7;color:#92400E"><i
+                            class="fa-solid fa-triangle-exclamation"></i></div>
+                    <div>
+                        <div class="sv" id="s-sinmod" style="color:#92400E">0</div>
+                        <div class="sl" style="color:#B45309">Sin módulo</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FILTROS -->
+            <div class="fc">
+                <div class="ch"><i class="fa-solid fa-sliders"></i> FILTROS DE BÚSQUEDA</div>
+                <div class="fb">
+                    <div class="fg">
+                        <div class="fgroup"><label>Módulo / Laboratorio</label>
+                            <select class="fs" id="f-modulo">
+                                <option value="">Todos los módulos</option>
+                            </select>
+                        </div>
+                        <div class="fgroup"><label>Tipo de Elemento</label>
+                            <select class="fs" id="f-tipo">
+                                <option value="">Todos los tipos</option>
+                            </select>
+                        </div>
+                        <div class="fgroup"><label>Estado</label>
+                            <select class="fs" id="f-estado">
+                                <option value="">Todos</option>
+                                <option value="activo">Activo</option>
+                                <option value="inactivo">Inactivo</option>
+                            </select>
+                        </div>
+                        <div class="fgroup"><label>Disponibilidad</label>
+                            <select class="fs" id="f-disp">
+                                <option value="">Todos</option>
+                                <option value="si">Disponible</option>
+                                <option value="no">En Préstamo</option>
+                            </select>
+                        </div>
+                        <div class="fgroup"><label>Búsqueda Libre</label>
+                            <input type="text" class="fi" id="f-q" placeholder="Nombre, inventario, serial…"
+                                oninput="aplicar()" />
+                        </div>
+                    </div>
+                    <div class="fa-row">
+                        <button class="btn-buscar" onclick="aplicar()"><i class="fa-solid fa-magnifying-glass"></i>
+                            Buscar</button>
+                        <button class="btn-limpiar" onclick="limpiar()"><i class="fa-solid fa-xmark"></i>
+                            Limpiar</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TABLA -->
+            <div class="rc">
+                <div class="rh">
+                    <div class="rh-left">
+                        <i class="fa-solid fa-clipboard-list"></i>
+                        INVENTARIO DE ELEMENTOS
+                        <span class="rcount" id="rcount">0 registros</span>
+                        <span class="sel-badge" id="sel-badge"><i class="fa-solid fa-check-square"></i> <span
+                                id="sel-num">0</span> seleccionados</span>
+                    </div>
+                    <div class="ra">
+                        <button class="btn-exp ver" id="btn-ver" onclick="abrirFormato()"><i
+                                class="fa-solid fa-eye"></i>
+                            Ver Selección</button>
+                        <button class="btn-exp pdf" onclick="expPDF()"><i class="fa-solid fa-file-pdf"></i> PDF</button>
+                        <button class="btn-exp csv" onclick="expCSV()"><i class="fa-solid fa-file-csv"></i> CSV</button>
+                        <button class="btn-exp xls" onclick="expXLS()"><i class="fa-solid fa-file-excel"></i>
+                            XLS</button>
+                        <div class="ts-wrap">
+                            <i class="fa-solid fa-magnifying-glass ts-ico"></i>
+                            <input type="text" class="ts" id="ts" placeholder="Buscar en tabla…"
+                                oninput="syncQ(this.value)" />
+                        </div>
+                    </div>
+                </div>
+                <div class="tw">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th class="cb-col">
+                                    <div class="cb-w"><input type="checkbox" id="cb-all" onchange="toggleTodos(this)" />
+                                    </div>
+                                </th>
+                                <th class="sort" onclick="sortT(0)"># <i class="fa-solid fa-sort si-ico"></i></th>
+                                <th class="sort" onclick="sortT(1)">No. Inventario <i
+                                        class="fa-solid fa-sort si-ico"></i>
+                                </th>
+                                <th class="sort" onclick="sortT(2)">Nombre <i class="fa-solid fa-sort si-ico"></i></th>
+                                <th class="sort" onclick="sortT(3)">Tipo <i class="fa-solid fa-sort si-ico"></i></th>
+                                <th class="sort" onclick="sortT(4)">Módulo / Lab <i class="fa-solid fa-sort si-ico"></i>
+                                </th>
+                                <th class="sort" onclick="sortT(5)">No. Serial <i class="fa-solid fa-sort si-ico"></i>
+                                </th>
+                                <th>Características</th>
+                                <th class="sort" onclick="sortT(7)">Disponible <i class="fa-solid fa-sort si-ico"></i>
+                                </th>
+                                <th class="sort" onclick="sortT(8)">Estado <i class="fa-solid fa-sort si-ico"></i></th>
+                                <th>Observaciones</th>
+                                <th style="width:40px"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody"></tbody>
+                    </table>
+                </div>
+                <div class="pw">
+                    <div class="pi" id="pi">Mostrando 0 de 0 registros</div>
+                    <div class="pb-wrap" id="pbwrap"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL DETALLE / EDICIÓN -->
+        <div class="mo" id="modal-det">
+            <div class="mb mb-det">
+                <div class="mh">
+                    <h3><i class="fa-solid fa-box-open"></i> <span id="mdet-title">Detalle del Elemento</span></h3>
+                    <div class="mh-actions">
+                        <button class="mclose" onclick="cerrarDet()"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                </div>
+                <div class="mbody">
+                    <div class="save-notice" id="save-notice"><i class="fa-solid fa-circle-check"></i> Cambios guardados
+                        correctamente.</div>
+                    <div class="mtabs">
+                        <div class="mtab active" onclick="switchTab(0)" id="tab0"><i
+                                class="fa-solid fa-info-circle"></i>
+                            Información</div>
+                        <div class="mtab" onclick="switchTab(1)" id="tab1"><i class="fa-solid fa-history"></i> Historial
+                            de
+                            Préstamos</div>
+                    </div>
+                    <div class="mtab-panel active" id="panel0">
+                        <!-- INFO / EDIT -->
+                        <div class="status-bar">
+                            <span class="sb-label"><i class="fa-solid fa-circle"></i> Estado actual:</span>
+                            <div class="sb-toggle">
+                                <span class="sb-opt" id="st-activo" onclick="setEstado('activo')">Activo</span>
+                                <span class="sb-opt" id="st-inactivo" onclick="setEstado('inactivo')">Inactivo</span>
+                            </div>
+                            <span style="margin-left:14px" class="sb-label"><i class="fa-solid fa-check-double"></i>
+                                Disponibilidad:</span>
+                            <div class="sb-toggle">
+                                <span class="sb-opt" id="st-disp" onclick="setDisp('si')">Disponible</span>
+                                <span class="sb-opt" id="st-pres" onclick="setDisp('no')">En Préstamo</span>
+                            </div>
+                        </div>
+                        <div class="ef-grid">
+                            <div class="ef-group">
+                                <label>No. Inventario <span class="req">*</span></label>
+                                <input class="ef-input" id="ef-inv" type="text" placeholder="INV-001" />
+                            </div>
+                            <div class="ef-group">
+                                <label>No. Serial</label>
+                                <input class="ef-input" id="ef-serial" type="text" placeholder="SER-001" />
+                            </div>
+                            <div class="ef-group ef-full">
+                                <label>Nombre del Elemento <span class="req">*</span></label>
+                                <input class="ef-input" id="ef-nombre" type="text"
+                                    placeholder="Nombre completo del elemento" />
+                            </div>
+                            <div class="ef-group">
+                                <label>Tipo de Elemento <span class="req">*</span></label>
+                                <select class="ef-select" id="ef-tipo">
+                                    <option value="">Cargando tipos...</option>
+                                </select>
+                            </div>
+                            <div class="ef-group">
+                                <label>Módulo / Laboratorio</label>
+                                <select class="ef-select" id="ef-modulo" onchange="chkModulo()">
+                                    <option value="">Cargando módulos...</option>
+                                </select>
+                                <div class="mod-warn-msg" id="mod-warn-msg"><i
+                                        class="fa-solid fa-triangle-exclamation"></i>
+                                    Este elemento no tiene módulo asignado. Asígnalo antes de ponerlo en préstamo.</div>
+                            </div>
+                            <div class="ef-group ef-full">
+                                <label>Características Técnicas</label>
+                                <textarea class="ef-textarea" id="ef-caract"
+                                    placeholder="Descripción técnica del elemento…"></textarea>
+                            </div>
+                            <div class="ef-group ef-full">
+                                <label>Observaciones</label>
+                                <textarea class="ef-textarea" id="ef-obs"
+                                    placeholder="Notas adicionales, estado físico, pendientes…"
+                                    style="height:56px"></textarea>
+                            </div>
+                        </div>
+                        <p style="font-size:10px;color:var(--tl);margin-top:-6px"><i
+                                class="fa-solid fa-info-circle"></i>
+                            Los campos marcados con <span style="color:var(--pk)">*</span> son obligatorios.</p>
+                    </div>
+                    <div class="mtab-panel" id="panel1">
+                        <div id="hist-content"></div>
+                    </div>
+                </div>
+                <div class="mfooter">
+                    <div class="mf-info" id="mdet-info"></div>
+                    <div class="mf-btns">
+                        <button class="btn-mc" onclick="cerrarDet()"><i class="fa-solid fa-xmark"></i> Cancelar</button>
+                        <button class="btn-ma or" onclick="imprimirFicha()"><i class="fa-solid fa-print"></i> Imprimir
+                            Ficha</button>
+                        <button class="btn-ma re" id="btn-inactivar" onclick="toggleInactivar()"><i
+                                class="fa-solid fa-ban"></i> <span id="btn-inac-txt">Inactivar</span></button>
+                        <button class="btn-ma gr" onclick="guardarCambios()"><i class="fa-solid fa-floppy-disk"></i>
+                            Guardar
+                            Cambios</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL FORMATO IMPRESION -->
+        <div class="mo" id="modal-fmt">
+            <div class="mb mb-fmt">
+                <div class="mh">
+                    <h3><i class="fa-solid fa-eye"></i> FORMATO DE INVENTARIO — ELEMENTOS SELECCIONADOS</h3>
+                    <button class="mclose" onclick="cerrarFmt()"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div class="mbody" id="fmt-body"></div>
+                <div class="mfooter">
+                    <span class="mf-info" id="fmt-info"></span>
+                    <div class="mf-btns">
+                        <button class="btn-mc" onclick="cerrarFmt()"><i class="fa-solid fa-xmark"></i> Cerrar</button>
+                        <button class="btn-ma pu" onclick="window.print()"><i class="fa-solid fa-print"></i>
+                            Imprimir</button>
+                        <button class="btn-ma" style="background:var(--re)" onclick="generarPDFFormato()"><i
+                                class="fa-solid fa-file-pdf"></i> Descargar PDF</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>// ===== SESION =====
+            const _u = sessionStorage.getItem('usuario');
+            if (!_u) { window.location.href = 'index.html'; }
+            const _usr = JSON.parse(_u);
+            document.getElementById('nav-nombre').textContent = _usr.nombre.toUpperCase();
+            document.getElementById('nav-lab').textContent = _usr.lab || '';
+            document.getElementById('nav-iniciales').textContent = _usr.nombre.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+            document.getElementById('btn-salir').addEventListener('click', () => {
+                sessionStorage.removeItem('usuario'); window.location.href = 'index.html';
+            });
+
+            const API = 'backend/modules/';
+
+            async function cargarDatos() {
+                try {
+                    const [rEl, rLab, rTipo, rSol] = await Promise.all([
+                        fetch(API + 'elementos/listar.php', { credentials: 'include' }).then(r => r.json()),
+                        fetch(API + 'laboratorios/listar.php', { credentials: 'include' }).then(r => r.json()),
+                        fetch(API + 'tipos_elementos/listar.php', { credentials: 'include' }).then(r => r.json()),
+                        fetch(API + 'solicitudes/listar.php', { credentials: 'include' }).then(r => r.json()).catch(() => ({ ok: false, data: [] }))
+                    ]);
+
+                    if (rEl.ok) {
+                        DATOS = rEl.data.map((e, i) => ({
+                            id: e.n_idelemento,
+                            id_laboratorio: e.n_idlaboratorio,
+                            id_tipo_elemento: e.n_idtipoelemento,
+                            numero_inventario: e.t_numeroinventario || '',
+                            nombre: e.t_nombre || '',
+                            tipo_elemento: e.tipo_nombre || '',
+                            id_modulo: e.laboratorio_nombre || '',
+                            numero_serial: e.t_numeroserie || '',
+                            caracteristicas: e.t_descripcion || '',
+                            disponible: e.t_estado === 'prestado' ? 'no' : 'si',
+                            estado: (e.t_estado === 'dado_de_baja' || e.t_estado === 'mantenimiento') ? 'inactivo' : 'activo',
+                            t_estado_raw: e.t_estado || 'disponible',
+                            marca: e.t_marca || '',
+                            modelo: e.t_modelo || '',
+                            observaciones: e.t_observaciones || '',
+                            _raw: e
+                        }));
+                    }
+
+                    if (rLab.ok) {
+                        LABS_DATA = rLab.data;
+                        const sel = document.getElementById('f-modulo');
+                        rLab.data.forEach(l => {
+                            const o = document.createElement('option');
+                            o.value = l.t_nombre;
+                            o.textContent = l.t_nombre;
+                            sel.appendChild(o);
+                        });
+                        // Tambien popular el select del modal de edicion con ID como value
+                        const selModal = document.getElementById('ef-modulo');
+                        if (selModal) {
+                            selModal.innerHTML = '<option value="">— Sin asignar —</option>';
+                            rLab.data.forEach(l => {
+                                const o = document.createElement('option');
+                                o.value = l.n_idlaboratorio;
+                                o.textContent = l.t_nombre;
+                                selModal.appendChild(o);
+                            });
+                        }
+                    }
+
+                    if (rTipo.ok) {
+                        TIPOS_DATA = rTipo.data;
+                        const sel = document.getElementById('f-tipo');
+                        rTipo.data.forEach(t => {
+                            const o = document.createElement('option');
+                            o.value = t.t_nombre;
+                            o.textContent = t.t_nombre;
+                            sel.appendChild(o);
+                        });
+                        // Tambien popular el select del modal de edicion con ID como value
+                        const selModal = document.getElementById('ef-tipo');
+                        if (selModal) {
+                            selModal.innerHTML = '<option value="">Seleccionar...</option>';
+                            rTipo.data.forEach(t => {
+                                const o = document.createElement('option');
+                                o.value = t.n_idtipoelemento;
+                                o.textContent = t.t_nombre;
+                                selModal.appendChild(o);
+                            });
+                        }
+                    }
+
+                    // Construir mapa de historial por número de inventario
+                    // Cada solicitud puede tener varios elementos, y para cada uno se guarda un registro
+                    if (rSol && rSol.ok && Array.isArray(rSol.data)) {
+                        HIST_MAP = {};
+                        rSol.data.forEach(s => {
+                            // elementos_nombres es GROUP_CONCAT de nombres, pero necesitamos el número de inventario
+                            // Por ahora indexamos por ID de elemento si viene, o ignoramos si no
+                            // Nota: listar.php no devuelve los IDs de elementos directamente; se necesitaría
+                            // un endpoint específico. Dejamos la estructura lista para cuando exista.
+                            const solicitante = (s.t_nombres || '') + ' ' + (s.t_apellidos || '');
+                            const entry = {
+                                sol: solicitante.trim() || 'Desconocido',
+                                mod: s.laboratorio_nombre || '',
+                                salida: s.dt_fechainicio ? s.dt_fechainicio.substring(0, 10) : '',
+                                entrega: s.dt_fechadevolucion ? s.dt_fechadevolucion.substring(0, 10) : (s.dt_fechafin ? s.dt_fechafin.substring(0, 10) : ''),
+                                estado: s.t_estado === 'finalizada' ? 'Devuelto' : (s.t_estado === 'aprobada' || s.t_estado === 'en_curso' ? 'Activo' : 'Pendiente'),
+                                obs: s.t_observaciones || ''
+                            };
+                            // Los elementos vienen concatenados en elementos_nombres
+                            if (s.elementos_nombres) {
+                                s.elementos_nombres.split(',').forEach(nombreEl => {
+                                    const n = nombreEl.trim();
+                                    if (!HIST_MAP[n]) HIST_MAP[n] = [];
+                                    HIST_MAP[n].push(entry);
+                                });
+                            }
+                        });
+                    }
+
+                    aplicar();
+                } catch (err) {
+                    console.error('Error cargando datos:', err);
+                    alert('Error al cargar el inventario desde el servidor.');
+                }
+            }
+            // ── DATOS ──
+            let DATOS = [];
+            let HIST_MAP = {};
+            let LABS_DATA = [];
+            let TIPOS_DATA = [];
+
+
+
+            let filtrados = [...DATOS];
+            let pagina = 1;
+            const POR_PAG = 10;
+            let sortCol = -1, sortAsc = true;
+            let seleccionados = new Set();
+            let idxActual = null;
+
+            window.onload = () => { cargarDatos(); };
+
+            function chkModulo() {
+                const sel = document.getElementById('ef-modulo');
+                const msg = document.getElementById('mod-warn-msg');
+                const val = sel.value;
+                if (!val) { sel.classList.add('mod-warn'); msg.classList.add('vis'); }
+                else { sel.classList.remove('mod-warn'); msg.classList.remove('vis'); }
+            }
+
+            // ── STATS ──
+            function renderStats(d) {
+                document.getElementById('s-total').textContent = d.length;
+                document.getElementById('s-activos').textContent = d.filter(x => x.estado === 'activo').length;
+                document.getElementById('s-inactivos').textContent = d.filter(x => x.estado === 'inactivo').length;
+                document.getElementById('s-disp').textContent = d.filter(x => x.disponible === 'si').length;
+                document.getElementById('s-pres').textContent = d.filter(x => x.disponible === 'no').length;
+                const sinMod = d.filter(x => !x.id_modulo).length;
+                const sinModEl = document.getElementById('s-sinmod');
+                if (sinModEl) { sinModEl.textContent = sinMod; sinModEl.closest('.sc').style.display = sinMod > 0 ? 'flex' : 'none'; }
+            }
+
+            // ── FILTROS ──
+            function aplicar() {
+                const mod = document.getElementById('f-modulo').value;
+                const tip = document.getElementById('f-tipo').value;
+                const est = document.getElementById('f-estado').value;
+                const dis = document.getElementById('f-disp').value;
+                const q = (document.getElementById('f-q').value || '').toLowerCase().trim();
+                filtrados = DATOS.filter(d => {
+                    if (mod === '__sin__' && d.id_modulo) return false;
+                    if (mod && mod !== '__sin__' && d.id_modulo !== mod) return false;
+                    if (tip && d.tipo_elemento !== tip) return false;
+                    if (est && d.estado !== est) return false;
+                    if (dis && d.disponible !== dis) return false;
+                    if (q && !Object.values(d).some(v => String(v).toLowerCase().includes(q))) return false;
+                    return true;
+                });
+                pagina = 1; seleccionados.clear();
+                renderStats(filtrados); renderTabla();
+            }
+
+            function syncQ(v) { document.getElementById('f-q').value = v; aplicar(); }
+
+            function limpiar() {
+                ['f-modulo', 'f-tipo', 'f-estado', 'f-disp', 'f-q', 'ts'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+                aplicar();
+            }
+
+            // ── TABLA ──
+            function renderTabla() {
+                const tbody = document.getElementById('tbody');
+                const start = (pagina - 1) * POR_PAG;
+                const end = start + POR_PAG;
+                const pg = filtrados.slice(start, end);
+                document.getElementById('rcount').textContent = filtrados.length + ' registro' + (filtrados.length !== 1 ? 's' : '');
+                document.getElementById('pi').textContent = filtrados.length === 0 ? 'Sin resultados' : `Mostrando ${start + 1} – ${Math.min(end, filtrados.length)} de ${filtrados.length} registros`;
+                actualizarSelBadge();
+                if (!pg.length) {
+                    tbody.innerHTML = `<tr><td colspan="12"><div class="empty-s"><i class="fa-solid fa-boxes-stacked"></i><p>No se encontraron elementos</p></div></td></tr>`;
+                    renderPag(); return;
+                }
+                tbody.innerHTML = pg.map((d, i) => {
+                    const idx = DATOS.indexOf(d);
+                    const checked = seleccionados.has(idx);
+                    return `<tr class="${checked ? 'sel-row' : ''} clickable">
+      <td onclick="event.stopPropagation()"><div class="cb-w"><input type="checkbox" data-idx="${idx}" ${checked ? 'checked' : ''} onchange="toggleFila(this)"/></div></td>
+      <td style="color:var(--tl);font-weight:700">${start + i + 1}</td>
+      <td><span class="inv-tag">${d.numero_inventario}</span></td>
+      <td style="font-weight:600;color:var(--td);min-width:180px">${d.nombre}</td>
+      <td><span class="tipo-tag">${d.tipo_elemento}</span></td>
+      <td class="mod-cell">${d.id_modulo ? d.id_modulo : '<span class="b-sinmod"><i class="fa-solid fa-triangle-exclamation"></i> Sin módulo asignado</span>'}</td>
+      <td>${d.numero_serial ? `<span class="ser-tag">${d.numero_serial}</span>` : '<span style="color:var(--tl)">—</span>'}</td>
+      <td class="car-cell" title="${d.caracteristicas}">${d.caracteristicas || '—'}</td>
+      <td>${d.disponible === 'si' ? '<span class="badge b-disp"><i class="fa-solid fa-check"></i> Disponible</span>' : '<span class="badge b-pres"><i class="fa-solid fa-rotate"></i> En Préstamo</span>'}</td>
+      <td>${d.estado === 'activo' ? '<span class="badge b-activo"><i class="fa-solid fa-circle-check"></i> Activo</span>' : '<span class="badge b-inactivo"><i class="fa-solid fa-ban"></i> Inactivo</span>'}</td>
+      <td class="obs-cell" title="${d.observaciones || ''}">${d.observaciones || '—'}</td>
+      <td onclick="event.stopPropagation()"><button class="detail-btn" title="Ver/Editar detalle" onclick="abrirDetalle(${idx})"><i class="fa-solid fa-pen-to-square"></i></button></td>
+    </tr>`;
+                }).join('');
+                // click fila → abrir detalle
+                tbody.querySelectorAll('tr.clickable').forEach((tr, i) => {
+                    tr.addEventListener('click', e => {
+                        if (e.target.type === 'checkbox' || e.target.closest('.detail-btn')) return;
+                        const idx = DATOS.indexOf(filtrados.slice((pagina - 1) * POR_PAG, (pagina - 1) * POR_PAG + POR_PAG)[i]);
+                        abrirDetalle(idx);
+                    });
+                });
+                const enPag = pg.map(d => DATOS.indexOf(d));
+                const cbAll = document.getElementById('cb-all');
+                cbAll.checked = enPag.length > 0 && enPag.every(i => seleccionados.has(i));
+                cbAll.indeterminate = enPag.some(i => seleccionados.has(i)) && !cbAll.checked;
+                renderPag();
+            }
+
+            function toggleFila(cb) {
+                const idx = parseInt(cb.dataset.idx);
+                cb.checked ? seleccionados.add(idx) : seleccionados.delete(idx);
+                cb.closest('tr').classList.toggle('sel-row', cb.checked);
+                actualizarSelBadge();
+                const pg = filtrados.slice((pagina - 1) * POR_PAG, (pagina - 1) * POR_PAG + POR_PAG).map(d => DATOS.indexOf(d));
+                const cbAll = document.getElementById('cb-all');
+                cbAll.checked = pg.every(i => seleccionados.has(i));
+                cbAll.indeterminate = pg.some(i => seleccionados.has(i)) && !cbAll.checked;
+            }
+
+            function toggleTodos(cbAll) {
+                const pg = filtrados.slice((pagina - 1) * POR_PAG, (pagina - 1) * POR_PAG + POR_PAG);
+                pg.forEach(d => { const idx = DATOS.indexOf(d); cbAll.checked ? seleccionados.add(idx) : seleccionados.delete(idx); });
+                renderTabla();
+            }
+
+            function actualizarSelBadge() {
+                const n = seleccionados.size;
+                document.getElementById('sel-badge').classList.toggle('vis', n > 0);
+                document.getElementById('sel-num').textContent = n;
+                document.getElementById('btn-ver').classList.toggle('vis', n > 0);
+            }
+
+            // ── SORT ──
+            function sortT(col) {
+                if (sortCol === col) sortAsc = !sortAsc; else { sortCol = col; sortAsc = true; }
+                const keys = ['id', 'numero_inventario', 'nombre', 'tipo_elemento', 'id_modulo', 'numero_serial', '_', '_', 'disponible', 'estado', 'observaciones'];
+                const k = keys[col]; if (!k || k === '_') return;
+                filtrados.sort((a, b) => { const va = String(a[k] || '').toLowerCase(), vb = String(b[k] || '').toLowerCase(); return sortAsc ? va.localeCompare(vb) : vb.localeCompare(va); });
+                document.querySelectorAll('th.sort').forEach((th, i) => { th.classList.toggle('sorted', i === col); const ic = th.querySelector('.si-ico'); if (ic) ic.className = `fa-solid ${i === col ? (sortAsc ? 'fa-sort-up' : 'fa-sort-down') : 'fa-sort'} si-ico`; });
+                renderTabla();
+            }
+
+            // ── PAGINACIÓN ──
+            function renderPag() {
+                const total = Math.ceil(filtrados.length / POR_PAG);
+                const wrap = document.getElementById('pbwrap');
+                if (total <= 1) { wrap.innerHTML = ''; return; }
+                let html = `<button class="pgb" onclick="irPag(${pagina - 1})" ${pagina === 1 ? 'disabled' : ''}><i class="fa-solid fa-chevron-left" style="font-size:9px"></i></button>`;
+                for (let i = 1; i <= total; i++) {
+                    if (i === 1 || i === total || Math.abs(i - pagina) <= 1) html += `<button class="pgb ${i === pagina ? 'active' : ''}" onclick="irPag(${i})">${i}</button>`;
+                    else if (Math.abs(i - pagina) === 2) html += `<button class="pgb" disabled>…</button>`;
+                }
+                html += `<button class="pgb" onclick="irPag(${pagina + 1})" ${pagina === total ? 'disabled' : ''}><i class="fa-solid fa-chevron-right" style="font-size:9px"></i></button>`;
+                wrap.innerHTML = html;
+            }
+            function irPag(p) { const t = Math.ceil(filtrados.length / POR_PAG); if (p < 1 || p > t) return; pagina = p; renderTabla(); }
+
+            // ── MODAL DETALLE ──
+            function abrirDetalle(idx) {
+                idxActual = idx;
+                const d = DATOS[idx];
+                document.getElementById('mdet-title').textContent = d.nombre.length > 40 ? d.nombre.substring(0, 38) + '…' : d.nombre;
+                document.getElementById('mdet-info').textContent = `ID: ${d.id} · ${d.numero_inventario}`;
+                document.getElementById('save-notice').classList.remove('vis');
+                // Poblar campos
+                document.getElementById('ef-inv').value = d.numero_inventario;
+                document.getElementById('ef-serial').value = d.numero_serial || '';
+                document.getElementById('ef-nombre').value = d.nombre;
+                // Los selects ahora usan IDs como value, no nombres
+                document.getElementById('ef-tipo').value = d.id_tipo_elemento || '';
+                document.getElementById('ef-modulo').value = d.id_laboratorio || '';
+                document.getElementById('ef-caract').value = d.caracteristicas || '';
+                // show warning if no module
+                setTimeout(() => chkModulo(), 0);
+                document.getElementById('ef-obs').value = d.observaciones || '';
+                // Limpiar modificado
+                document.querySelectorAll('.ef-input,.ef-select,.ef-textarea').forEach(el => el.classList.remove('modified'));
+                // Attach change listeners
+                document.querySelectorAll('.ef-input,.ef-select,.ef-textarea').forEach(el => {
+                    el.onchange = () => el.classList.add('modified');
+                });
+                // Estado y disponibilidad
+                setEstadoUI(d.estado, d.disponible);
+                // Botón inactivar
+                document.getElementById('btn-inac-txt').textContent = d.estado === 'activo' ? 'Inactivar' : 'Activar';
+                document.getElementById('btn-inactivar').className = d.estado === 'activo' ? 'btn-ma re' : 'btn-ma gr';
+                document.getElementById('btn-inactivar').querySelector('i').className = d.estado === 'activo' ? 'fa-solid fa-ban' : 'fa-solid fa-circle-check';
+                // Historial (indexado por nombre del elemento)
+                renderHistorial(d.nombre);
+                // Resetear tab
+                switchTab(0);
+                document.getElementById('modal-det').classList.add('open');
+            }
+
+            function setEstadoUI(est, disp) {
+                document.getElementById('st-activo').className = 'sb-opt' + (est === 'activo' ? ' sel-activo' : '');
+                document.getElementById('st-inactivo').className = 'sb-opt' + (est === 'inactivo' ? ' sel-inactivo' : '');
+                document.getElementById('st-disp').className = 'sb-opt' + (disp === 'si' ? ' sel-disp' : '');
+                document.getElementById('st-pres').className = 'sb-opt' + (disp === 'no' ? ' sel-pres' : '');
+            }
+
+            function setEstado(v) { setEstadoUI(v, DATOS[idxActual].disponible); DATOS[idxActual].disponible_temp_est = v; }
+            function setDisp(v) { setEstadoUI(DATOS[idxActual].estado, v); DATOS[idxActual].disponible_temp_disp = v; }
+
+            function switchTab(i) {
+                document.querySelectorAll('.mtab').forEach((t, j) => t.classList.toggle('active', j === i));
+                document.querySelectorAll('.mtab-panel').forEach((p, j) => p.classList.toggle('active', j === i));
+            }
+
+            function renderHistorial(inv) {
+                const hist = HIST_MAP[inv] || [];
+                const cont = document.getElementById('hist-content');
+                if (!hist.length) {
+                    cont.innerHTML = `<div class="empty-s"><i class="fa-solid fa-history"></i><p>No hay registros de préstamo para este elemento</p></div>`;
+                    return;
+                }
+                const bCls = { Devuelto: 'b-disp', Activo: 'b-activo', Vencido: 'b-pres' };
+                const bIco = { Devuelto: 'fa-circle-check', Activo: 'fa-rotate', Vencido: 'fa-triangle-exclamation' };
+                cont.innerHTML = `
+    <div class="hist-header">
+      <span>Solicitante</span><span></span><span>F. Salida</span><span>F. Entrega</span><span>Estado</span>
+    </div>
+    ${hist.map((h, i) => `
+    <div class="hist-item">
+      <div><div class="h-num">#${String(i + 1).padStart(2, '0')}</div></div>
+      <div><div class="h-sol">${h.sol}</div><div class="h-mod"><i class="fa-solid fa-flask" style="font-size:8px"></i> ${h.mod}${h.obs ? ` · <span style="color:var(--or)">${h.obs}</span>` : ''}</div></div>
+      <div class="h-date">${h.salida}</div>
+      <div class="h-date">${h.entrega}</div>
+      <div><span class="badge ${bCls[h.estado] || 'b-disp'}"><i class="fa-solid ${bIco[h.estado] || 'fa-check'}"></i> ${h.estado}</span></div>
+    </div>`).join('')}
+    <div style="padding:8px 12px;background:#F9F5FB;font-size:10px;color:var(--tl);font-weight:600;text-align:right">
+      <i class="fa-solid fa-info-circle"></i> ${hist.length} registro${hist.length !== 1 ? 's' : ''} en historial
+    </div>`;
+            }
+
+            function cerrarDet() { document.getElementById('modal-det').classList.remove('open'); idxActual = null; }
+
+            async function guardarCambios() {
+                if (idxActual === null) return;
+                const d = DATOS[idxActual];
+                // Validar obligatorios
+                const inv = document.getElementById('ef-inv').value.trim();
+                const nombre = document.getElementById('ef-nombre').value.trim();
+                const tipoId = document.getElementById('ef-tipo').value;
+                const moduloId = document.getElementById('ef-modulo').value;
+                if (!inv || !nombre || !tipoId) {
+                    alert('Por favor completa los campos obligatorios: No. Inventario, Nombre y Tipo de Elemento.');
+                    return;
+                }
+
+                const serial = document.getElementById('ef-serial').value.trim();
+                const caract = document.getElementById('ef-caract').value.trim();
+                const obs = document.getElementById('ef-obs').value.trim();
+
+                // Mostrar spinner mientras guarda
+                document.getElementById('spinner').classList.add('vis');
+
+                try {
+                    const resp = await fetch(API + 'elementos/actualizar.php', {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            id: d.id,
+                            nombre: nombre,
+                            numeroinventario: inv,
+                            marca: d.marca || '',
+                            modelo: d.modelo || '',
+                            descripcion: caract,
+                            observaciones: obs,
+                            idlaboratorio: moduloId ? parseInt(moduloId) : 0,
+                            idtipoelemento: parseInt(tipoId)
+                        })
+                    });
+                    const result = await resp.json();
+
+                    if (!result.ok) {
+                        document.getElementById('spinner').classList.remove('vis');
+                        alert('Error al guardar: ' + (result.mensaje || 'error desconocido'));
+                        return;
+                    }
+
+                    // Actualizar el objeto local con los nuevos valores
+                    d.numero_inventario = inv;
+                    d.numero_serial = serial;
+                    d.nombre = nombre;
+                    d.id_tipo_elemento = parseInt(tipoId);
+                    d.id_laboratorio = moduloId ? parseInt(moduloId) : null;
+                    // Buscar los nombres correspondientes desde LABS_DATA y TIPOS_DATA
+                    const labObj = LABS_DATA.find(l => l.n_idlaboratorio == moduloId);
+                    d.id_modulo = labObj ? labObj.t_nombre : '';
+                    const tipoObj = TIPOS_DATA.find(t => t.n_idtipoelemento == tipoId);
+                    d.tipo_elemento = tipoObj ? tipoObj.t_nombre : '';
+                    d.caracteristicas = caract;
+                    d.observaciones = obs;
+                    // Estado / disponibilidad desde toggles UI
+                    if (document.getElementById('st-activo').classList.contains('sel-activo')) d.estado = 'activo';
+                    if (document.getElementById('st-inactivo').classList.contains('sel-inactivo')) d.estado = 'inactivo';
+                    if (document.getElementById('st-disp').classList.contains('sel-disp')) d.disponible = 'si';
+                    if (document.getElementById('st-pres').classList.contains('sel-pres')) d.disponible = 'no';
+                    // Limpiar modified
+                    document.querySelectorAll('.ef-input,.ef-select,.ef-textarea').forEach(el => el.classList.remove('modified'));
+                    // Actualizar título y botón inactivar
+                    document.getElementById('mdet-title').textContent = d.nombre.length > 40 ? d.nombre.substring(0, 38) + '…' : d.nombre;
+                    document.getElementById('btn-inac-txt').textContent = d.estado === 'activo' ? 'Inactivar' : 'Activar';
+                    document.getElementById('btn-inactivar').className = d.estado === 'activo' ? 'btn-ma re' : 'btn-ma gr';
+                    document.getElementById('btn-inactivar').querySelector('i').className = d.estado === 'activo' ? 'fa-solid fa-ban' : 'fa-solid fa-circle-check';
+                    // Notificación de guardado
+                    const sn = document.getElementById('save-notice');
+                    sn.classList.add('vis');
+                    setTimeout(() => sn.classList.remove('vis'), 3000);
+                    // Re-render
+                    aplicar();
+                } catch (err) {
+                    console.error('Error de red al guardar:', err);
+                    alert('No se pudo conectar con el servidor. Revisa tu conexión.');
+                } finally {
+                    document.getElementById('spinner').classList.remove('vis');
+                }
+            }
+
+            async function toggleInactivar() {
+                if (idxActual === null) return;
+                const d = DATOS[idxActual];
+                const nuevo = d.estado === 'activo' ? 'inactivo' : 'activo';
+                // Mapear estado UI al estado real de BD
+                // activo -> disponible, inactivo -> mantenimiento (preserva el elemento, solo lo deja no-prestable)
+                const estadoBD = nuevo === 'activo' ? 'disponible' : 'mantenimiento';
+
+                document.getElementById('spinner').classList.add('vis');
+                try {
+                    const resp = await fetch(API + 'elementos/cambiar_estado.php', {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: d.id, estado: estadoBD })
+                    });
+                    const result = await resp.json();
+
+                    if (!result.ok) {
+                        alert('Error al cambiar estado: ' + (result.mensaje || 'error desconocido'));
+                        return;
+                    }
+
+                    // Actualizar en memoria
+                    d.estado = nuevo;
+                    d.t_estado_raw = estadoBD;
+                    setEstadoUI(nuevo, d.disponible);
+                    document.getElementById('st-activo').className = 'sb-opt' + (nuevo === 'activo' ? ' sel-activo' : '');
+                    document.getElementById('st-inactivo').className = 'sb-opt' + (nuevo === 'inactivo' ? ' sel-inactivo' : '');
+                    document.getElementById('btn-inac-txt').textContent = nuevo === 'activo' ? 'Inactivar' : 'Activar';
+                    document.getElementById('btn-inactivar').className = nuevo === 'activo' ? 'btn-ma re' : 'btn-ma gr';
+                    document.getElementById('btn-inactivar').querySelector('i').className = nuevo === 'activo' ? 'fa-solid fa-ban' : 'fa-solid fa-circle-check';
+                    // Notificación
+                    const sn = document.getElementById('save-notice');
+                    sn.classList.add('vis');
+                    setTimeout(() => sn.classList.remove('vis'), 3000);
+                    // Re-render tabla
+                    aplicar();
+                } catch (err) {
+                    console.error('Error de red al cambiar estado:', err);
+                    alert('No se pudo conectar con el servidor.');
+                } finally {
+                    document.getElementById('spinner').classList.remove('vis');
+                }
+            }
+
+            function imprimirFicha() {
+                if (idxActual === null) return;
+                const d = DATOS[idxActual];
+                seleccionados.clear();
+                seleccionados.add(idxActual);
+                cerrarDet();
+                setTimeout(() => abrirFormato(), 100);
+            }
+
+            // ── MODAL FORMATO IMPRESIÓN ──
+            function htmlFormato(items) {
+                const hoy = new Date().toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' });
+                const copia = (num) => `
+  <div class="fmt-copy">
+    <div class="fc-label"><i class="fa-solid fa-copy"></i> COPIA ${num} — ${num === 1 ? 'LABORATORIO / ADMINISTRACIÓN (ORIGINAL)' : 'USUARIO / SOLICITANTE (DUPLICADO)'}</div>
+    <div class="fmt-hdr">
+      <div class="fmt-logo-box">UPB</div>
+      <div class="fmt-title">
+        <h2>Formato de Inventario General — Elementos de Laboratorio</h2>
+        <p>Universidad Pontificia Bolivariana — Seccional Bucaramanga</p>
+      </div>
+      <div class="fmt-uni">
+        <div class="fn">UPB Bucaramanga</div>
+        <div class="fs">Escuela de Ingeniería</div>
+        <div class="fs">Laboratorios y Talleres</div>
+        <div class="fb-date"><i class="fa-solid fa-calendar-day" style="font-size:8px"></i> ${hoy}</div>
+      </div>
+    </div>
+    <div class="fmt-meta">
+      <div class="fmt-meta-i"><span class="lbl"><i class="fa-solid fa-boxes-stacked"></i> Total elementos</span><span class="val">${items.length} elemento${items.length !== 1 ? 's' : ''}</span></div>
+      <div class="fmt-meta-i"><span class="lbl"><i class="fa-solid fa-circle-check"></i> Activos</span><span class="val">${items.filter(d => d.estado === 'activo').length}</span></div>
+      <div class="fmt-meta-i"><span class="lbl"><i class="fa-solid fa-check-double"></i> Disponibles</span><span class="val">${items.filter(d => d.disponible === 'si').length}</span></div>
+      <div class="fmt-meta-i"><span class="lbl"><i class="fa-solid fa-user-shield"></i> Generado por</span><span class="val">Admin UPB</span></div>
+    </div>
+    <table class="fmt-table">
+      <thead><tr>
+        <th class="c">#</th><th>No. Inventario</th><th>Nombre del Elemento</th><th>Tipo</th>
+        <th>Módulo / Laboratorio</th><th>No. Serial</th><th class="c">Disponible</th><th class="c">Estado</th><th>Observaciones</th>
+      </tr></thead>
+      <tbody>
+        ${items.map((d, i) => `<tr>
+          <td class="c" style="font-weight:700">${i + 1}</td>
+          <td><span class="inv">${d.numero_inventario}</span></td>
+          <td style="font-weight:600">${d.nombre}</td>
+          <td>${d.tipo_elemento}</td>
+          <td style="font-size:9px;color:${!d.id_modulo ? '#92400E' : 'inherit'};font-style:${!d.id_modulo ? 'italic' : 'normal'}">${d.id_modulo || '⚠ Sin módulo asignado'}</td>
+          <td style="font-family:monospace;font-size:9px">${d.numero_serial || '—'}</td>
+          <td class="c" style="font-weight:700;color:${d.disponible === 'si' ? '#1D4ED8' : '#991B1B'}">${d.disponible === 'si' ? 'Disponible' : 'En Préstamo'}</td>
+          <td class="c" style="font-weight:700;color:${d.estado === 'activo' ? '#065F46' : '#6B7280'}">${d.estado === 'activo' ? 'Activo' : 'Inactivo'}</td>
+          <td style="font-size:9px;color:${d.observaciones ? '#D97706' : '#999'}">${d.observaciones || '—'}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+    <div class="fmt-obs-box">
+      <div class="ot"><i class="fa-solid fa-clipboard-list"></i> Observaciones generales</div>
+      <div class="oc">${items.filter(d => d.observaciones).map(d => `[${d.numero_inventario}] ${d.observaciones}`).join(' | ') || 'Sin observaciones adicionales.'}</div>
+    </div>
+    <div class="fmt-firmas">
+      <div class="fmt-firma"><div class="fmt-firma-esp"></div><div class="fmt-firma-nom">Encargado de Laboratorio</div><div class="fmt-firma-rol">Firma y Sello Oficial</div><div class="fmt-firma-ext">Nombre: _________________________</div></div>
+      <div class="fmt-firma"><div class="fmt-firma-esp"></div><div class="fmt-firma-nom">Administrador del Sistema</div><div class="fmt-firma-rol">Admin UPB — Verificación</div><div class="fmt-firma-ext">Módulo: Administración General</div></div>
+      <div class="fmt-firma"><div class="fmt-firma-esp"></div><div class="fmt-firma-nom">Director de Laboratorios</div><div class="fmt-firma-rol">Visto Bueno — Dirección</div><div class="fmt-firma-ext">Nombre: _________________________</div></div>
+    </div>
+    <div class="fmt-pie">Sistema de Préstamo de Laboratorio — Universidad Pontificia Bolivariana, Seccional Bucaramanga<br>Generado automáticamente el ${hoy} · Documento válido únicamente con las firmas requeridas</div>
+  </div>`;
+                return `<div class="fmt-doc">${copia(1)}<hr class="fmt-corte">${copia(2)}</div>`;
+            }
+
+            function abrirFormato() {
+                if (!seleccionados.size) { alert('Selecciona al menos un elemento con el checkbox.'); return; }
+                const items = [...seleccionados].sort((a, b) => a - b).map(i => DATOS[i]);
+                document.getElementById('fmt-body').innerHTML = htmlFormato(items);
+                document.getElementById('fmt-info').textContent = `${items.length} elemento${items.length !== 1 ? 's' : ''} seleccionado${items.length !== 1 ? 's' : ''}`;
+                document.getElementById('modal-fmt').classList.add('open');
+            }
+
+            function cerrarFmt() { document.getElementById('modal-fmt').classList.remove('open'); }
+
+            async function generarPDFFormato() {
+                if (!seleccionados.size) return;
+                const items = [...seleccionados].sort((a, b) => a - b).map(i => DATOS[i]);
+                document.getElementById('spinner').classList.add('vis');
+                await new Promise(r => setTimeout(r, 80));
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+                const hoy = new Date().toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' });
+                const W = 210;
+
+                const dibujar = (top) => {
+                    doc.setDrawColor(210, 210, 210); doc.setLineWidth(0.4); doc.roundedRect(10, top, 190, 132, 3, 3);
+                    doc.setFillColor(107, 31, 124); doc.rect(10, top, 190, 20, 'F');
+                    doc.setTextColor(255); doc.setFontSize(11); doc.setFont('helvetica', 'bold');
+                    doc.text('FORMATO DE INVENTARIO GENERAL — UPB BUCARAMANGA', W / 2, top + 9, { align: 'center' });
+                    doc.setFontSize(7.5); doc.setFont('helvetica', 'normal');
+                    doc.text(`Generado: ${hoy}   |   Admin UPB   |   ${items.length} elementos seleccionados`, W / 2, top + 16, { align: 'center' });
+                    // Meta boxes
+                    const metas = [['Total Elementos', items.length], ['Activos', items.filter(d => d.estado === 'activo').length], ['Disponibles', items.filter(d => d.disponible === 'si').length], ['En Préstamo', items.filter(d => d.disponible === 'no').length]];
+                    metas.forEach(([lbl, val], i) => {
+                        const x = 14 + i * 48;
+                        doc.setFillColor(249, 245, 251); doc.setDrawColor(220, 200, 230); doc.setLineWidth(0.3); doc.roundedRect(x, top + 23, 46, 12, 1.5, 1.5, 'FD');
+                        doc.setTextColor(107, 31, 124); doc.setFontSize(6.5); doc.setFont('helvetica', 'bold'); doc.text(lbl, x + 23, top + 28, { align: 'center' });
+                        doc.setTextColor(26, 26, 46); doc.setFontSize(11); doc.setFont('helvetica', 'bold'); doc.text(String(val), x + 23, top + 33, { align: 'center' });
+                    });
+                    doc.autoTable({
+                        startY: top + 38,
+                        head: [['#', 'Inventario', 'Nombre del Elemento', 'Tipo', 'Módulo / Lab', 'Disponible', 'Estado', 'Observaciones']],
+                        body: items.map((d, i) => [i + 1, d.numero_inventario, d.nombre.length > 32 ? d.nombre.substring(0, 30) + '…' : d.nombre, d.tipo_elemento, (d.id_modulo || 'Sin módulo asignado').length > 22 ? (d.id_modulo || 'Sin módulo asignado').substring(0, 20) + '…' : (d.id_modulo || 'Sin módulo asignado'), d.disponible === 'si' ? 'Disponible' : 'En Préstamo', d.estado === 'activo' ? 'Activo' : 'Inactivo', (d.observaciones || '—').length > 26 ? (d.observaciones || '').substring(0, 24) + '…' : (d.observaciones || '—')]),
+                        headStyles: { fillColor: [107, 31, 124], textColor: 255, fontSize: 7, fontStyle: 'bold', cellPadding: 2.5 },
+                        bodyStyles: { fontSize: 6.5, textColor: [50, 50, 80], cellPadding: 2 },
+                        alternateRowStyles: { fillColor: [248, 244, 252] },
+                        columnStyles: { 0: { cellWidth: 7, halign: 'center' }, 1: { cellWidth: 18 }, 2: { cellWidth: 38 }, 3: { cellWidth: 22 }, 4: { cellWidth: 30 }, 5: { cellWidth: 18, halign: 'center' }, 6: { cellWidth: 14, halign: 'center' }, 7: { cellWidth: 30 } },
+                        margin: { left: 14, right: 14 }, tableWidth: 182,
+                        didDrawCell(data) {
+                            if (data.section !== 'body') return;
+                            if (data.column.index === 5) {
+                                const v = data.cell.raw; const cfg = v === 'Disponible' ? { bg: [239, 246, 255], tx: [29, 78, 216] } : { bg: [254, 242, 242], tx: [153, 27, 27] };
+                                doc.setFillColor(...cfg.bg); doc.roundedRect(data.cell.x + 1, data.cell.y + 1, data.cell.width - 2, data.cell.height - 2, 1, 1, 'F');
+                                doc.setTextColor(...cfg.tx); doc.setFontSize(6.5); doc.setFont('helvetica', 'bold');
+                                doc.text(v, data.cell.x + data.cell.width / 2, data.cell.y + data.cell.height / 2 + 1, { align: 'center' });
+                            }
+                            if (data.column.index === 6) {
+                                const v = data.cell.raw.toLowerCase(); const cfg = v === 'activo' ? { bg: [236, 253, 245], tx: [6, 95, 70] } : { bg: [243, 244, 246], tx: [107, 114, 128] };
+                                doc.setFillColor(...cfg.bg); doc.roundedRect(data.cell.x + 1, data.cell.y + 1, data.cell.width - 2, data.cell.height - 2, 1, 1, 'F');
+                                doc.setTextColor(...cfg.tx); doc.setFontSize(6.5); doc.setFont('helvetica', 'bold');
+                                doc.text(data.cell.raw, data.cell.x + data.cell.width / 2, data.cell.y + data.cell.height / 2 + 1, { align: 'center' });
+                            }
+                        }
+                    });
+                    const afterT = doc.lastAutoTable.finalY + 4;
+                    const firmY = Math.min(afterT + 4, top + 115);
+                    const firmas = [{ n: 'Encargado de Laboratorio', r: 'Firma y Sello Oficial', e: 'Nombre: ______________________' }, { n: 'Admin UPB', r: 'Verificación del Sistema', e: 'Cargo: Administrador General' }, { n: 'Director de Laboratorios', r: 'Visto Bueno — Dirección', e: 'Nombre: ______________________' }];
+                    firmas.forEach((f, i) => { const x = 14 + i * 63; doc.setDrawColor(50, 50, 50); doc.setLineWidth(0.6); doc.line(x + 3, firmY + 12, x + 59, firmY + 12); doc.setTextColor(26, 26, 46); doc.setFontSize(7); doc.setFont('helvetica', 'bold'); doc.text(f.n, x + 31, firmY + 16, { align: 'center', maxWidth: 56 }); doc.setTextColor(120); doc.setFontSize(6.5); doc.setFont('helvetica', 'normal'); doc.text(f.r, x + 31, firmY + 20, { align: 'center' }); doc.setTextColor(160); doc.text(f.e, x + 31, firmY + 24, { align: 'center' }); });
+                    doc.setTextColor(185); doc.setFontSize(6); doc.setFont('helvetica', 'normal');
+                    doc.text(`Sistema de Préstamo de Laboratorio — UPB Bucaramanga · ${hoy} · Válido con firmas requeridas`, W / 2, top + 131, { align: 'center' });
+                };
+
+                dibujar(8);
+                doc.setDrawColor(170); doc.setLineWidth(0.3); doc.setLineDashPattern([2, 2], 0); doc.line(10, 148, 200, 148); doc.setLineDashPattern([], 0);
+                doc.setTextColor(170); doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.text('✂   CORTAR POR ESTA LÍNEA', W / 2, 152, { align: 'center' });
+                dibujar(156);
+
+                document.getElementById('spinner').classList.remove('vis');
+                doc.save(`inventario-UPB-${items.length}items-${hoy2()}.pdf`);
+            }
+
+            // ── EXPORTAR ──
+            function hoy2() { return new Date().toLocaleDateString('es-CO').replace(/\//g, '-'); }
+            function dl(content, filename, type) { const b = new Blob([content], { type }); const u = URL.createObjectURL(b); const a = document.createElement('a'); a.href = u; a.download = filename; a.click(); URL.revokeObjectURL(u); }
+
+            function expCSV() {
+                const h = ['#', 'No. Inventario', 'Nombre', 'Tipo', 'Módulo / Lab', 'No. Serial', 'Características', 'Disponible', 'Estado', 'Observaciones'];
+                const rows = filtrados.map((d, i) => [i + 1, d.numero_inventario, d.nombre, d.tipo_elemento, (d.id_modulo || 'Sin módulo asignado'), d.numero_serial || '', d.caracteristicas || '', d.disponible === 'si' ? 'Disponible' : 'En Préstamo', d.estado === 'activo' ? 'Activo' : 'Inactivo', d.observaciones || '']);
+                dl('\uFEFF' + [h, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n'), `inventario-UPB-${hoy2()}.csv`, 'text/csv;charset=utf-8;');
+            }
+
+            function expXLS() {
+                const wb = XLSX.utils.book_new();
+                const hoy = new Date().toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' });
+                const titulo = [['INVENTARIO GENERAL DE ELEMENTOS — UNIVERSIDAD PONTIFICIA BOLIVARIANA', '', '', '', '', '', '', '', '', '']];
+                const subtit = [[`Generado: ${hoy}   |   Usuario: Admin UPB   |   Total filtrado: ${filtrados.length} elementos`, '', '', '', '', '', '', '', '', '']];
+                const vacia = [['', '', '', '', '', '', '', '', '', '']];
+                const hdrs = [['#', 'No. Inventario', 'Nombre', 'Tipo', 'Módulo / Lab', 'No. Serial', 'Características', 'Disponible', 'Estado', 'Observaciones']];
+                const rows = filtrados.map((d, i) => [i + 1, d.numero_inventario, d.nombre, d.tipo_elemento, (d.id_modulo || 'Sin módulo asignado'), d.numero_serial || '—', d.caracteristicas || '—', d.disponible === 'si' ? 'Disponible' : 'En Préstamo', d.estado === 'activo' ? 'Activo' : 'Inactivo', d.observaciones || '—']);
+                const sd = [...titulo, ...subtit, ...vacia, ...hdrs, ...rows];
+                const ws = XLSX.utils.aoa_to_sheet(sd);
+                ws['!cols'] = [{ wch: 5 }, { wch: 14 }, { wch: 42 }, { wch: 18 }, { wch: 38 }, { wch: 22 }, { wch: 46 }, { wch: 14 }, { wch: 12 }, { wch: 38 }];
+                ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 9 } }, { s: { r: 1, c: 0 }, e: { r: 1, c: 9 } }];
+                XLSX.utils.book_append_sheet(wb, ws, 'Inventario');
+                const activos = filtrados.filter(d => d.estado === 'activo').length;
+                const tipoM = {}; filtrados.forEach(d => { tipoM[d.tipo_elemento] = (tipoM[d.tipo_elemento] || 0) + 1; });
+                const moduloM = {}; filtrados.forEach(d => { moduloM[d.id_modulo] = (moduloM[d.id_modulo] || 0) + 1; });
+                const res = [['RESUMEN ESTADÍSTICO — INVENTARIO GENERAL UPB', ''], ['', ''], ['INDICADOR', 'VALOR'], ['Total Elementos', filtrados.length], ['Activos', activos], ['Inactivos', filtrados.length - activos], ['Disponibles', filtrados.filter(d => d.disponible === 'si').length], ['En Préstamo', filtrados.filter(d => d.disponible === 'no').length], ['', ''], ['POR TIPO', ''], ...Object.entries(tipoM).map(([k, v]) => [k, v]), ['', ''], ['POR MÓDULO', ''], ...Object.entries(moduloM).map(([k, v]) => [k, v])];
+                const ws2 = XLSX.utils.aoa_to_sheet(res); ws2['!cols'] = [{ wch: 42 }, { wch: 16 }];
+                XLSX.utils.book_append_sheet(wb, ws2, 'Resumen');
+                XLSX.writeFile(wb, `inventario-UPB-${hoy2()}.xlsx`);
+            }
+
+            async function expPDF() {
+                document.getElementById('spinner').classList.add('vis');
+                await new Promise(r => setTimeout(r, 80));
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+                const hoy = new Date().toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' });
+                const W = 297;
+                doc.setFillColor(107, 31, 124); doc.rect(0, 0, W, 22, 'F');
+                doc.setTextColor(255); doc.setFont('helvetica', 'bold'); doc.setFontSize(13);
+                doc.text('INVENTARIO GENERAL DE ELEMENTOS — UPB BUCARAMANGA', W / 2, 10, { align: 'center' });
+                doc.setFontSize(7.5); doc.setFont('helvetica', 'normal');
+                doc.text(`Generado: ${hoy}   |   Usuario: Admin UPB   |   Total: ${filtrados.length} elementos`, W / 2, 17, { align: 'center' });
+                const statsD = [['Total', filtrados.length, [107, 31, 124]], ['Activos', filtrados.filter(d => d.estado === 'activo').length, [5, 150, 105]], ['Inactivos', filtrados.filter(d => d.estado === 'inactivo').length, [107, 114, 128]], ['Disponibles', filtrados.filter(d => d.disponible === 'si').length, [37, 99, 235]], ['En Préstamo', filtrados.filter(d => d.disponible === 'no').length, [220, 38, 38]]];
+                statsD.forEach(([lbl, val, col], i) => { const x = 10 + i * 57; doc.setFillColor(...col); doc.roundedRect(x, 25, 55, 14, 2, 2, 'F'); doc.setTextColor(255); doc.setFontSize(16); doc.setFont('helvetica', 'bold'); doc.text(String(val), x + 27.5, 34, { align: 'center' }); doc.setFontSize(6.5); doc.setFont('helvetica', 'normal'); doc.text(lbl.toUpperCase(), x + 27.5, 39, { align: 'center' }); });
+                doc.autoTable({
+                    startY: 43,
+                    head: [['#', 'No. Inventario', 'Nombre del Elemento', 'Tipo', 'Módulo / Laboratorio', 'No. Serial', 'Características', 'Disponible', 'Estado', 'Observaciones']],
+                    body: filtrados.map((d, i) => [i + 1, d.numero_inventario, d.nombre.length > 38 ? d.nombre.substring(0, 36) + '…' : d.nombre, d.tipo_elemento, (d.id_modulo || 'Sin módulo asignado').length > 28 ? (d.id_modulo || 'Sin módulo asignado').substring(0, 26) + '…' : (d.id_modulo || 'Sin módulo asignado'), d.numero_serial || '—', (d.caracteristicas || '').length > 32 ? d.caracteristicas.substring(0, 30) + '…' : (d.caracteristicas || '—'), d.disponible === 'si' ? 'Disponible' : 'En Préstamo', d.estado === 'activo' ? 'Activo' : 'Inactivo', (d.observaciones || '—').length > 28 ? (d.observaciones || '').substring(0, 26) + '…' : (d.observaciones || '—')]),
+                    headStyles: { fillColor: [107, 31, 124], textColor: 255, fontSize: 7, fontStyle: 'bold', halign: 'left', cellPadding: 3 },
+                    bodyStyles: { fontSize: 6.5, textColor: [50, 50, 80], cellPadding: 2.5 },
+                    alternateRowStyles: { fillColor: [248, 244, 252] },
+                    columnStyles: { 0: { cellWidth: 8, halign: 'center' }, 1: { cellWidth: 20 }, 2: { cellWidth: 50 }, 3: { cellWidth: 22 }, 4: { cellWidth: 38 }, 5: { cellWidth: 26 }, 6: { cellWidth: 38 }, 7: { cellWidth: 20, halign: 'center' }, 8: { cellWidth: 16, halign: 'center' }, 9: { cellWidth: 34 } },
+                    margin: { left: 10, right: 10 },
+                    didDrawCell(data) {
+                        if (data.section !== 'body') return;
+                        if (data.column.index === 7) {
+                            const v = data.cell.raw; const cfg = v === 'Disponible' ? { bg: [239, 246, 255], tx: [29, 78, 216] } : { bg: [254, 242, 242], tx: [153, 27, 27] };
+                            doc.setFillColor(...cfg.bg); doc.roundedRect(data.cell.x + 1, data.cell.y + 1, data.cell.width - 2, data.cell.height - 2, 1, 1, 'F');
+                            doc.setTextColor(...cfg.tx); doc.setFontSize(6.5); doc.setFont('helvetica', 'bold');
+                            doc.text(v, data.cell.x + data.cell.width / 2, data.cell.y + data.cell.height / 2 + 1, { align: 'center' });
+                        }
+                        if (data.column.index === 8) {
+                            const v = data.cell.raw.toLowerCase(); const cfg = v === 'activo' ? { bg: [236, 253, 245], tx: [6, 95, 70] } : { bg: [243, 244, 246], tx: [107, 114, 128] };
+                            doc.setFillColor(...cfg.bg); doc.roundedRect(data.cell.x + 1, data.cell.y + 1, data.cell.width - 2, data.cell.height - 2, 1, 1, 'F');
+                            doc.setTextColor(...cfg.tx); doc.setFontSize(6.5); doc.setFont('helvetica', 'bold');
+                            doc.text(data.cell.raw, data.cell.x + data.cell.width / 2, data.cell.y + data.cell.height / 2 + 1, { align: 'center' });
+                        }
+                    }
+                });
+                const pages = doc.internal.getNumberOfPages();
+                for (let i = 1; i <= pages; i++) {
+                    doc.setPage(i); doc.setDrawColor(200); doc.setLineWidth(0.3); doc.line(10, 200, W - 10, 200);
+                    doc.setTextColor(170); doc.setFontSize(6.5); doc.setFont('helvetica', 'normal');
+                    doc.text(`Sistema de Préstamo de Laboratorio — UPB Bucaramanga · ${hoy} · Página ${i} de ${pages}`, W / 2, 204, { align: 'center' });
+                }
+                document.getElementById('spinner').classList.remove('vis');
+                doc.save(`inventario-UPB-${hoy2()}.pdf`);
+            }
+
+            // Cerrar modales al click fuera
+            document.getElementById('modal-det').addEventListener('click', function (e) { if (e.target === this) cerrarDet(); });
+            document.getElementById('modal-fmt').addEventListener('click', function (e) { if (e.target === this) cerrarFmt(); });
+        </script>
+</body>
+
+</html>
