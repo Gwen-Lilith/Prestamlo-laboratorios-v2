@@ -458,7 +458,7 @@
         <a class="dropdown-item" href="reporte-resumen.html"><i class="fa-solid fa-file-lines"></i> Reportes</a>
         <div class="dropdown-sep"></div>
         <div class="dropdown-label">Solicitudes</div>
-        <a class="dropdown-item" href="solicitud-prestamo-elemento.html"><i class="fa-solid fa-clipboard-list"></i> Préstamo x Elemento</a>
+        <a class="dropdown-item" href="Admin-Solicitud-Elementos.html"><i class="fa-solid fa-clipboard-list"></i> Préstamo x Elemento</a>
       </div>
     </div>
   </div>
@@ -489,8 +489,8 @@
         <div class="nav-link"><i class="nav-icon fa-solid fa-box-open"></i>
           <span class="nav-label">Entregas</span><i class="nav-arrow fa-solid fa-chevron-right"></i></div>
         <div class="submenu">
-          <a class="submenu-link" href="#"><i class="fa-solid fa-list"></i> Ver Entregas</a>
-          <a class="submenu-link" href="#"><i class="fa-solid fa-plus"></i> Nueva Entrega</a>
+          <a class="submenu-link" href="ver-entregas.html"><i class="fa-solid fa-list"></i> Ver Entregas</a>
+          <a class="submenu-link" href="agregar-entrega.html"><i class="fa-solid fa-plus"></i> Nueva Entrega</a>
         </div>
       </div>
       <div class="nav-item" onclick="toggleMenu(this)">
@@ -498,7 +498,7 @@
           <span class="nav-label">Usuarios</span><i class="nav-arrow fa-solid fa-chevron-right"></i></div>
         <div class="submenu">
           <a class="submenu-link" href="Admin-Usuarios.html"><i class="fa-solid fa-list"></i> Ver Usuarios</a>
-          <a class="submenu-link" href="Admin-Crear-Usuario.html"><i class="fa-solid fa-user-plus"></i> Crear Usuario</a>
+          <a class="submenu-link" href="Admin-Usuarios.html?crear=1"><i class="fa-solid fa-user-plus"></i> Crear Usuario</a>
         </div>
       </div>
  <div class="nav-item" onclick="toggleMenu(this)">
@@ -906,119 +906,94 @@ document.querySelectorAll('.submenu-link').forEach(l => l.addEventListener('clic
 // ══════════════════════════════════════════
 //  DATOS MAESTROS
 // ══════════════════════════════════════════
-const LABORATORIOS = [
-  'Lab Automatización Procesos Industriales',
-  'Lab de Física No 1',
-  'Centro Administrativo de Laboratorios',
-  'Almacén General'
-];
+// ══════════════════════════════════════════
+//  DATOS (desde backend)
+// ══════════════════════════════════════════
+const API_PX = 'backend/modules/';
+let LABORATORIOS = [];
 
-const ELEMENTOS_MAESTRO = [
-  { id:1, inv:'INV-001', nombre:'Osciloscopio Digital Tektronix',   lab:'Lab Automatización Procesos Industriales', tipo:'Medición',      disponible:true  },
-  { id:2, inv:'INV-002', nombre:'Multímetro Fluke 87V',              lab:'Lab de Física No 1',                       tipo:'Medición',      disponible:true  },
-  { id:3, inv:'INV-003', nombre:'Fuente de Poder DC Agilent',        lab:'Lab Automatización Procesos Industriales', tipo:'Alimentación',  disponible:false },
-  { id:4, inv:'INV-004', nombre:'Generador de Señales Rigol',        lab:'Lab de Física No 1',                       tipo:'Medición',      disponible:true  },
-  { id:5, inv:'INV-005', nombre:'PLC Siemens S7-300',                lab:'Lab Automatización Procesos Industriales', tipo:'Control',       disponible:true  },
-  { id:6, inv:'INV-006', nombre:'Módulo Arduino UNO Kit',            lab:'Centro Administrativo de Laboratorios',   tipo:'Electrónica',   disponible:true  },
-  { id:7, inv:'INV-007', nombre:'Balanza Analítica Ohaus',           lab:'Lab de Física No 1',                       tipo:'Medición',      disponible:true  },
-  { id:8, inv:'INV-008', nombre:'Robot Industrial ABB IRB 120',      lab:'Lab Automatización Procesos Industriales', tipo:'Robótica',      disponible:false },
-  { id:9, inv:'INV-009', nombre:'Microscopio Óptico Zeiss',          lab:'Lab de Física No 1',                       tipo:'Óptica',        disponible:true  },
-  { id:10,inv:'INV-010', nombre:'Sensor de Temperatura PT100',       lab:'Lab Automatización Procesos Industriales', tipo:'Sensores',      disponible:true  },
-  { id:11,inv:'INV-011', nombre:'Cámara Termográfica FLIR E8',       lab:'Centro Administrativo de Laboratorios',   tipo:'Diagnóstico',   disponible:true  },
-  { id:12,inv:'INV-012', nombre:'Analizador de Espectro R&S FSH4',   lab:'Lab de Física No 1',                       tipo:'RF',            disponible:true  },
-];
+let ELEMENTOS_MAESTRO = [];
 
 // ══════════════════════════════════════════
 //  DATOS DE SOLICITUDES (simulados)
 // ══════════════════════════════════════════
-let nextId = 13;
-let SOLICITUDES = [
-  {
-    id: 'SOL-001', lab:'Lab Automatización Procesos Industriales',
-    solicitante:'Oscar Santoya', telefono:'3001234567',
-    tipo:'Interno', estado:'Entregado',
-    fechaSalida:'2026-01-10', fechaDevolucion:'2026-01-15',
-    descripcion:'Práctica de automatización industrial semestre 2026-1.',
-    elementos:[
-      { ...ELEMENTOS_MAESTRO[0], obs:'Entregado en buen estado', devuelto:true },
-      { ...ELEMENTOS_MAESTRO[4], obs:'Sin novedad',               devuelto:true }
-    ],
-    observacionCancelacion: '',
-    historial:[
-      {estado:'Solicitado', fecha:'2026-01-08', usuario:'Oscar Santoya'},
-      {estado:'Aprobado',   fecha:'2026-01-09', usuario:'Admin Lab'},
-      {estado:'Prestado',   fecha:'2026-01-10', usuario:'Admin Lab'},
-      {estado:'Entregado',  fecha:'2026-01-15', usuario:'Admin Lab'},
-    ]
-  },
-  {
-    id: 'SOL-002', lab:'Lab de Física No 1',
-    solicitante:'María García', telefono:'3109876543',
-    tipo:'Interno', estado:'Prestado',
-    fechaSalida:'2026-02-10', fechaDevolucion:'2026-02-18',
-    descripcion:'Laboratorio de física ondulatoria.',
-    elementos:[
-      { ...ELEMENTOS_MAESTRO[1], obs:'', devuelto:false },
-      { ...ELEMENTOS_MAESTRO[3], obs:'', devuelto:false }
-    ],
-    observacionCancelacion: '',
-    historial:[
-      {estado:'Solicitado', fecha:'2026-02-07', usuario:'María García'},
-      {estado:'Aprobado',   fecha:'2026-02-09', usuario:'Admin Lab'},
-      {estado:'Prestado',   fecha:'2026-02-10', usuario:'Admin Lab'},
-    ]
-  },
-  {
-    id: 'SOL-003', lab:'Lab Automatización Procesos Industriales',
-    solicitante:'Carlos Pérez', telefono:'3152223344',
-    tipo:'Externo', estado:'Aprobado',
-    fechaSalida:'2026-03-01', fechaDevolucion:'2026-03-10',
-    descripcion:'Proyecto de grado — control de procesos.',
-    elementos:[
-      { ...ELEMENTOS_MAESTRO[9], obs:'', devuelto:false }
-    ],
-    observacionCancelacion: '',
-    historial:[
-      {estado:'Solicitado', fecha:'2026-02-25', usuario:'Carlos Pérez'},
-      {estado:'Aprobado',   fecha:'2026-02-28', usuario:'Admin Lab'},
-    ]
-  },
-  {
-    id: 'SOL-004', lab:'Centro Administrativo de Laboratorios',
-    solicitante:'Ana Martínez', telefono:'3206667788',
-    tipo:'Interno', estado:'Solicitado',
-    fechaSalida:'2026-03-15', fechaDevolucion:'2026-03-20',
-    descripcion:'Monitoreo de temperatura planta piloto.',
-    elementos:[
-      { ...ELEMENTOS_MAESTRO[5],  obs:'', devuelto:false },
-      { ...ELEMENTOS_MAESTRO[10], obs:'', devuelto:false }
-    ],
-    observacionCancelacion: '',
-    historial:[
-      {estado:'Solicitado', fecha:'2026-03-10', usuario:'Ana Martínez'},
-    ]
-  },
-  {
-    id: 'SOL-005', lab:'Lab de Física No 1',
-    solicitante:'Carlos Pérez', telefono:'3152223344',
-    tipo:'Interno', estado:'Cancelado',
-    fechaSalida:'2026-01-20', fechaDevolucion:'2026-01-25',
-    descripcion:'Práctica de óptica — cancelada por daño del equipo.',
-    elementos:[
-      { ...ELEMENTOS_MAESTRO[8], obs:'', devuelto:false }
-    ],
-    observacionCancelacion: 'El microscopio presentó daño en el ocular antes del préstamo.',
-    historial:[
-      {estado:'Solicitado', fecha:'2026-01-18', usuario:'Carlos Pérez'},
-      {estado:'Cancelado',  fecha:'2026-01-19', usuario:'Admin Lab'},
-    ]
-  },
-];
+let SOLICITUDES = [];
+
+// Mapeo estados backend -> UI del reporte
+function estadoBackToUi(b) {
+  return ({
+    pendiente: 'Solicitado',
+    aprobada:  'Aprobado',
+    prestada:  'Prestado',
+    finalizada:'Entregado',
+    rechazada: 'Cancelado',
+    cancelada: 'Cancelado'
+  })[b] || b;
+}
+
+// Trae labs, elementos y solicitudes reales del backend.
+async function cargarTodoPX() {
+  try {
+    const [rL, rE, rS] = await Promise.all([
+      fetch(API_PX + 'laboratorios/listar.php?_t='   + Date.now(), { credentials:'same-origin' }),
+      fetch(API_PX + 'elementos/listar.php?_t='      + Date.now(), { credentials:'same-origin' }),
+      fetch(API_PX + 'solicitudes/listar.php?_t='    + Date.now(), { credentials:'same-origin' })
+    ]);
+    const [jL, jE, jS] = await Promise.all([rL.json(), rE.json(), rS.json()]);
+
+    // Guardamos {id, nombre} para poder mapear nombre<->id al mandar al backend.
+    LABORATORIOS = (jL.ok && Array.isArray(jL.data) ? jL.data : []).map(l => ({
+      id:     parseInt(l.n_idlaboratorio, 10),
+      nombre: l.t_nombre || ''
+    }));
+    ELEMENTOS_MAESTRO = (jE.ok && Array.isArray(jE.data) ? jE.data : []).map(e => ({
+      id:         parseInt(e.n_idelemento, 10),
+      idLab:      parseInt(e.n_idlaboratorio, 10),
+      inv:        e.t_numeroinventario || '—',
+      nombre:     e.t_nombre || '',
+      lab:        e.laboratorio_nombre || '',
+      tipo:       e.tipo_nombre || '',
+      disponible: e.t_estado === 'disponible'
+    }));
+
+    // Por cada solicitud básica, parsear la lista concatenada de elementos
+    // en pseudo-objetos { nombre, inv } para compatibilidad con filtros/render.
+    SOLICITUDES = (jS.ok && Array.isArray(jS.data) ? jS.data : []).map(s => {
+      const estadoUi = estadoBackToUi(s.t_estado);
+      const solicitante = `${s.t_nombres||''} ${s.t_apellidos||''}`.trim();
+      const listaElementos = (s.elementos_nombres || '')
+        .split(',').map(n => n.trim()).filter(Boolean)
+        .map(n => {
+          const match = ELEMENTOS_MAESTRO.find(e => e.nombre === n);
+          return match
+            ? { ...match, obs:'', devuelto: estadoUi === 'Entregado' }
+            : { id:0, inv:'', nombre:n, lab:s.laboratorio_nombre||'', tipo:'', disponible:true, obs:'', devuelto: estadoUi === 'Entregado' };
+        });
+      return {
+        id: 'SOL-' + String(s.n_idsolicitud).padStart(3,'0'),
+        _dbId: parseInt(s.n_idsolicitud, 10),
+        lab: s.laboratorio_nombre || '',
+        solicitante,
+        telefono: '',
+        tipo: 'Interno',
+        estado: estadoUi,
+        fechaSalida:    (s.dt_fechainicio || '').substring(0,10),
+        fechaDevolucion:(s.dt_fechafin    || '').substring(0,10),
+        descripcion: s.t_proposito || '',
+        elementos: listaElementos,
+        observacionCancelacion: s.t_observacionesauxiliar || '',
+        historial: []  // se carga on-demand desde detalle.php
+      };
+    });
+  } catch (err) {
+    LABORATORIOS = []; ELEMENTOS_MAESTRO = []; SOLICITUDES = [];
+  }
+}
 
 // ══════════════════════════════════════════
 //  ESTADO GLOBAL
 // ══════════════════════════════════════════
-let datosFiltrados  = [...SOLICITUDES];
+let datosFiltrados  = [];
 let currentPage     = 1;
 const rowsPerPage   = 8;
 let sortCol         = -1, sortAsc = true;
@@ -1258,12 +1233,12 @@ function filtrarElementosPicker() {
 }
 
 function renderPicker() {
-  const lab    = document.getElementById('n-lab').value;
+  const labId  = parseInt(document.getElementById('n-lab').value, 10);
   const search = document.getElementById('picker-search').value.toLowerCase();
-  if (!lab) return;
+  if (!labId) return;
 
   const lista = ELEMENTOS_MAESTRO.filter(e =>
-    e.lab === lab &&
+    e.idLab === labId &&
     (e.nombre.toLowerCase().includes(search) || e.inv.toLowerCase().includes(search))
   );
 
@@ -1323,15 +1298,15 @@ function renderChips() {
   }).join('');
 }
 
-function guardarSolicitud() {
-  const lab   = document.getElementById('n-lab').value;
+async function guardarSolicitud() {
+  const labId = parseInt(document.getElementById('n-lab').value, 10);
   const tipo  = document.getElementById('n-tipo').value;
   const fsal  = document.getElementById('n-fecha-salida').value;
   const fdev  = document.getElementById('n-fecha-devolucion').value;
   const tel   = document.getElementById('n-telefono').value.trim();
   const desc  = document.getElementById('n-descripcion').value.trim();
 
-  if (!lab || !fsal || !fdev || !tel || !desc) {
+  if (!labId || !fsal || !fdev || !tel || !desc) {
     showToast('Completa todos los campos obligatorios.', 'error'); return;
   }
   if (fdev <= fsal) {
@@ -1341,26 +1316,34 @@ function guardarSolicitud() {
     showToast('Selecciona al menos un elemento.', 'error'); return;
   }
 
-  const newId = 'SOL-' + String(nextId++).padStart(3,'0');
-  const nuevaSol = {
-    id: newId, lab, tipo, estado:'Solicitado',
-    solicitante: usuario.nombre,
-    telefono: tel,
-    fechaSalida: fsal, fechaDevolucion: fdev,
-    descripcion: desc,
-    observacionCancelacion: '',
-    elementos: elementosSeleccionados.map(id => {
-      const e = ELEMENTOS_MAESTRO.find(x => x.id===id);
-      return { ...e, obs:'', devuelto:false };
-    }),
-    historial:[{ estado:'Solicitado', fecha: new Date().toISOString().slice(0,10), usuario: usuario.nombre }]
-  };
+  // Empaquetamos tipo/teléfono en observaciones (la tabla no tiene esas columnas)
+  const observaciones = `Tipo: ${tipo} · Tel: ${tel}`;
 
-  SOLICITUDES.unshift(nuevaSol);
-  cerrarModal('modal-nueva');
-  aplicarFiltros();
-  renderStats();
-  showToast(`Solicitud ${newId} creada correctamente.`, 'success');
+  try {
+    const resp = await fetch(API_PX + 'solicitudes/crear.php', {
+      method:'POST', credentials:'same-origin',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        idlaboratorio: labId,
+        fechainicio:   fsal + ' 00:00:00',
+        fechafin:      fdev + ' 23:59:59',
+        proposito:     desc,
+        observaciones,
+        elementos: elementosSeleccionados.map(id => ({ idelemento: id, cantidad: 1 }))
+      })
+    });
+    const json = await resp.json();
+    if (!resp.ok || !json.ok) { showToast(json.mensaje || 'No se pudo crear la solicitud.', 'error'); return; }
+
+    cerrarModal('modal-nueva');
+    showToast(`Solicitud #${json.data.n_idsolicitud} creada correctamente.`, 'success');
+    await cargarTodoPX();
+    datosFiltrados = [...SOLICITUDES];
+    aplicarFiltros();
+    renderStats();
+  } catch (err) {
+    showToast('No se pudo contactar al servidor.', 'error');
+  }
 }
 
 // ══════════════════════════════════════════
@@ -1372,18 +1355,35 @@ const MSGS  = {
   Prestado: 'Entrega física registrada. Elementos marcados como prestados.',
 };
 
-function cambiarEstado(id, nuevoEstado) {
+async function cambiarEstado(id, nuevoEstado) {
   const s = SOLICITUDES.find(x => x.id===id);
-  if (!s) return;
-  s.estado = nuevoEstado;
-  s.historial.push({
-    estado: nuevoEstado,
-    fecha:  new Date().toISOString().slice(0,10),
-    usuario: usuario.nombre
-  });
-  aplicarFiltros();
-  renderStats();
-  showToast(MSGS[nuevoEstado] || 'Estado actualizado.', 'success');
+  if (!s || !s._dbId) { showToast('Solicitud inválida.', 'error'); return; }
+
+  // El backend tiene un endpoint distinto según la transición:
+  //   Solicitado -> Aprobado  : solicitudes/aprobar.php
+  //   Aprobado   -> Prestado  : solicitudes/registrar_entrega.php
+  let url;
+  if (nuevoEstado === 'Aprobado')      url = API_PX + 'solicitudes/aprobar.php';
+  else if (nuevoEstado === 'Prestado') url = API_PX + 'solicitudes/registrar_entrega.php';
+  else { showToast('Transición no soportada.', 'error'); return; }
+
+  try {
+    const resp = await fetch(url, {
+      method:'POST', credentials:'same-origin',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ id: s._dbId, observaciones: '' })
+    });
+    const json = await resp.json();
+    if (!resp.ok || !json.ok) { showToast(json.mensaje || 'No se pudo cambiar el estado.', 'error'); return; }
+
+    showToast(MSGS[nuevoEstado] || 'Estado actualizado.', 'success');
+    await cargarTodoPX();
+    datosFiltrados = [...SOLICITUDES];
+    aplicarFiltros();
+    renderStats();
+  } catch (err) {
+    showToast('No se pudo contactar al servidor.', 'error');
+  }
 }
 
 // ══════════════════════════════════════════
@@ -1394,22 +1394,39 @@ function abrirCancelar(id) {
   document.getElementById('motivo-cancelacion').value = '';
   abrirModal('modal-cancelar');
 }
-function confirmarCancelacion() {
+async function confirmarCancelacion() {
   const motivo = document.getElementById('motivo-cancelacion').value.trim();
   if (!motivo) { showToast('Debes indicar el motivo de cancelación.', 'error'); return; }
   const s = SOLICITUDES.find(x => x.id===solicitudActivaId);
-  if (!s) return;
-  s.estado = 'Cancelado';
-  s.observacionCancelacion = motivo;
-  s.historial.push({
-    estado: 'Cancelado',
-    fecha:  new Date().toISOString().slice(0,10),
-    usuario: usuario.nombre
-  });
-  cerrarModal('modal-cancelar');
-  aplicarFiltros();
-  renderStats();
-  showToast(`Solicitud ${solicitudActivaId} cancelada. Elementos liberados.`, 'warning');
+  if (!s || !s._dbId) { showToast('Solicitud inválida.', 'error'); return; }
+
+  // Decidir endpoint según estado:
+  //   Solicitado (pendiente) -> cancelar.php
+  //   Aprobado               -> rechazar.php   (ya no está pendiente, se marca rechazada/no aprobada)
+  // Para los demás estados (Prestado, Entregado, Cancelado) no permitimos cancelar.
+  let url;
+  if (s.estado === 'Solicitado')     url = API_PX + 'solicitudes/cancelar.php';
+  else if (s.estado === 'Aprobado')  url = API_PX + 'solicitudes/rechazar.php';
+  else { showToast('Solo se puede cancelar una solicitud en estado Solicitado o Aprobado.', 'error'); return; }
+
+  try {
+    const resp = await fetch(url, {
+      method:'POST', credentials:'same-origin',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ id: s._dbId, observaciones: motivo })
+    });
+    const json = await resp.json();
+    if (!resp.ok || !json.ok) { showToast(json.mensaje || 'No se pudo cancelar.', 'error'); return; }
+
+    cerrarModal('modal-cancelar');
+    showToast(`Solicitud ${solicitudActivaId} cancelada.`, 'warning');
+    await cargarTodoPX();
+    datosFiltrados = [...SOLICITUDES];
+    aplicarFiltros();
+    renderStats();
+  } catch (err) {
+    showToast('No se pudo contactar al servidor.', 'error');
+  }
 }
 
 // ══════════════════════════════════════════
@@ -1444,25 +1461,57 @@ function abrirDevolucion(id) {
   abrirModal('modal-devolucion');
 }
 
-function confirmarDevolucion() {
+async function confirmarDevolucion() {
   const s = SOLICITUDES.find(x => x.id===solicitudActivaId);
-  s.elementos.forEach((e,i) => {
-    e.devuelto = document.getElementById(`dev-check-${i}`).checked;
-    e.obs      = document.getElementById(`dev-obs-${i}`).value.trim();
-  });
-  const todos = s.elementos.every(e => e.devuelto);
-  if (todos) {
-    s.estado = 'Entregado';
-    s.historial.push({
-      estado:'Entregado', fecha: new Date().toISOString().slice(0,10), usuario: usuario.nombre
-    });
+  if (!s || !s._dbId) { showToast('Solicitud inválida.', 'error'); return; }
+
+  // Recopilar las observaciones y el estado marcado de cada elemento.
+  const elementosPayload = s.elementos.map((e,i) => ({
+    idelemento:    e.id,
+    estadoretorno: document.getElementById(`dev-obs-${i}`).value.trim() || 'sin_novedad',
+    devuelto:      document.getElementById(`dev-check-${i}`).checked
+  }));
+  const todos = elementosPayload.every(e => e.devuelto);
+
+  if (!todos) {
+    // El backend solo soporta devolución total; avisamos y no persistimos.
+    showToast('La devolución parcial aún no se puede registrar desde aquí. Marca todos los elementos como entregados.', 'error');
+    return;
   }
-  cerrarModal('modal-devolucion');
-  aplicarFiltros();
-  renderStats();
-  showToast(todos
-    ? 'Devolución completa. Solicitud marcada como Entregada.'
-    : 'Devolución parcial registrada.', 'success');
+
+  // Texto consolidado de observaciones por elemento para guardar en la solicitud.
+  const obsGlobal = elementosPayload
+    .map(e => {
+      const elem = s.elementos.find(x => x.id === e.idelemento);
+      return (elem ? elem.nombre : '#'+e.idelemento) + ': ' + e.estadoretorno;
+    })
+    .join(' | ');
+
+  try {
+    const resp = await fetch(API_PX + 'solicitudes/registrar_devolucion.php', {
+      method:'POST', credentials:'same-origin',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        id: s._dbId,
+        observaciones: obsGlobal,
+        elementos: elementosPayload.map(e => ({
+          idelemento:    e.idelemento,
+          estadoretorno: e.estadoretorno
+        }))
+      })
+    });
+    const json = await resp.json();
+    if (!resp.ok || !json.ok) { showToast(json.mensaje || 'No se pudo registrar la devolución.', 'error'); return; }
+
+    cerrarModal('modal-devolucion');
+    showToast('Devolución completa registrada. Solicitud marcada como Entregada.', 'success');
+    await cargarTodoPX();
+    datosFiltrados = [...SOLICITUDES];
+    aplicarFiltros();
+    renderStats();
+  } catch (err) {
+    showToast('No se pudo contactar al servidor.', 'error');
+  }
 }
 
 // ══════════════════════════════════════════
@@ -1943,10 +1992,38 @@ function showToast(msg, type='success') {
 // ══════════════════════════════════════════
 //  INIT
 // ══════════════════════════════════════════
-window.onload = () => {
+window.onload = async () => {
+  await cargarTodoPX();
+
+  // Filtro de laboratorios: usa el NOMBRE como value (así filtra la tabla
+  // que ya compara contra s.lab que es el nombre).
+  const selF = document.getElementById('f-lab');
+  if (selF) {
+    const first = selF.querySelector('option:first-child');
+    selF.innerHTML = '';
+    if (first) selF.appendChild(first);
+    LABORATORIOS.forEach(l => {
+      const o = document.createElement('option');
+      o.value = l.nombre; o.textContent = l.nombre; selF.appendChild(o);
+    });
+  }
+
+  // Select del modal de nueva solicitud: usa el ID como value (el backend
+  // espera idlaboratorio numérico).
+  const selN = document.getElementById('n-lab');
+  if (selN) {
+    selN.innerHTML = '<option value="">— Seleccionar laboratorio —</option>';
+    LABORATORIOS.forEach(l => {
+      const o = document.createElement('option');
+      o.value = l.id; o.textContent = l.nombre; selN.appendChild(o);
+    });
+  }
+
+  datosFiltrados = [...SOLICITUDES];
   renderStats();
   aplicarFiltros();
 };
 </script>
+<script src="assets/js/volver.js" defer></script>
 </body>
 </html>

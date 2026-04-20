@@ -165,8 +165,8 @@
       <div class="nav-item" onclick="toggleMenu(this)">
         <div class="nav-link"><i class="nav-icon fa-solid fa-box-open"></i><span class="nav-label">Entregas</span><i class="nav-arrow fa-solid fa-chevron-right"></i></div>
         <div class="submenu">
-          <a class="submenu-link" href="#"><i class="fa-solid fa-list"></i> Ver Entregas</a>
-          <a class="submenu-link" href="#"><i class="fa-solid fa-plus"></i> Nueva Entrega</a>
+          <a class="submenu-link" href="ver-entregas.html"><i class="fa-solid fa-list"></i> Ver Entregas</a>
+          <a class="submenu-link" href="agregar-entrega.html"><i class="fa-solid fa-plus"></i> Nueva Entrega</a>
         </div>
       </div>
 
@@ -175,7 +175,7 @@
         <div class="nav-link"><i class="nav-icon fa-solid fa-users"></i><span class="nav-label">Usuarios</span><i class="nav-arrow fa-solid fa-chevron-right"></i></div>
         <div class="submenu">
           <a class="submenu-link" href="Admin-Usuarios.html"><i class="fa-solid fa-list"></i> Ver Usuarios</a>
-          <a class="submenu-link" href="Admin-Crear-Usuario.html"><i class="fa-solid fa-user-plus"></i> Crear Usuario</a>
+          <a class="submenu-link" href="Admin-Usuarios.html?crear=1"><i class="fa-solid fa-user-plus"></i> Crear Usuario</a>
         </div>
       </div>
 
@@ -322,10 +322,24 @@
   }
 
   // CALENDARIO
+  const API     = 'backend/modules/';
   const today   = new Date();
   let viewYear  = today.getFullYear();
   let viewMonth = today.getMonth();
-  const holidays = {};
+  // Días no hábiles (no existe tabla en BD). Los persistimos localmente
+  // para que sobrevivan a refresh/cierre del navegador.
+  const holidays = (() => {
+    try { return JSON.parse(localStorage.getItem('calendario_holidays') || '{}'); }
+    catch (_) { return {}; }
+  })();
+  function saveHolidays(){
+    localStorage.setItem('calendario_holidays', JSON.stringify(holidays));
+  }
+
+  // Solicitudes por día (desde el backend).
+  // { 'YYYY-MM-DD': [{id, solicitante, elemento, laboratorio, estado}] }
+  let solicitudesPorDia = {};
+
   const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
   const DIAS  = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 
@@ -334,7 +348,41 @@
   function toggleHoliday(key){
     if(holidays[key]){ delete holidays[key]; showToast('Día habilitado nuevamente.','warning'); }
     else { holidays[key]={motivo:'Marcado manual',desc:''}; showToast('Día marcado como no hábil.','success'); }
+    saveHolidays();
     renderCalendar();
+  }
+
+  // Trae todas las solicitudes activas y futuras y las indexa por día
+  // del intervalo [fechaInicio, fechaFin].
+  async function cargarSolicitudesCalendario() {
+    try {
+      const resp = await fetch(API + 'solicitudes/listar.php?_t=' + Date.now(), { credentials:'same-origin' });
+      const json = await resp.json();
+      solicitudesPorDia = {};
+      if (!resp.ok || !json.ok || !Array.isArray(json.data)) return;
+      json.data.forEach(s => {
+        const ini = new Date(s.dt_fechainicio);
+        const fin = new Date(s.dt_fechafin);
+        if (isNaN(ini) || isNaN(fin)) return;
+        // Iterar todos los días entre inicio y fin (ambos inclusive).
+        const cur = new Date(ini.getFullYear(), ini.getMonth(), ini.getDate());
+        const end = new Date(fin.getFullYear(), fin.getMonth(), fin.getDate());
+        while (cur <= end) {
+          const k = dateKey(cur.getFullYear(), cur.getMonth(), cur.getDate());
+          if (!solicitudesPorDia[k]) solicitudesPorDia[k] = [];
+          solicitudesPorDia[k].push({
+            id: s.n_idsolicitud,
+            solicitante: `${s.t_nombres||''} ${s.t_apellidos||''}`.trim(),
+            elemento: s.elementos_nombres || '',
+            laboratorio: s.laboratorio_nombre || '',
+            estado: s.t_estado
+          });
+          cur.setDate(cur.getDate() + 1);
+        }
+      });
+    } catch (err) {
+      solicitudesPorDia = {};
+    }
   }
 
   function renderCalendar(){
@@ -352,6 +400,18 @@
       el.className='cal-day';
       el.textContent=d;
       if(holidays[key]){ el.classList.add('holiday'); } else { el.classList.add('available'); cntDisp++; }
+
+      // Marca visual si hay préstamos ese día (backend).
+      const sols = solicitudesPorDia[key] || [];
+      if (sols.length) {
+        el.style.position = 'relative';
+        el.title = sols.map(s => `#${s.id} ${s.elemento} — ${s.solicitante} (${s.estado})`).join('\n');
+        const dot = document.createElement('span');
+        dot.style.cssText = 'position:absolute;bottom:4px;right:4px;min-width:16px;height:16px;border-radius:8px;background:#C0186A;color:#fff;font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;padding:0 4px';
+        dot.textContent = sols.length;
+        el.appendChild(dot);
+      }
+
       el.addEventListener('click',()=>toggleHoliday(key));
       grid.appendChild(el);
     }
@@ -404,7 +464,7 @@
     }).join('');
   }
 
-  function eliminarHoliday(key){ delete holidays[key]; showToast('Día no hábil eliminado.','warning'); renderCalendar(); }
+  function eliminarHoliday(key){ delete holidays[key]; saveHolidays(); showToast('Día no hábil eliminado.','warning'); renderCalendar(); }
 
   function showToast(msg,type='success'){
     const icons={success:'fa-circle-check',error:'fa-circle-exclamation',warning:'fa-triangle-exclamation'};
@@ -415,7 +475,11 @@
     setTimeout(()=>{t.style.opacity='0';t.style.transition='opacity 0.3s';setTimeout(()=>t.remove(),300);},3000);
   }
 
-  renderCalendar();
+  (async () => {
+    await cargarSolicitudesCalendario();
+    renderCalendar();
+  })();
 </script>
+<script src="assets/js/volver.js" defer></script>
 </body>
 </html>

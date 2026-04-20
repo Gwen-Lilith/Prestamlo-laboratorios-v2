@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 
 <head>
@@ -823,7 +823,7 @@
               <label>Contraseña</label>
               <div class="input-wrapper">
                 <span class="input-icon"><i class="fa-solid fa-lock"></i></span>
-                <input type="password" id="reg-pass" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+                <input type="password" id="reg-pass" placeholder="••••••••"
                   oninput="checkStrength(this)" />
                 <button type="button" id="toggle-regpass" onclick="togglePass('reg-pass','toggle-regpass')"><i
                     class="fa-regular fa-eye"></i></button>
@@ -839,7 +839,7 @@
               <label>Confirmar</label>
               <div class="input-wrapper">
                 <span class="input-icon"><i class="fa-solid fa-lock"></i></span>
-                <input type="password" id="reg-pass2" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" />
+                <input type="password" id="reg-pass2" placeholder="••••••••" />
                 <button type="button" id="toggle-regpass2" onclick="togglePass('reg-pass2','toggle-regpass2')"><i
                     class="fa-regular fa-eye"></i></button>
               </div>
@@ -863,7 +863,7 @@
     <div class="modal-box">
       <h3>Recuperar contraseña</h3>
       <p>Ingresa tu correo y te enviaremos las instrucciones.</p>
-      <div id="recuperar-exito" class="modal-success">âœ“ Correo enviado. Revisa tu bandeja de entrada.</div>
+      <div id="recuperar-exito" class="modal-success">✓ Correo enviado. Revisa tu bandeja de entrada.</div>
       <label class="modal-label">Correo electrónico</label>
       <div class="modal-input-wrap">
         <i class="fa-regular fa-envelope"></i>
@@ -877,12 +877,6 @@
   <script>
     sessionStorage.clear();
 
-    const usuarios = [
-      { email: 'admin@upb.edu.co', password: '1234', nombre: 'Jairo Peña Fuentes', rol: 'admin', lab: 'Super Admin', modulo: null },
-      { email: 'profesor@upb.edu.co', password: '1234', nombre: 'Oscar Santoya', rol: 'profesor', lab: 'Lab. Electrónica', modulo: null },
-      { email: 'usuario@upb.edu.co', password: '1234', nombre: 'María García', rol: 'usuario', lab: 'Lab. Redes', modulo: null }
-    ];
-
     function switchTab(panel, btn) {
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
       document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
@@ -893,57 +887,57 @@
 
     async function handleLogin(e) {
       e.preventDefault();
-      const email    = document.getElementById('email').value.trim();
+      const email = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value.trim();
       document.getElementById('error-msg').style.display = 'none';
       if (!email || !password) { mostrarError('Por favor completa todos los campos.'); return; }
 
-      // Feedback visual
-      const btn = document.querySelector('.btn-login');
-      const oldHtml = btn.innerHTML;
-      btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Ingresando...';
-      btn.disabled = true;
+      const btnLogin = (e.submitter) || (e.target && e.target.querySelector && e.target.querySelector('button[type="submit"]'));
+      if (btnLogin) btnLogin.disabled = true;
 
       try {
         const resp = await fetch('backend/modules/auth/login.php', {
           method: 'POST',
+          credentials: 'same-origin',
           headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
           body: JSON.stringify({ correo: email, password: password })
         });
 
-        const result = await resp.json();
+        let json = null;
+        try { json = await resp.json(); } catch (_) { json = null; }
 
-        if (result.ok) {
-          // Mapear rol de BD a rol usado en el front
-          const rolesDb = result.data.roles || [];
-          let rolFront = 'usuario';
-          if (rolesDb.includes('administrador') || rolesDb.includes('auxiliar_tecnico')) rolFront = 'admin';
-          if (rolesDb.includes('profesor')) rolFront = 'profesor';
+        if (!resp.ok || !json || !json.ok) {
+          mostrarError((json && json.mensaje) || 'Correo o contraseña incorrectos.');
+          return;
+        }
 
-          const usuarioSession = {
-            email:  result.data.t_correo,
-            nombre: result.data.nombre_completo,
-            rol:    rolFront,
-            id:     result.data.n_idusuario,
-            lab:    null
-          };
-          sessionStorage.setItem('usuario', JSON.stringify(usuarioSession));
+        const rolesArr = Array.isArray(json.data.roles) ? json.data.roles : [];
+        let rolFront = 'profesor';
+        if (rolesArr.includes('administrador') || rolesArr.includes('auxiliar_tecnico')) {
+          rolFront = 'admin';
+        }
 
-          if (rolFront === 'admin') {
-            window.location.href = 'seleccion-modulo.html';
-          } else {
-            window.location.href = 'dashboard-usuario.html';
-          }
+        const usuario = {
+          id: json.data.n_idusuario,
+          email: json.data.t_correo,
+          nombre: json.data.nombre_completo,
+          codigo: json.data.t_codigoinstitucional || '',
+          rol: rolFront,
+          roles: rolesArr,
+          lab: null,
+          modulo: null
+        };
+        sessionStorage.setItem('usuario', JSON.stringify(usuario));
+
+        if (rolFront === 'admin') {
+          window.location.href = 'dashboard.html';
         } else {
-          mostrarError(result.mensaje || 'Correo o contraseña incorrectos.');
+          window.location.href = 'dashboard-usuario.html';
         }
       } catch (err) {
-        console.error('Error de login:', err);
-        mostrarError('No se pudo conectar al servidor. Verifica que XAMPP esté activo.');
+        mostrarError('No se pudo contactar al servidor. Verifica que XAMPP esté activo.');
       } finally {
-        btn.innerHTML = oldHtml;
-        btn.disabled = false;
+        if (btnLogin) btnLogin.disabled = false;
       }
     }
 

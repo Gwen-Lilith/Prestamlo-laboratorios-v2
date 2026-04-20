@@ -332,7 +332,7 @@
         <div class="dropdown-sep"></div>
         <div class="dropdown-label">Usuarios</div>
         <a class="dropdown-item" href="Admin-Usuarios.html"><i class="fa-solid fa-users"></i> Ver Usuarios</a>
-        <a class="dropdown-item" href="Admin-Crear-Usuario.html"><i class="fa-solid fa-user-plus"></i> Nuevo Usuario</a>
+        <a class="dropdown-item" href="Admin-Usuarios.html?crear=1"><i class="fa-solid fa-user-plus"></i> Nuevo Usuario</a>
       </div>
     </div>
   </div>
@@ -358,15 +358,15 @@
       <div class="nav-item" onclick="toggleMenu(this)">
         <div class="nav-link"><i class="nav-icon fa-solid fa-box-open"></i><span class="nav-label">Entregas</span><i class="nav-arrow fa-solid fa-chevron-right"></i></div>
         <div class="submenu">
-          <a class="submenu-link" href="#"><i class="fa-solid fa-list"></i> Ver Entregas</a>
-          <a class="submenu-link" href="#"><i class="fa-solid fa-plus"></i> Nueva Entrega</a>
+          <a class="submenu-link" href="ver-entregas.html"><i class="fa-solid fa-list"></i> Ver Entregas</a>
+          <a class="submenu-link" href="agregar-entrega.html"><i class="fa-solid fa-plus"></i> Nueva Entrega</a>
         </div>
       </div>
       <div class="nav-item" onclick="toggleMenu(this)">
         <div class="nav-link"><i class="nav-icon fa-solid fa-users"></i><span class="nav-label">Usuarios</span><i class="nav-arrow fa-solid fa-chevron-right"></i></div>
         <div class="submenu">
           <a class="submenu-link" href="Admin-Usuarios.html"><i class="fa-solid fa-list"></i> Ver Usuarios</a>
-          <a class="submenu-link" href="Admin-Crear-Usuario.html"><i class="fa-solid fa-user-plus"></i> Crear Usuario</a>
+          <a class="submenu-link" href="Admin-Usuarios.html?crear=1"><i class="fa-solid fa-user-plus"></i> Crear Usuario</a>
         </div>
       </div>
        <div class="nav-item" onclick="toggleMenu(this)">
@@ -583,30 +583,12 @@ document.addEventListener('click', e => {
 });
 document.querySelectorAll('.submenu-link').forEach(l => l.addEventListener('click', e => e.stopPropagation()));
 
-// ── DATOS ──
-const SOLICITANTES = {
-  'Oscar Santoya': { modulo:'Lab Automatización Procesos Industriales', id:'USR-001' },
-  'María García':  { modulo:'Lab de Física No 1',                       id:'USR-002' },
-  'Carlos Pérez':  { modulo:'Lab de Física No 1',                       id:'USR-003' },
-  'Ana Martínez':  { modulo:'Centro Administrativo de Laboratorios',    id:'USR-004' },
-};
+// ── DATOS (desde backend) ──
+const API_REP = 'backend/modules/';
+const SOLICITANTES = {};   // se llena tras cargar: {nombre: {modulo, id}}
+let DATOS = [];            // se llena tras cargar: filas del reporte
 
-const DATOS = [
-  { inventario:'INV-001', equipo:'Osciloscopio Digital Tektronix',  lab:'Lab Automatización Procesos Industriales', solicitante:'Oscar Santoya', salida:'2026-01-10', entrega:'2026-01-15', observacion:'Entregado en buen estado',       correccion:'',                        estado:'devuelto' },
-  { inventario:'INV-002', equipo:'Multímetro Fluke 87V',            lab:'Lab de Física No 1',                       solicitante:'María García',  salida:'2026-01-12', entrega:'2026-01-20', observacion:'Sin novedad',                    correccion:'',                        estado:'devuelto' },
-  { inventario:'INV-003', equipo:'Fuente de Poder DC Agilent',      lab:'Lab Automatización Procesos Industriales', solicitante:'Oscar Santoya', salida:'2026-01-18', entrega:'2026-02-01', observacion:'Devuelto con retraso',           correccion:'Llamada de advertencia',  estado:'vencido'  },
-  { inventario:'INV-004', equipo:'Generador de Señales',            lab:'Lab de Física No 1',                       solicitante:'Carlos Pérez',  salida:'2026-01-25', entrega:'2026-02-05', observacion:'Sin novedad',                    correccion:'',                        estado:'devuelto' },
-  { inventario:'INV-005', equipo:'PLC Siemens S7-300',              lab:'Lab Automatización Procesos Industriales', solicitante:'María García',  salida:'2026-02-01', entrega:'2026-02-15', observacion:'En uso',                         correccion:'',                        estado:'activo'   },
-  { inventario:'INV-006', equipo:'Módulo Arduino UNO Kit',          lab:'Centro Administrativo de Laboratorios',   solicitante:'Oscar Santoya', salida:'2026-02-03', entrega:'2026-02-10', observacion:'Entregado completo',             correccion:'',                        estado:'devuelto' },
-  { inventario:'INV-007', equipo:'Balanza Analítica Ohaus',         lab:'Lab de Física No 1',                       solicitante:'Ana Martínez',  salida:'2026-02-05', entrega:'2026-02-20', observacion:'Verificar calibración',          correccion:'Recalibrar al devolver',  estado:'activo'   },
-  { inventario:'INV-008', equipo:'Robot Industrial ABB IRB 120',    lab:'Lab Automatización Procesos Industriales', solicitante:'Carlos Pérez',  salida:'2026-02-08', entrega:'2026-02-22', observacion:'En uso en práctica',             correccion:'',                        estado:'activo'   },
-  { inventario:'INV-009', equipo:'Microscopio Óptico Zeiss',        lab:'Lab de Física No 1',                       solicitante:'María García',  salida:'2026-02-10', entrega:'2026-02-18', observacion:'Vencido sin devolución',         correccion:'Notificar al solicitante',estado:'vencido'  },
-  { inventario:'INV-010', equipo:'Sensor de Temperatura PT100',     lab:'Lab Automatización Procesos Industriales', solicitante:'Oscar Santoya', salida:'2026-02-12', entrega:'2026-03-01', observacion:'En uso',                         correccion:'',                        estado:'activo'   },
-  { inventario:'INV-011', equipo:'Cámara Termográfica FLIR',        lab:'Centro Administrativo de Laboratorios',   solicitante:'Ana Martínez',  salida:'2026-02-14', entrega:'2026-02-28', observacion:'En uso para diagnóstico',        correccion:'',                        estado:'activo'   },
-  { inventario:'INV-012', equipo:'Analizador de Espectro R&S',      lab:'Lab de Física No 1',                       solicitante:'Carlos Pérez',  salida:'2026-02-15', entrega:'2026-03-05', observacion:'Sin novedad',                    correccion:'',                        estado:'activo'   },
-];
-
-let datosFiltrados = [...DATOS];
+let datosFiltrados = [];
 let currentPage    = 1;
 const rowsPerPage  = 8;
 let sortCol = -1, sortAsc = true;
@@ -615,7 +597,53 @@ let seleccionados  = new Set();
 let filtrosGrafica = { estado:null, lab:null, usuario:null };
 let itemsParaPDF   = [];
 
-window.onload = () => { aplicarFiltros(); renderStats(datosFiltrados); renderCharts(datosFiltrados); };
+// Mapea estado backend -> etiqueta visible del reporte.
+function estadoReporte(s_estado, fechaFin) {
+  if (s_estado === 'finalizada') return 'devuelto';
+  if (s_estado === 'prestada') {
+    if (fechaFin && new Date(fechaFin) < new Date()) return 'vencido';
+    return 'activo';
+  }
+  if (s_estado === 'aprobada') return 'activo';
+  return null; // pendiente / rechazada / cancelada: no aparecen
+}
+
+async function cargarDatosReporte() {
+  try {
+    const resp = await fetch(API_REP + 'solicitudes/listar.php?_t=' + Date.now(), { credentials:'same-origin' });
+    const json = await resp.json();
+    if (!resp.ok || !json.ok || !Array.isArray(json.data)) { DATOS = []; return; }
+    DATOS = json.data.map(s => {
+      const estado = estadoReporte(s.t_estado, s.dt_fechafin);
+      if (!estado) return null;
+      const solicitante = `${s.t_nombres||''} ${s.t_apellidos||''}`.trim();
+      if (solicitante && !SOLICITANTES[solicitante]) {
+        SOLICITANTES[solicitante] = { modulo: s.laboratorio_nombre || '', id: 'U-' + s.n_idusuario };
+      }
+      return {
+        inventario:  '#' + s.n_idsolicitud,
+        equipo:      s.elementos_nombres || '—',
+        lab:         s.laboratorio_nombre || '',
+        solicitante,
+        salida:      (s.dt_fechainicio || '').substring(0,10),
+        entrega:     ((s.dt_fechadevolucion || s.dt_fechafin) || '').substring(0,10),
+        observacion: s.t_observaciones || '',
+        correccion:  s.t_observacionesauxiliar || '',
+        estado
+      };
+    }).filter(Boolean);
+  } catch (err) {
+    DATOS = [];
+  }
+}
+
+window.onload = async () => {
+  await cargarDatosReporte();
+  datosFiltrados = [...DATOS];
+  aplicarFiltros();
+  renderStats(datosFiltrados);
+  renderCharts(datosFiltrados);
+};
 
 function renderStats(d) {
   document.getElementById('stat-total').textContent     = d.length;
@@ -898,5 +926,6 @@ function exportarXLS(){
 function dl(content,filename,type){ const blob=new Blob([content],{type}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=filename; a.click(); URL.revokeObjectURL(url); }
 function hoy(){ return new Date().toLocaleDateString('es-CO').replace(/\//g,'-'); }
 </script>
+<script src="assets/js/volver.js" defer></script>
 </body>
 </html>

@@ -562,12 +562,12 @@
             display: inline-block
         }
 
-        .badge-en_curso {
+        .badge-prestada {
             background: var(--info-bg);
             color: var(--info)
         }
 
-        .badge-en_curso .badge-dot {
+        .badge-prestada .badge-dot {
             background: var(--info)
         }
 
@@ -830,7 +830,7 @@
                         </select>
                         <select class="filter-select" id="filterEstado">
                             <option value="">Todos</option>
-                            <option value="en_curso">En curso</option>
+                            <option value="prestada">Prestada</option>
                             <option value="aprobada">Aprobada</option>
                             <option value="vencido">Vencidos</option>
                         </select>
@@ -906,8 +906,8 @@
 
         async function cargarDatos() {
             try {
-                // Cargar solicitudes activas (en_curso y aprobada)
-                const resActivos = await fetch(API + 'solicitudes/listar.php?estado=en_curso', { credentials: 'include' });
+                // Cargar solicitudes activas (prestada y aprobada)
+                const resActivos = await fetch(API + 'solicitudes/listar.php?estado=prestada', { credentials: 'include' });
                 const dataActivos = await resActivos.json();
                 let activos = dataActivos.ok ? dataActivos.data : [];
 
@@ -919,7 +919,7 @@
 
                 // Marcar vencidos
                 solicitudes.forEach(s => {
-                    s._vencido = s.t_estado === 'en_curso' && esVencido(s.dt_fechafin);
+                    s._vencido = s.t_estado === 'prestada' && esVencido(s.dt_fechafin);
                 });
 
                 // Cargar vencidos desde la vista
@@ -952,7 +952,7 @@
 
         function actualizarStats() {
             const totalVencidos = solicitudes.filter(s => s._vencido).length;
-            const totalEnCurso = solicitudes.filter(s => s.t_estado === 'en_curso' && !s._vencido).length;
+            const totalEnCurso = solicitudes.filter(s => s.t_estado === 'prestada' && !s._vencido).length;
             const totalAprobadas = solicitudes.filter(s => s.t_estado === 'aprobada').length;
 
             document.getElementById('stat-total').textContent = solicitudes.length;
@@ -963,7 +963,7 @@
 
         function badgeEstado(sol) {
             if (sol._vencido) return '<span class="badge badge-vencido"><span class="badge-dot"></span>Vencido</span>';
-            if (sol.t_estado === 'en_curso') return '<span class="badge badge-en_curso"><span class="badge-dot"></span>En curso</span>';
+            if (sol.t_estado === 'prestada') return '<span class="badge badge-prestada"><span class="badge-dot"></span>Prestada</span>';
             if (sol.t_estado === 'aprobada') return '<span class="badge badge-aprobada"><span class="badge-dot"></span>Aprobada</span>';
             return '<span class="badge">' + sol.t_estado + '</span>';
         }
@@ -991,7 +991,7 @@
                 const matchLab = !labF || lab === labF;
                 let matchEst = true;
                 if (estF === 'vencido') matchEst = s._vencido;
-                else if (estF === 'en_curso') matchEst = s.t_estado === 'en_curso' && !s._vencido;
+                else if (estF === 'prestada') matchEst = s.t_estado === 'prestada' && !s._vencido;
                 else if (estF === 'aprobada') matchEst = s.t_estado === 'aprobada';
                 return matchSearch && matchLab && matchEst;
             });
@@ -1089,6 +1089,7 @@
         // ========== INIT ==========
         cargarDatos();
     </script>
+<script src="assets/js/volver.js" defer></script>
 </body>
 
 </html>

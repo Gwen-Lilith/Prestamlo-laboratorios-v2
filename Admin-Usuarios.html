@@ -257,8 +257,8 @@
           <i class="nav-arrow fa-solid fa-chevron-right"></i>
         </div>
         <div class="submenu">
-          <a class="submenu-link" href="#"><i class="fa-solid fa-list"></i> Ver Entregas</a>
-          <a class="submenu-link" href="#"><i class="fa-solid fa-plus"></i> Nueva Entrega</a>
+          <a class="submenu-link" href="ver-entregas.html"><i class="fa-solid fa-list"></i> Ver Entregas</a>
+          <a class="submenu-link" href="agregar-entrega.html"><i class="fa-solid fa-plus"></i> Nueva Entrega</a>
         </div>
       </div>
       <div class="nav-item open" onclick="toggleMenu(this)">
@@ -360,9 +360,9 @@
           </select>
           <select class="filter-select" id="filterRol" onchange="renderTable()">
             <option value="">Todos los roles</option>
-            <option value="usuario">Usuario</option>
-            <option value="admin">Admin Módulo</option>
-            <option value="superadmin">Super Admin</option>
+            <option value="profesor">Usuario</option>
+            <option value="auxiliar_tecnico">Admin Módulo</option>
+            <option value="administrador">Super Admin</option>
           </select>
           <button class="btn-primary" onclick="abrirCrear()"><i class="fa-solid fa-user-plus"></i> Nuevo Usuario</button>
         </div>
@@ -460,9 +460,9 @@
         <div class="form-group">
           <label class="form-label">Rol <span class="req">*</span></label>
           <select class="form-control" id="c-rol">
-            <option value="usuario">Usuario</option>
-            <option value="admin">Admin Módulo</option>
-            <option value="superadmin">Super Admin</option>
+            <option value="profesor">Usuario</option>
+            <option value="auxiliar_tecnico">Admin Módulo</option>
+            <option value="administrador">Super Admin</option>
           </select>
         </div>
       </div>
@@ -532,33 +532,57 @@
   function cerrarModal(id) { document.getElementById(id).classList.remove('open'); }
   document.querySelectorAll('.modal-overlay').forEach(o => o.addEventListener('click', function(e){ if(e.target===this) this.classList.remove('open'); }));
 
-  // ── Datos ──
+  // ── Datos (todo desde backend) ──
   const COLORES = ['#6B1F7C','#C0186A','#2563EB','#D97706','#16A34A','#7C3AED','#DB2777'];
-  let nextId = 20;
-  let usuarios = [
-    { id:1, nombre:'Carlos Rodríguez', cedula:'1098234567', correo:'carlos.rodriguez@upb.edu.co', telefono:'3001234567', modulo:'Lab. Electrónica', rol:'usuario',    estado:'activo',   prestamos:[{nombre:'Osciloscopio',fecha:'2026-02-10'},{nombre:'Multímetro',fecha:'2026-01-22'}] },
-    { id:2, nombre:'María Gómez',      cedula:'1095678901', correo:'maria.gomez@upb.edu.co',      telefono:'3109876543', modulo:'Lab. Redes',       rol:'admin',      estado:'activo',   prestamos:[{nombre:'Switch Cisco',fecha:'2026-02-18'}] },
-    { id:3, nombre:'Luis Peña',        cedula:'1093456789', correo:'luis.pena@upb.edu.co',         telefono:'3152233445', modulo:'Lab. Química',     rol:'usuario',    estado:'inactivo', prestamos:[] },
-    { id:4, nombre:'Ana Torres',       cedula:'1091122334', correo:'ana.torres@upb.edu.co',         telefono:'3164455667', modulo:'Lab. Electrónica', rol:'usuario',    estado:'activo',   prestamos:[{nombre:'Fuente DC',fecha:'2026-03-01'}] },
-    { id:5, nombre:'Pedro Sánchez',    cedula:'1099988776', correo:'pedro.sanchez@upb.edu.co',      telefono:'3178899001', modulo:'Lab. Redes',       rol:'superadmin', estado:'activo',   prestamos:[] },
-  ];
-  let pendientes = [
-    { id:10, nombre:'Juliana Vargas', cedula:'1097766554', correo:'juliana.vargas@upb.edu.co', telefono:'3183344556', modulo:'Lab. Química',     rol:'usuario' },
-    { id:11, nombre:'Andrés Molina',  cedula:'1096655443', correo:'andres.molina@upb.edu.co',  telefono:'3190011223', modulo:'Lab. Electrónica', rol:'usuario' },
-  ];
+  const API = 'backend/modules/';
+  let usuarios   = [];   // se llena en cargarUsuarios()
+  let pendientes = [];   // backend no maneja flujo de aprobación de usuarios; queda vacío
   let confirmCallback = null;
 
-  function iniciales(nombre) { return nombre.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase(); }
+  function escapeHtml(s) {
+    return String(s==null?'':s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+  function iniciales(nombre) { return String(nombre||'').trim().split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase() || '?'; }
   function colorAvatar(id)   { return COLORES[id % COLORES.length]; }
   function rolLabel(rol) {
-    if (rol==='admin')      return '<span class="rol admin"><i class="fa-solid fa-shield-halved"></i> Admin Módulo</span>';
-    if (rol==='superadmin') return '<span class="rol superadmin"><i class="fa-solid fa-crown"></i> Super Admin</span>';
+    if (rol==='auxiliar_tecnico') return '<span class="rol admin"><i class="fa-solid fa-shield-halved"></i> Admin Módulo</span>';
+    if (rol==='administrador')    return '<span class="rol superadmin"><i class="fa-solid fa-crown"></i> Super Admin</span>';
     return '<span class="rol usuario"><i class="fa-solid fa-user"></i> Usuario</span>';
   }
   function estadoLabel(e) {
     if (e==='activo')   return '<span class="status activo"><i class="fa-solid fa-circle"></i> Activo</span>';
     if (e==='inactivo') return '<span class="status inactivo"><i class="fa-solid fa-circle"></i> Inactivo</span>';
     return '<span class="status pendiente"><i class="fa-solid fa-circle"></i> Pendiente</span>';
+  }
+
+  // Trae los usuarios reales desde el backend y los normaliza al shape
+  // que el resto del script espera.
+  async function cargarUsuarios() {
+    try {
+      const resp = await fetch(API + 'usuarios/listar.php?_t=' + Date.now(), { credentials:'same-origin' });
+      const json = await resp.json();
+      if (!resp.ok || !json.ok || !Array.isArray(json.data)) {
+        usuarios = [];
+        showToast('No se pudieron cargar los usuarios.','error');
+        return;
+      }
+      usuarios = json.data.map(u => ({
+        id:       parseInt(u.n_idusuario,10),
+        nombre:   `${u.t_nombres||''} ${u.t_apellidos||''}`.trim(),
+        cedula:   u.t_codigoinstitucional || '',
+        correo:   u.t_correo || '',
+        telefono: '',                       // la tabla usuarios no almacena teléfono
+        modulo:   '',                       // idem
+        rol:      (Array.isArray(u.roles) && u.roles[0]) || 'profesor',
+        estado:   u.t_activo === 'S' ? 'activo' : 'inactivo',
+        prestamos: []                        // se podrá poblar con historial.php más adelante
+      }));
+    } catch (err) {
+      usuarios = [];
+      showToast('No se pudo contactar al servidor.','error');
+    }
   }
 
   function actualizarStats() {
@@ -571,41 +595,21 @@
   }
 
   function renderPendientes() {
+    // El backend activa a los usuarios al crearlos; no hay flujo "pendiente".
+    // Si en el futuro se agrega, basta con poblar `pendientes` desde un endpoint.
     const cont = document.getElementById('pending-list');
     if (!pendientes.length) { cont.innerHTML = `<div class="empty-state"><i class="fa-solid fa-circle-check"></i><p>No hay usuarios pendientes</p></div>`; return; }
     cont.innerHTML = pendientes.map(p => `
       <div class="pending-item">
         <div class="user-avatar" style="background:${colorAvatar(p.id)}">${iniciales(p.nombre)}</div>
         <div class="pending-info">
-          <div class="pending-name">${p.nombre}</div>
-          <div class="pending-sub">${p.cedula} · ${p.correo} · ${p.modulo}</div>
-        </div>
-        <div class="pending-actions">
-          <button class="btn-approve" onclick="aprobarUsuario(${p.id})"><i class="fa-solid fa-check"></i> Aprobar</button>
-          <button class="btn-reject"  onclick="rechazarUsuario(${p.id})"><i class="fa-solid fa-xmark"></i> Rechazar</button>
+          <div class="pending-name">${escapeHtml(p.nombre)}</div>
+          <div class="pending-sub">${escapeHtml(p.cedula)} · ${escapeHtml(p.correo)}</div>
         </div>
       </div>`).join('');
   }
 
-  function aprobarUsuario(id) {
-    const idx = pendientes.findIndex(p=>p.id===id);
-    if (idx<0) return;
-    const p = pendientes.splice(idx,1)[0];
-    p.estado = 'activo'; p.prestamos = [];
-    usuarios.push(p);
-    showToast(`${p.nombre} aprobado y activado.`, 'success');
-    renderPendientes(); renderTable(); actualizarStats();
-  }
-  function rechazarUsuario(id) {
-    const idx = pendientes.findIndex(p=>p.id===id);
-    if (idx<0) return;
-    const nombre = pendientes[idx].nombre;
-    pendientes.splice(idx,1);
-    showToast(`Solicitud de ${nombre} rechazada.`, 'warning');
-    renderPendientes(); actualizarStats();
-  }
-
-  function renderTable() {
+  async function renderTable() {
     const q      = document.getElementById('searchInput').value.toLowerCase();
     const estado = document.getElementById('filterEstado').value;
     const rol    = document.getElementById('filterRol').value;
@@ -619,10 +623,10 @@
     tbody.innerHTML = lista.map(u => `
       <tr onclick="abrirDetalle(${u.id})">
         <td><div class="user-avatar" style="background:${colorAvatar(u.id)}">${iniciales(u.nombre)}</div></td>
-        <td><div class="td-name">${u.nombre}</div></td>
-        <td>${u.cedula}</td>
-        <td><div>${u.correo}</div><div class="td-sub">${u.telefono}</div></td>
-        <td>${u.modulo}</td>
+        <td><div class="td-name">${escapeHtml(u.nombre)}</div></td>
+        <td>${escapeHtml(u.cedula)}</td>
+        <td><div>${escapeHtml(u.correo)}</div><div class="td-sub">${escapeHtml(u.telefono)}</div></td>
+        <td>${escapeHtml(u.modulo)}</td>
         <td>${rolLabel(u.rol)}</td>
         <td>${estadoLabel(u.estado)}</td>
         <td onclick="event.stopPropagation()">
@@ -633,6 +637,13 @@
           </div>
         </td>
       </tr>`).join('');
+  }
+
+  // Recarga datos del backend y re-renderiza todo.
+  async function refrescarTodo() {
+    await cargarUsuarios();
+    renderTable();
+    actualizarStats();
   }
 
   function abrirDetalle(id) {
@@ -666,7 +677,7 @@
     document.getElementById('modalDetalleFooter').innerHTML = `
       <button class="btn-secondary" onclick="cerrarModal('modalDetalle')">Cerrar</button>
       <select class="filter-select" id="selectRolModal" style="height:36px">
-        ${['usuario','admin','superadmin'].map(r=>`<option value="${r}" ${r===u.rol?'selected':''}>${{usuario:'Usuario',admin:'Admin Módulo',superadmin:'Super Admin'}[r]}</option>`).join('')}
+        ${['profesor','auxiliar_tecnico','administrador'].map(r=>`<option value="${r}" ${r===u.rol?'selected':''}>${{profesor:'Usuario',auxiliar_tecnico:'Admin Módulo',administrador:'Super Admin'}[r]}</option>`).join('')}
       </select>
       <button class="btn-primary" onclick="cambiarRol(${u.id})"><i class="fa-solid fa-repeat"></i> Cambiar Rol</button>
       ${toggleBtn}
@@ -675,41 +686,77 @@
     document.getElementById('modalDetalle').classList.add('open');
   }
 
-  function toggleEstado(id) {
+  async function toggleEstado(id) {
     const u = usuarios.find(x=>x.id===id);
     if (!u) return;
-    u.estado = u.estado==='activo' ? 'inactivo' : 'activo';
-    showToast(`${u.nombre} ${u.estado==='activo'?'activado':'desactivado'}.`, u.estado==='activo'?'success':'warning');
-    cerrarModal('modalDetalle');
-    renderTable(); actualizarStats();
+    const nuevoActivo = u.estado==='activo' ? 'N' : 'S';
+    try {
+      const resp = await fetch(API + 'usuarios/inactivar.php', {
+        method:'POST',
+        credentials:'same-origin',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ id, activo: nuevoActivo })
+      });
+      const json = await resp.json();
+      if (!resp.ok || !json.ok) { showToast(json.mensaje||'No se pudo cambiar el estado.','error'); return; }
+      showToast(`${u.nombre} ${nuevoActivo==='S'?'activado':'desactivado'}.`, nuevoActivo==='S'?'success':'warning');
+      cerrarModal('modalDetalle');
+      await refrescarTodo();
+    } catch (err) {
+      showToast('No se pudo contactar al servidor.','error');
+    }
   }
 
-  function cambiarRol(id) {
+  async function cambiarRol(id) {
     const u   = usuarios.find(x=>x.id===id);
     const sel = document.getElementById('selectRolModal');
     if (!u || !sel) return;
     const nuevoRol = sel.value;
     if (nuevoRol === u.rol) { showToast('El usuario ya tiene ese rol.','error'); return; }
-    u.rol = nuevoRol;
-    showToast(`Rol cambiado a ${{usuario:'Usuario',admin:'Admin Módulo',superadmin:'Super Admin'}[nuevoRol]}.`,'success');
-    cerrarModal('modalDetalle');
-    renderTable();
+    try {
+      const resp = await fetch(API + 'usuarios/asignar_rol.php', {
+        method:'POST',
+        credentials:'same-origin',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ id_usuario: id, rol: nuevoRol })
+      });
+      const json = await resp.json();
+      if (!resp.ok || !json.ok) { showToast(json.mensaje||'No se pudo cambiar el rol.','error'); return; }
+      const label = {profesor:'Usuario', auxiliar_tecnico:'Admin Módulo', administrador:'Super Admin'}[nuevoRol] || nuevoRol;
+      showToast(`Rol cambiado a ${label}.`,'success');
+      cerrarModal('modalDetalle');
+      await refrescarTodo();
+    } catch (err) {
+      showToast('No se pudo contactar al servidor.','error');
+    }
   }
 
+  // "Eliminar" es inactivación lógica (el backend no hace DELETE físico).
   function confirmarEliminar(id) {
     const u = usuarios.find(x=>x.id===id);
     if (!u) return;
     cerrarModal('modalDetalle');
-    document.getElementById('confirmTitle').textContent   = 'Eliminar usuario';
-    document.getElementById('confirmIcon').className      = 'confirm-icon danger';
-    document.getElementById('confirmIconI').className     = 'fa-solid fa-trash';
-    document.getElementById('confirmText').innerHTML      = `¿Eliminar a <strong>${u.nombre}</strong>? Esta acción no se puede deshacer.`;
-    document.getElementById('confirmBtn').className       = 'btn-danger';
-    document.getElementById('confirmBtn').innerHTML       = '<i class="fa-solid fa-trash"></i> Eliminar';
-    confirmCallback = () => {
-      usuarios = usuarios.filter(x=>x.id!==id);
-      showToast(`${u.nombre} eliminado.`,'warning');
-      renderTable(); actualizarStats();
+    document.getElementById('confirmTitle').textContent = 'Desactivar usuario';
+    document.getElementById('confirmIcon').className    = 'confirm-icon danger';
+    document.getElementById('confirmIconI').className   = 'fa-solid fa-user-slash';
+    document.getElementById('confirmText').innerHTML    = `¿Desactivar a <strong>${escapeHtml(u.nombre)}</strong>? Podrás reactivarlo después.`;
+    document.getElementById('confirmBtn').className     = 'btn-danger';
+    document.getElementById('confirmBtn').innerHTML     = '<i class="fa-solid fa-user-slash"></i> Desactivar';
+    confirmCallback = async () => {
+      try {
+        const resp = await fetch(API + 'usuarios/inactivar.php', {
+          method:'POST',
+          credentials:'same-origin',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ id, activo:'N' })
+        });
+        const json = await resp.json();
+        if (!resp.ok || !json.ok) { showToast(json.mensaje||'No se pudo desactivar.','error'); return; }
+        showToast(`${u.nombre} desactivado.`,'warning');
+        await refrescarTodo();
+      } catch (err) {
+        showToast('No se pudo contactar al servidor.','error');
+      }
     };
     document.getElementById('modalConfirm').classList.add('open');
   }
@@ -732,35 +779,62 @@
     document.getElementById('modalCrear').classList.add('open');
   }
 
-  function guardarNuevoUsuario() {
+  async function guardarNuevoUsuario() {
     const nombre    = document.getElementById('c-nombre').value.trim();
     const apellidos = document.getElementById('c-apellidos').value.trim();
     const cedula    = document.getElementById('c-cedula').value.trim();
     const correo    = document.getElementById('c-correo').value.trim();
-    const modulo    = document.getElementById('c-modulo').value;
-    const rol       = document.getElementById('c-rol').value;
-    const estado    = document.getElementById('c-estado').value;
-    const telefono  = document.getElementById('c-telefono').value.trim();
+    const rol       = document.getElementById('c-rol').value;   // profesor | auxiliar_tecnico | administrador
+    const estado    = document.getElementById('c-estado').value; // activo | inactivo
+    const password  = document.getElementById('c-pass').value;
 
     let ok = true;
-    [['c-nombre',nombre],['c-apellidos',apellidos],['c-cedula',cedula],['c-correo',correo]].forEach(([id,val])=>{
+    [['c-nombre',nombre],['c-apellidos',apellidos],['c-cedula',cedula],['c-correo',correo],['c-pass',password]].forEach(([id,val])=>{
       document.getElementById(id).classList.toggle('error', !val);
       if (!val) ok = false;
     });
-    if (!modulo) { document.getElementById('c-modulo').classList.add('error'); ok = false; }
-    else document.getElementById('c-modulo').classList.remove('error');
     if (!ok) { showToast('Completa los campos obligatorios.','error'); return; }
 
-    usuarios.push({
-      id: nextId++,
-      nombre: `${nombre} ${apellidos}`,
-      cedula, correo, telefono,
-      modulo, rol, estado,
-      prestamos: []
-    });
-    cerrarModal('modalCrear');
-    showToast(`Usuario ${nombre} creado correctamente.`, 'success');
-    renderTable(); actualizarStats();
+    const btnGuardar = document.querySelector('#modalCrear .btn-primary');
+    if (btnGuardar) btnGuardar.disabled = true;
+
+    try {
+      const resp = await fetch(API + 'usuarios/crear.php', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nombres: nombre,
+          apellidos,
+          correo,
+          password,
+          codigoinstitucional: cedula,
+          rol
+        })
+      });
+      const json = await resp.json();
+      if (!resp.ok || !json.ok) {
+        showToast(json.mensaje || 'No se pudo crear el usuario.','error');
+        return;
+      }
+
+      // Si pidieron crear inactivo, inactivar inmediatamente.
+      if (estado === 'inactivo' && json.data && json.data.n_idusuario) {
+        await fetch(API + 'usuarios/inactivar.php', {
+          method:'POST', credentials:'same-origin',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ id: json.data.n_idusuario, activo: 'N' })
+        }).catch(()=>{});
+      }
+
+      cerrarModal('modalCrear');
+      showToast(`Usuario ${nombre} creado correctamente.`, 'success');
+      await refrescarTodo();
+    } catch (err) {
+      showToast('No se pudo contactar al servidor.','error');
+    } finally {
+      if (btnGuardar) btnGuardar.disabled = false;
+    }
   }
 
   function showToast(msg, type='success') {
@@ -773,9 +847,19 @@
   }
 
   // ── Init ──
-  actualizarStats();
-  renderPendientes();
-  renderTable();
+  (async () => {
+    renderPendientes();
+    await cargarUsuarios();
+    renderTable();
+    actualizarStats();
+
+    // Si la URL trae ?crear=1 abrimos directamente el modal "Nuevo Usuario".
+    // Esto reemplaza al viejo Admin-Crear-Usuario.html (404).
+    if (new URLSearchParams(window.location.search).get('crear') === '1') {
+      abrirCrear();
+    }
+  })();
 </script>
+<script src="assets/js/volver.js" defer></script>
 </body>
 </html>

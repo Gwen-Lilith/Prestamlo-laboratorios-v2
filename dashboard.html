@@ -148,9 +148,9 @@
         <div class="dropdown-sep"></div>
         <div class="dropdown-label">Usuarios</div>
         <a class="dropdown-item" href="Admin-Usuarios.html"><i class="fa-solid fa-users"></i> Ver Usuarios</a>
-        <a class="dropdown-item" href="Admin-Crear-Usuario.html"><i class="fa-solid fa-user-plus"></i> Nuevo Usuario</a>
+        <a class="dropdown-item" href="Admin-Usuarios.html?crear=1"><i class="fa-solid fa-user-plus"></i> Nuevo Usuario</a>
         <div class="dropdown-sep"></div>
-        <a class="dropdown-item" href="#"><i class="fa-solid fa-box-open"></i> Préstamos activos</a>
+        <a class="dropdown-item" href="Elementos_Prestados.html"><i class="fa-solid fa-box-open"></i> Préstamos activos</a>
       </div>
     </div>
   </div>
@@ -185,7 +185,7 @@
         <div class="nav-link"><i class="nav-icon fa-solid fa-users"></i><span class="nav-label">Usuarios</span><i class="nav-arrow fa-solid fa-chevron-right"></i></div>
         <div class="submenu">
           <a class="submenu-link" href="Admin-Usuarios.html"><i class="fa-solid fa-list"></i> Ver Usuarios</a>
-          <a class="submenu-link" href="Admin-Crear-Usuario.html"><i class="fa-solid fa-user-plus"></i> Crear Usuario</a>
+          <a class="submenu-link" href="Admin-Usuarios.html?crear=1"><i class="fa-solid fa-user-plus"></i> Crear Usuario</a>
         </div>
       </div>
       <div class="nav-item" onclick="toggleMenu(this)">
@@ -194,7 +194,7 @@
           <a class="submenu-link" href="Admin-Solicitud-Elementos.html"><i class="fa-solid fa-clipboard-list"></i> Solicitud de Elementos</a>
           <a class="submenu-link" href="Admin-Solicitud-Detalle.html"><i class="fa-solid fa-file-alt"></i> Solicitud Detalle</a>
           <a class="submenu-link" href="Admin-Solicitudes-Seleccionar.html"><i class="fa-solid fa-search"></i> Seleccionar</a>
-          <a class="submenu-link" href="Admin-Canceladas.html"><i class="fa-solid fa-ban"></i> Cancelados</a>
+          <a class="submenu-link" href="Admin-Solicitudes-Canceladas.html"><i class="fa-solid fa-ban"></i> Cancelados</a>
   
         </div>
       </div>
@@ -239,18 +239,25 @@
         <div class="section-card-header"><i class="fa-solid fa-bullhorn"></i> INFORMACIÓN IMPORTANTE</div>
         <div class="section-card-body">
           <div class="notif-list">
-            <div class="notif-item">
+            <a href="Admin-Solicitudes-Seleccionar.html" class="notif-item" style="text-decoration:none;color:inherit;cursor:pointer">
               <div class="notif-icon orange"><i class="fa-solid fa-triangle-exclamation"></i></div>
               <div>
-                <div class="notif-title">2 usuarios pendientes de aprobación</div>
-                <div class="notif-sub">Ingresa a Usuarios para aprobar o rechazar solicitudes</div>
+                <div class="notif-title" id="notif-pendientes">— solicitudes pendientes de aprobación</div>
+                <div class="notif-sub">Ingresa a Solicitudes para aprobar o rechazar</div>
               </div>
-            </div>
-            <div class="notif-item">
-              <div class="notif-icon purple"><i class="fa-solid fa-calendar"></i></div>
+            </a>
+            <a href="Elementos_Prestados.html" class="notif-item" style="text-decoration:none;color:inherit;cursor:pointer">
+              <div class="notif-icon purple"><i class="fa-solid fa-box-open"></i></div>
               <div>
-                <div class="notif-title">Recuerda configurar el calendario del mes</div>
-                <div class="notif-sub">Marca los días no hábiles en la sección de Calendario</div>
+                <div class="notif-title" id="notif-activos">— préstamos activos</div>
+                <div class="notif-sub">Elementos que actualmente están prestados o aprobados</div>
+              </div>
+            </a>
+            <div class="notif-item" id="notif-vencidos-row" style="display:none">
+              <div class="notif-icon" style="background:#FEE2E2;color:#991B1B"><i class="fa-solid fa-clock"></i></div>
+              <div>
+                <div class="notif-title" id="notif-vencidos">— préstamos vencidos</div>
+                <div class="notif-sub">Elementos que no han sido devueltos a tiempo</div>
               </div>
             </div>
             <div class="notif-item">
@@ -293,6 +300,32 @@
     if (!e.target.closest('.acciones-wrap')) document.getElementById('dropdown-acciones').classList.remove('open');
   });
   document.querySelectorAll('.submenu-link').forEach(l => l.addEventListener('click', e => e.stopPropagation()));
+
+  // Poblar notificaciones del panel principal con datos reales del backend.
+  (async () => {
+    const API = 'backend/modules/';
+    try {
+      const [rPend, rAct, rVenc] = await Promise.all([
+        fetch(API + 'solicitudes/listar.php?estado=pendiente&_t=' + Date.now(), { credentials:'same-origin' }),
+        fetch(API + 'reportes/prestamos_activos.php?_t='            + Date.now(), { credentials:'same-origin' }),
+        fetch(API + 'reportes/prestamos_vencidos.php?_t='           + Date.now(), { credentials:'same-origin' })
+      ]);
+      const [jPend, jAct, jVenc] = await Promise.all([rPend.json(), rAct.json(), rVenc.json()]);
+      const nPend = (jPend.ok && Array.isArray(jPend.data)) ? jPend.data.length : 0;
+      const nAct  = (jAct.ok  && Array.isArray(jAct.data))  ? jAct.data.length  : 0;
+      const nVenc = (jVenc.ok && Array.isArray(jVenc.data)) ? jVenc.data.length : 0;
+
+      document.getElementById('notif-pendientes').textContent = `${nPend} solicitud(es) pendiente(s) de aprobación`;
+      document.getElementById('notif-activos').textContent    = `${nAct} préstamo(s) activo(s)`;
+      if (nVenc > 0) {
+        document.getElementById('notif-vencidos-row').style.display = '';
+        document.getElementById('notif-vencidos').textContent = `${nVenc} préstamo(s) vencido(s)`;
+      }
+    } catch (err) {
+      // Sin conexión — dejamos los placeholders.
+    }
+  })();
 </script>
+<script src="assets/js/volver.js" defer></script>
 </body>
 </html>

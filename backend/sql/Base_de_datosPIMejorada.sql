@@ -196,7 +196,7 @@ JOIN usuarios u ON u.n_idusuario = sp.n_idusuario
 JOIN laboratorios l ON l.n_idlaboratorio = sp.n_idlaboratorio
 JOIN solicitudes_elementos se ON se.n_idsolicitud = sp.n_idsolicitud
 JOIN elementos e ON e.n_idelemento = se.n_idelemento
-WHERE sp.t_estado IN ('aprobada', 'en_curso');
+WHERE sp.t_estado IN ('aprobada', 'prestada');
 
 CREATE VIEW v_prestamos_vencidos AS
 SELECT
@@ -209,7 +209,7 @@ SELECT
 FROM solicitudes_prestamo sp
 JOIN usuarios u ON u.n_idusuario = sp.n_idusuario
 JOIN laboratorios l ON l.n_idlaboratorio = sp.n_idlaboratorio
-WHERE sp.t_estado = 'en_curso'
+WHERE sp.t_estado = 'prestada'
 AND sp.dt_fechafin < CURRENT_TIMESTAMP;
 
 -- tabla sedes
@@ -247,6 +247,23 @@ ADD FOREIGN KEY (n_idasignatura) REFERENCES asignaturas(n_idasignatura);
 -- ajuste tabla elementos
 ALTER TABLE elementos
 ADD t_disponible CHAR(1) DEFAULT 'S';
+
+-- tabla solicitudes_laboratorio (profesores piden crear nuevos labs, admin aprueba)
+CREATE TABLE IF NOT EXISTS solicitudes_laboratorio (
+    n_idsolicitudlab     INT AUTO_INCREMENT PRIMARY KEY,
+    t_nombre             VARCHAR(150) NOT NULL,
+    t_ubicacion          VARCHAR(200),
+    t_motivo             VARCHAR(500) NOT NULL,
+    n_idsolicitante      INT NOT NULL,
+    t_estado             VARCHAR(20) NOT NULL DEFAULT 'pendiente',
+    n_idusuarioresponde  INT NULL,
+    t_comentarioresp     VARCHAR(500),
+    dt_fecharespuesta    TIMESTAMP NULL,
+    dt_fechacreacion     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    dt_fechaactu         TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (n_idsolicitante)     REFERENCES usuarios(n_idusuario),
+    FOREIGN KEY (n_idusuarioresponde) REFERENCES usuarios(n_idusuario)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- DATOS INICIALES
 

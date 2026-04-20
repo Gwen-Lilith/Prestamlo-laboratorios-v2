@@ -2,7 +2,7 @@
 /**
  * Endpoint: Listar solicitudes de préstamo
  * Método: GET
- * Parámetros: ?estado=pendiente|aprobada|en_curso|finalizada|rechazada|cancelada
+ * Parámetros: ?estado=pendiente|aprobada|prestada|finalizada|rechazada|cancelada
  *             &usuario=ID  (filtrar por usuario específico, útil para profesores)
  *             &buscar=texto
  */

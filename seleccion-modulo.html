@@ -718,21 +718,33 @@
       window.location.href = 'index.html';
     });
 
-    // ── Helpers localStorage ──
-    function getSolicitudes() {
-      return JSON.parse(localStorage.getItem('solicitudes_laboratorios') || '[]');
-    }
-    function setSolicitudes(data) {
-      localStorage.setItem('solicitudes_laboratorios', JSON.stringify(data));
+    // ── Solicitudes de nuevo laboratorio (todo vía backend) ──
+    function escapeHtml(s) {
+      return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
 
-    // ── Render solicitudes ──
-    function renderSolicitudes() {
-      const solicitudes = getSolicitudes();
-      const pendientes = solicitudes.filter(s => s.estado === 'pendiente');
-      document.getElementById('badge-count').textContent = pendientes.length;
-
+    async function renderSolicitudes() {
       const lista = document.getElementById('solicitudes-lista');
+      lista.innerHTML = '<div class="empty-solicitudes"><i class="fa-solid fa-spinner fa-spin"></i>Cargando...</div>';
+
+      let solicitudes = [];
+      try {
+        const resp = await fetch('backend/modules/solicitudes_laboratorio/listar.php?_t=' + Date.now(), {
+          credentials: 'same-origin'
+        });
+        const json = await resp.json();
+        if (resp.ok && json.ok && Array.isArray(json.data)) {
+          solicitudes = json.data;
+        }
+      } catch (err) {
+        lista.innerHTML = '<div class="empty-solicitudes"><i class="fa-solid fa-triangle-exclamation"></i>No se pudo contactar al servidor.</div>';
+        return;
+      }
+
+      const pendientes = solicitudes.filter(s => s.t_estado === 'pendiente');
+      document.getElementById('badge-count').textContent = pendientes.length;
 
       if (solicitudes.length === 0) {
         lista.innerHTML = `
@@ -744,71 +756,52 @@
       }
 
       lista.innerHTML = solicitudes.map(s => {
-        const acciones = s.estado === 'pendiente' ? `
-          <button class="btn-accion btn-editar"   onclick="abrirEditar(${s.id})"><i class="fa-solid fa-pen"></i> Editar</button>
-          <button class="btn-accion btn-aprobar"  onclick="cambiarEstado(${s.id},'aprobado')"><i class="fa-solid fa-check"></i> Aprobar</button>
-          <button class="btn-accion btn-rechazar" onclick="cambiarEstado(${s.id},'rechazado')"><i class="fa-solid fa-xmark"></i> Rechazar</button>
-        ` : `<span style="font-size:11px;font-weight:700;color:${s.estado==='aprobado'?'#065F46':'#991B1B'}">${s.estado==='aprobado'?'✓ Aprobado':'✗ Rechazado'}</span>`;
+        const solicitante = escapeHtml((s.solicitante_nombres || '') + ' ' + (s.solicitante_apellidos || '')).trim();
+        const fecha = s.dt_fechacreacion ? s.dt_fechacreacion.substring(0, 10) : '';
+        const ubic  = s.t_ubicacion ? ' · ' + escapeHtml(s.t_ubicacion) : '';
+        const id    = parseInt(s.n_idsolicitudlab, 10);
+
+        const acciones = s.t_estado === 'pendiente' ? `
+          <button class="btn-accion btn-aprobar"  onclick="responderSolicitud(${id},'aprobar')"><i class="fa-solid fa-check"></i> Aprobar</button>
+          <button class="btn-accion btn-rechazar" onclick="responderSolicitud(${id},'rechazar')"><i class="fa-solid fa-xmark"></i> Rechazar</button>
+        ` : `<span style="font-size:11px;font-weight:700;color:${s.t_estado==='aprobada'?'#065F46':'#991B1B'}">${s.t_estado==='aprobada'?'✓ Aprobada':'✗ Rechazada'}</span>`;
 
         return `
           <div class="solicitud-item">
-            <div class="solicitud-nombre"><i class="fa-solid fa-flask" style="color:var(--upb-purple);margin-right:6px;font-size:11px;"></i>${s.nombre}</div>
-            <div class="solicitud-meta">${s.solicitante} · ${s.fecha}${s.ubicacion ? ' · ' + s.ubicacion : ''}</div>
-            <div class="solicitud-motivo">${s.motivo}</div>
+            <div class="solicitud-nombre"><i class="fa-solid fa-flask" style="color:var(--upb-purple);margin-right:6px;font-size:11px;"></i>${escapeHtml(s.t_nombre)}</div>
+            <div class="solicitud-meta">${solicitante} · ${fecha}${ubic}</div>
+            <div class="solicitud-motivo">${escapeHtml(s.t_motivo)}</div>
             <div class="solicitud-acciones">${acciones}</div>
           </div>`;
       }).join('');
     }
 
-    function cambiarEstado(id, nuevoEstado) {
-      const solicitudes = getSolicitudes();
-      const idx = solicitudes.findIndex(s => s.id === id);
-      if (idx === -1) return;
-      solicitudes[idx].estado = nuevoEstado;
-      setSolicitudes(solicitudes);
-
-      if (nuevoEstado === 'aprobado') {
-        const labs = JSON.parse(localStorage.getItem('laboratorios_aprobados') || '[]');
-        labs.push({ nombre: solicitudes[idx].nombre, ubicacion: solicitudes[idx].ubicacion });
-        localStorage.setItem('laboratorios_aprobados', JSON.stringify(labs));
-
-        const opt = document.createElement('option');
-        opt.value = solicitudes[idx].nombre;
-        opt.textContent = solicitudes[idx].nombre;
-        select.appendChild(opt);
+    async function responderSolicitud(id, accion) {
+      const comentario = accion === 'rechazar'
+        ? (prompt('Motivo del rechazo (opcional):') || '')
+        : '';
+      try {
+        const resp = await fetch('backend/modules/solicitudes_laboratorio/responder.php', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id, accion, comentario })
+        });
+        const json = await resp.json();
+        if (!resp.ok || !json.ok) {
+          alert(json.mensaje || 'No se pudo procesar la solicitud.');
+          return;
+        }
+        if (accion === 'aprobar') {
+          await cargarLaboratorios();
+          if (json.data && json.data.n_idlaboratorio) {
+            select.value = String(json.data.n_idlaboratorio);
+          }
+        }
+        await renderSolicitudes();
+      } catch (err) {
+        alert('No se pudo contactar al servidor.');
       }
-
-      renderSolicitudes();
-    }
-
-    function abrirEditar(id) {
-      const s = getSolicitudes().find(s => s.id === id);
-      if (!s) return;
-      document.getElementById('editar-id').value = s.id;
-      document.getElementById('editar-nombre').value = s.nombre;
-      document.getElementById('editar-ubicacion').value = s.ubicacion || '';
-      document.getElementById('editar-motivo').textContent = s.motivo;
-      document.getElementById('editar-solicitante').textContent = s.solicitante;
-      document.getElementById('modal-editar').style.display = 'flex';
-    }
-
-    function guardarEdicion() {
-      const id = parseInt(document.getElementById('editar-id').value);
-      const nombre = document.getElementById('editar-nombre').value.trim();
-      const ubicacion = document.getElementById('editar-ubicacion').value.trim();
-      if (!nombre) {
-        document.getElementById('editar-nombre').style.borderColor = '#F9A8D4';
-        return;
-      }
-      document.getElementById('editar-nombre').style.borderColor = '#E8E8F0';
-      const solicitudes = getSolicitudes();
-      const idx = solicitudes.findIndex(s => s.id === id);
-      if (idx === -1) return;
-      solicitudes[idx].nombre = nombre;
-      solicitudes[idx].ubicacion = ubicacion;
-      setSolicitudes(solicitudes);
-      cerrarModal('modal-editar');
-      renderSolicitudes();
     }
 
     function guardarModulo() {
@@ -838,7 +831,7 @@
       document.getElementById(id).style.display = 'none';
     }
 
-    function crearLaboratorio() {
+    async function crearLaboratorio() {
       const nombre      = document.getElementById('nuevo-lab-nombre').value.trim();
       const ubicacion   = document.getElementById('nuevo-lab-ubicacion').value.trim();
       const responsable = document.getElementById('nuevo-lab-responsable').value.trim();
@@ -859,30 +852,56 @@
       }
       if (!valido) return;
 
-      const labs = JSON.parse(localStorage.getItem('laboratorios_aprobados') || '[]');
-      labs.push({ nombre, ubicacion, responsable, descripcion });
-      localStorage.setItem('laboratorios_aprobados', JSON.stringify(labs));
+      // El endpoint guarda el responsable via n_idusuario (sesión actual).
+      // El texto "responsable" del form lo conservamos dentro de la descripción.
+      const descFinal = responsable
+        ? ('Responsable: ' + responsable + (descripcion ? ' | ' + descripcion : ''))
+        : descripcion;
 
-      const opt = document.createElement('option');
-      opt.value = nombre;
-      opt.textContent = nombre;
-      select.appendChild(opt);
-      select.value = nombre;
+      const btnGuardar = document.querySelector('#modal-crear-lab .btn-modal-guardar');
+      if (btnGuardar) btnGuardar.disabled = true;
 
-      document.getElementById('exito-crear').style.display = 'flex';
-      setTimeout(() => {
-        cerrarModal('modal-crear-lab');
-        document.getElementById('nuevo-lab-nombre').value = '';
-        document.getElementById('nuevo-lab-ubicacion').value = '';
-        document.getElementById('nuevo-lab-responsable').value = '';
-        document.getElementById('nuevo-lab-descripcion').value = '';
-      }, 2000);
+      try {
+        const resp = await fetch('backend/modules/laboratorios/crear.php', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nombre, ubicacion, descripcion: descFinal })
+        });
+
+        let json = null;
+        try { json = await resp.json(); } catch (_) { json = null; }
+
+        if (!resp.ok || !json || !json.ok) {
+          alert((json && json.mensaje) || 'No se pudo crear el laboratorio.');
+          return;
+        }
+
+        // Recargar el dropdown desde la BD y seleccionar el nuevo lab
+        await cargarLaboratorios();
+        if (json.data && json.data.n_idlaboratorio) {
+          select.value = String(json.data.n_idlaboratorio);
+        }
+
+        document.getElementById('exito-crear').style.display = 'flex';
+        setTimeout(() => {
+          cerrarModal('modal-crear-lab');
+          document.getElementById('nuevo-lab-nombre').value = '';
+          document.getElementById('nuevo-lab-ubicacion').value = '';
+          document.getElementById('nuevo-lab-responsable').value = '';
+          document.getElementById('nuevo-lab-descripcion').value = '';
+        }, 1500);
+      } catch (err) {
+        alert('No se pudo contactar al servidor. Verifica que XAMPP esté activo.');
+      } finally {
+        if (btnGuardar) btnGuardar.disabled = false;
+      }
     }
 
-    function solicitarLaboratorio() {
-      const nombre = document.getElementById('sol-lab-nombre').value.trim();
+    async function solicitarLaboratorio() {
+      const nombre    = document.getElementById('sol-lab-nombre').value.trim();
       const ubicacion = document.getElementById('sol-lab-ubicacion').value.trim();
-      const motivo = document.getElementById('sol-lab-motivo').value.trim();
+      const motivo    = document.getElementById('sol-lab-motivo').value.trim();
       if (!nombre || !motivo) {
         if (!nombre) document.getElementById('sol-lab-nombre').style.borderColor = '#F9A8D4';
         if (!motivo) document.getElementById('sol-lab-motivo').style.borderColor = '#F9A8D4';
@@ -890,23 +909,38 @@
       }
       document.getElementById('sol-lab-nombre').style.borderColor = '#E8E8F0';
       document.getElementById('sol-lab-motivo').style.borderColor = '#E8E8F0';
-      const solicitudes = getSolicitudes();
-      solicitudes.push({
-        id: Date.now(),
-        nombre, ubicacion, motivo,
-        solicitante: usuario.nombre,
-        rol: usuario.rol,
-        fecha: new Date().toLocaleDateString('es-CO'),
-        estado: 'pendiente'
-      });
-      setSolicitudes(solicitudes);
-      document.getElementById('exito-solicitar').style.display = 'flex';
-      setTimeout(() => {
-        cerrarModal('modal-solicitar-lab');
-        document.getElementById('sol-lab-nombre').value = '';
-        document.getElementById('sol-lab-ubicacion').value = '';
-        document.getElementById('sol-lab-motivo').value = '';
-      }, 2500);
+
+      const btnEnviar = document.querySelector('#modal-solicitar-lab .btn-modal-guardar');
+      if (btnEnviar) btnEnviar.disabled = true;
+
+      try {
+        const resp = await fetch('backend/modules/solicitudes_laboratorio/crear.php', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nombre, ubicacion, motivo })
+        });
+
+        let json = null;
+        try { json = await resp.json(); } catch (_) { json = null; }
+
+        if (!resp.ok || !json || !json.ok) {
+          alert((json && json.mensaje) || 'No se pudo enviar la solicitud.');
+          return;
+        }
+
+        document.getElementById('exito-solicitar').style.display = 'flex';
+        setTimeout(() => {
+          cerrarModal('modal-solicitar-lab');
+          document.getElementById('sol-lab-nombre').value = '';
+          document.getElementById('sol-lab-ubicacion').value = '';
+          document.getElementById('sol-lab-motivo').value = '';
+        }, 2000);
+      } catch (err) {
+        alert('No se pudo contactar al servidor. Verifica que XAMPP esté activo.');
+      } finally {
+        if (btnEnviar) btnEnviar.disabled = false;
+      }
     }
   </script>
 

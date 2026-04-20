@@ -55,6 +55,7 @@ try {
     $pdo->commit();
     Response::json(['stock_nuevo' => $stockNuevo], 200, 'Movimiento registrado correctamente.');
 } catch (Exception $e) {
-    $pdo->rollBack();
-    Response::error('Error al registrar movimiento: ' . $e->getMessage(), 500);
+    if ($pdo->inTransaction()) $pdo->rollBack();
+    error_log('consumibles/movimiento.php: ' . $e->getMessage());
+    Response::error('Error al registrar el movimiento.', 500);
 }

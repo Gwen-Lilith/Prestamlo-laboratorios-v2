@@ -32,7 +32,15 @@ if ($sol['n_idusuario'] != $currentUser['n_idusuario'] && !$esAdmin) {
     Response::error('No tiene permisos para cancelar esta solicitud.', 403);
 }
 
-$pdo->prepare("UPDATE solicitudes_prestamo SET t_estado = 'cancelada' WHERE n_idsolicitud = :id")
-    ->execute([':id' => $id]);
-Logger::registrar($id, 'pendiente', 'cancelada', 'Solicitud cancelada', $currentUser['n_idusuario']);
-Response::json(null, 200, 'Solicitud cancelada.');
+try {
+    $pdo->beginTransaction();
+    $pdo->prepare("UPDATE solicitudes_prestamo SET t_estado = 'cancelada' WHERE n_idsolicitud = :id")
+        ->execute([':id' => $id]);
+    Logger::registrar($id, 'pendiente', 'cancelada', 'Solicitud cancelada', $currentUser['n_idusuario']);
+    $pdo->commit();
+    Response::json(null, 200, 'Solicitud cancelada.');
+} catch (Exception $e) {
+    if ($pdo->inTransaction()) $pdo->rollBack();
+    error_log('cancelar.php: ' . $e->getMessage());
+    Response::error('Error al cancelar la solicitud.', 500);
+}

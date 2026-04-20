@@ -7,13 +7,16 @@
 class Validator {
 
     /**
-     * Limpiar string: trim + htmlspecialchars para prevenir XSS
+     * Limpiar string: solo trim.
+     * El escape para XSS se hace al RENDERIZAR en el frontend/HTML,
+     * no al guardar en BD (guardar con htmlspecialchars corrompe datos:
+     * "Lab & Redes" quedaba como "Lab &amp; Redes").
      * @param string $valor
      * @return string
      */
     public static function limpiarString($valor) {
         if ($valor === null) return '';
-        return htmlspecialchars(trim($valor), ENT_QUOTES, 'UTF-8');
+        return trim((string)$valor);
     }
 
     /**

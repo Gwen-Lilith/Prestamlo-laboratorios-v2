@@ -1,0 +1,39 @@
+# ───── Sistema operativo ─────
+Thumbs.db
+ehthumbs.db
+desktop.ini
+.DS_Store
+
+# ───── Editores / IDEs ─────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ───── Backups locales (NO deben ir al repo) ─────
+*-BACKUP-*/
+backup-*/
+*.bak
+*.orig
+
+# ───── Compresiones de distribución local ─────
+*.zip
+*.rar
+*.7z
+
+# ───── Logs y caches ─────
+*.log
+logs/
+cache/
+tmp/
+
+# ───── Archivos rotos conocidos ─────
+# "images" en la raíz es un junction/symlink roto de 0 bytes (no es la carpeta
+# real de imágenes; la buena está en assets/images/).
+/images
+
+# ───── Node / build (por si alguien añade tooling) ─────
+node_modules/
+dist/
+build/

@@ -9,9 +9,9 @@ USE Proyectointegrador;
 -- Hash generado con PHP: password_hash('1234', PASSWORD_BCRYPT)
 
 INSERT INTO usuarios (t_codigoinstitucional, t_nombres, t_apellidos, t_correo, t_contrasena, t_activo) VALUES
-('ADM001', 'Jairo', 'Peña Fuentes', 'admin@upb.edu.co', '$2y$10$8K1p/a0dR1xFc0aEiQwCkeOw8qXdFz7K5NxGxJKmQLqYZ7Wday4jS', 'S'),
-('AUX001', 'Carlos', 'Rodríguez López', 'auxiliar@upb.edu.co', '$2y$10$8K1p/a0dR1xFc0aEiQwCkeOw8qXdFz7K5NxGxJKmQLqYZ7Wday4jS', 'S'),
-('PRF001', 'Oscar', 'Santoya Martínez', 'profesor@upb.edu.co', '$2y$10$8K1p/a0dR1xFc0aEiQwCkeOw8qXdFz7K5NxGxJKmQLqYZ7Wday4jS', 'S');
+('ADM001', 'Jairo', 'Peña Fuentes', 'admin@upb.edu.co', '$2y$10$epWVnAC1vuyQwZJtIRdDfOzBbqFY1akdcHYUH73Fv/CypxxjQ.j06', 'S'),
+('AUX001', 'Carlos', 'Rodríguez López', 'auxiliar@upb.edu.co', '$2y$10$C8FsNVNTFm941MT9LL5UxuKhRTiL/hiZv0Z3CJfMPX9Ip85vSVJ6K', 'S'),
+('PRF001', 'Oscar', 'Santoya Martínez', 'profesor@upb.edu.co', '$2y$10$/L65Y5iWWe/.AgNFpWgNlu5nw6mPykfsTVddk6KnVAeCDIdwfj582', 'S');
 
 -- Asignar roles
 -- admin@upb.edu.co -> administrador (rol 1)

@@ -163,79 +163,79 @@ th{background:#6B1F7C;color:#fff}
 
 <script>
 
-let editId = null;
+// "Entregas" en el modelo del backend son las solicitudes que ya
+// salieron físicamente (estado 'prestada') o fueron devueltas ('finalizada').
+// Todo viene del backend, nada en localStorage.
+const API = 'backend/modules/';
+let data = [];
 
-function getData(){
-  return JSON.parse(localStorage.getItem('entregas') || '[]');
+function escapeHtml(s) {
+  return String(s==null?'':s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
-function saveData(data){
-  localStorage.setItem('entregas', JSON.stringify(data));
+async function cargarEntregas() {
+  try {
+    const [rP, rF] = await Promise.all([
+      fetch(API + 'solicitudes/listar.php?estado=prestada&_t=' + Date.now(),   { credentials:'same-origin' }),
+      fetch(API + 'solicitudes/listar.php?estado=finalizada&_t=' + Date.now(), { credentials:'same-origin' })
+    ]);
+    const [jP, jF] = await Promise.all([rP.json(), rF.json()]);
+    const rows = []
+      .concat(jP.ok && Array.isArray(jP.data) ? jP.data : [])
+      .concat(jF.ok && Array.isArray(jF.data) ? jF.data : []);
+
+    data = rows.map(s => ({
+      id:      parseInt(s.n_idsolicitud, 10),
+      equipo:  s.elementos_nombres || '—',
+      usuario: `${s.t_nombres||''} ${s.t_apellidos||''}`.trim(),
+      fecha:   (s.dt_fechainicio || '').substring(0,10),
+      // UI: 'entregado' (= prestada) / 'pendiente' se mapea de 'finalizada' a 'entregado'/'devuelto'.
+      // Mantenemos 2 estados visibles: 'entregado' y 'devuelto'.
+      estado:  s.t_estado === 'prestada' ? 'entregado' : 'devuelto'
+    }));
+  } catch (err) {
+    data = [];
+  }
 }
 
 function render(){
-  const data = getData();
-  const busqueda = document.getElementById('buscador').value.toLowerCase();
-  const filtro = document.getElementById('filtro').value;
+  const busqueda = (document.getElementById('buscador').value || '').toLowerCase();
+  const filtro   = document.getElementById('filtro').value;
 
-  let filtrado = data.filter(e =>
+  const filtrado = data.filter(e =>
     (e.equipo.toLowerCase().includes(busqueda) || e.usuario.toLowerCase().includes(busqueda)) &&
     (!filtro || e.estado === filtro)
   );
 
-  document.getElementById('stats').textContent = 
+  document.getElementById('stats').textContent =
     `Total: ${data.length} | Mostrando: ${filtrado.length}`;
 
-  document.getElementById('tbody').innerHTML = filtrado.map(e=>`
+  document.getElementById('tbody').innerHTML = filtrado.map(e => `
     <tr>
-      <td>${e.equipo}</td>
-      <td>${e.usuario}</td>
-      <td>${e.fecha}</td>
+      <td>${escapeHtml(e.equipo)}</td>
+      <td>${escapeHtml(e.usuario)}</td>
+      <td>${escapeHtml(e.fecha)}</td>
       <td><span class="estado ${e.estado}">${e.estado}</span></td>
       <td>
-        <button class="btn-accion btn-edit" onclick="editar(${e.id})"><i class="fa-solid fa-pen"></i></button>
-        <button class="btn-accion btn-delete" onclick="eliminar(${e.id})"><i class="fa-solid fa-trash"></i></button>
+        <a class="btn-accion btn-edit" href="Admin-Solicitud-Detalle.html?id=${e.id}" title="Ver detalle"><i class="fa-solid fa-eye"></i></a>
       </td>
     </tr>
   `).join('');
-}
-
-function eliminar(id){
-  if(!confirm("¿Eliminar entrega?")) return;
-  let data = getData().filter(e => e.id !== id);
-  saveData(data);
-  render();
-}
-
-function editar(id){
-  const e = getData().find(e => e.id === id);
-  editId = id;
-  document.getElementById('edit-equipo').value = e.equipo;
-  document.getElementById('edit-usuario').value = e.usuario;
-  document.getElementById('edit-estado').value = e.estado;
-  document.getElementById('modal').style.display = 'flex';
-}
-
-function guardarEdit(){
-  let data = getData();
-  const i = data.findIndex(e => e.id === editId);
-
-  data[i].equipo = document.getElementById('edit-equipo').value;
-  data[i].usuario = document.getElementById('edit-usuario').value;
-  data[i].estado = document.getElementById('edit-estado').value;
-
-  saveData(data);
-  document.getElementById('modal').style.display = 'none';
-  render();
 }
 
 function volver(){
   window.location.href = "dashboard.html";
 }
 
-render();
+(async () => {
+  await cargarEntregas();
+  render();
+})();
 
 </script>
 
+<script src="assets/js/volver.js" defer></script>
 </body>
 </html>

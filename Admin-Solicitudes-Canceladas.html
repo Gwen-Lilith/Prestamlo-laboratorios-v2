@@ -176,11 +176,11 @@
       <div class="nav-item"><a class="nav-link home" href="dashboard.html"><i class="nav-icon fa-solid fa-house"></i><span class="nav-label">Menú Principal</span></a></div>
       <div class="nav-item" onclick="toggleMenu(this)">
         <div class="nav-link"><i class="nav-icon fa-solid fa-box-open"></i><span class="nav-label">Entregas</span><i class="nav-arrow fa-solid fa-chevron-right"></i></div>
-        <div class="submenu"><a class="submenu-link" href="#"><i class="fa-solid fa-list"></i> Ver Entregas</a><a class="submenu-link" href="#"><i class="fa-solid fa-plus"></i> Nueva Entrega</a></div>
+        <div class="submenu"><a class="submenu-link" href="ver-entregas.html"><i class="fa-solid fa-list"></i> Ver Entregas</a><a class="submenu-link" href="agregar-entrega.html"><i class="fa-solid fa-plus"></i> Nueva Entrega</a></div>
       </div>
       <div class="nav-item" onclick="toggleMenu(this)">
         <div class="nav-link"><i class="nav-icon fa-solid fa-users"></i><span class="nav-label">Usuarios</span><i class="nav-arrow fa-solid fa-chevron-right"></i></div>
-        <div class="submenu"><a class="submenu-link" href="Admin-Usuarios.html"><i class="fa-solid fa-list"></i> Ver Usuarios</a><a class="submenu-link" href="Admin-Crear-Usuario.html"><i class="fa-solid fa-user-plus"></i> Crear Usuario</a></div>
+        <div class="submenu"><a class="submenu-link" href="Admin-Usuarios.html"><i class="fa-solid fa-list"></i> Ver Usuarios</a><a class="submenu-link" href="Admin-Usuarios.html?crear=1"><i class="fa-solid fa-user-plus"></i> Crear Usuario</a></div>
       </div>
       <div class="nav-item open" onclick="toggleMenu(this)">
         <div class="nav-link active"><i class="nav-icon fa-solid fa-cart-shopping"></i><span class="nav-label">Solicitudes</span><i class="nav-arrow fa-solid fa-chevron-right"></i></div>
@@ -286,20 +286,48 @@
   document.getElementById('nav-avatar-img').src = avatares[usuario.rol] || 'assets/images/AVATARADMINISTRADOR.jpg';
   document.getElementById('btn-salir').addEventListener('click', () => { sessionStorage.removeItem('usuario'); window.location.href = 'index.html'; });
 
-  let canceladas = [
-    { id:4,  solicitante:'Luis Peña',     elemento:'Centrifugadora',     laboratorio:'Lab. Física No 1',    fechaSol:'2025-06-25', fechaUso:'2025-07-01', tipo:'rechazada', motivo:'Equipo en mantenimiento programado' },
-    { id:7,  solicitante:'Roberto Díaz',  elemento:'Proyector Epson',    laboratorio:'Almacén General',     fechaSol:'2025-06-20', fechaUso:'2025-06-28', tipo:'cancelada', motivo:'El solicitante anuló la solicitud' },
-    { id:9,  solicitante:'Paola Gómez',   elemento:'Kit Arduino',        laboratorio:'Lab. Automatización', fechaSol:'2025-06-18', fechaUso:'2025-06-24', tipo:'rechazada', motivo:'Elemento no disponible para la fecha solicitada' },
-    { id:11, solicitante:'Andrés Suárez', elemento:'Fuente de Poder',    laboratorio:'Lab. Electrónica',    fechaSol:'2025-07-01', fechaUso:'2025-07-06', tipo:'cancelada', motivo:'Cancelado por vencimiento de solicitud' },
-  ];
-
+  // Todas las solicitudes canceladas/rechazadas vienen del backend.
+  const API = 'backend/modules/';
+  let canceladas = [];
   let restauradas = 0;
   let solicitudActual = null;
 
+  async function cargarCanceladas() {
+    try {
+      const [rR, rC] = await Promise.all([
+        fetch(API + 'solicitudes/listar.php?estado=rechazada&_t=' + Date.now(), { credentials:'same-origin' }),
+        fetch(API + 'solicitudes/listar.php?estado=cancelada&_t=' + Date.now(), { credentials:'same-origin' })
+      ]);
+      const [jR, jC] = await Promise.all([rR.json(), rC.json()]);
+      const rows = []
+        .concat(jR.ok && Array.isArray(jR.data) ? jR.data : [])
+        .concat(jC.ok && Array.isArray(jC.data) ? jC.data : []);
+
+      canceladas = rows.map(s => ({
+        id:           parseInt(s.n_idsolicitud, 10),
+        solicitante:  `${s.t_nombres||''} ${s.t_apellidos||''}`.trim(),
+        elemento:     s.elementos_nombres || '—',
+        laboratorio:  s.laboratorio_nombre || '',
+        fechaSol:     (s.dt_fechacreacion || '').substring(0,10),
+        fechaUso:     (s.dt_fechainicio   || '').substring(0,10),
+        tipo:         s.t_estado,  // 'rechazada' o 'cancelada'
+        motivo:       s.t_observacionesauxiliar || s.t_observaciones || '—'
+      }));
+    } catch (err) {
+      canceladas = [];
+      toast('No se pudo contactar al servidor.','error');
+    }
+  }
+
   function fillFiltroLab() {
-    const labs = [...new Set(canceladas.map(s=>s.laboratorio))];
     const sel = document.getElementById('filtro-lab');
+    const first = sel.querySelector('option:first-child');
+    const actual = sel.value;
+    sel.innerHTML = '';
+    if (first) sel.appendChild(first);
+    const labs = [...new Set(canceladas.map(s=>s.laboratorio).filter(Boolean))].sort();
     labs.forEach(l => { const o=document.createElement('option'); o.value=l; o.textContent=l; sel.appendChild(o); });
+    if (actual) sel.value = actual;
   }
 
   function renderTabla() {
@@ -340,12 +368,11 @@
   function cerrarModal()      { document.getElementById('modal-restaurar').classList.remove('open'); }
 
   function confirmarRestaurar() {
-    canceladas = canceladas.filter(s => s.id !== solicitudActual);
-    restauradas++;
+    // Nota: el backend no tiene endpoint para "restaurar" una solicitud
+    // rechazada/cancelada a pendiente. El flujo correcto es que el
+    // solicitante cree una solicitud nueva. Informamos al usuario.
     cerrarModal();
-    fillFiltroLab();
-    renderTabla();
-    toast('Solicitud restaurada a estado Pendiente.','success');
+    toast('Para restaurar, el solicitante debe crear una solicitud nueva.','error');
   }
 
   function exportarTodoCSV() {
@@ -373,6 +400,13 @@
   document.getElementById('buscar').addEventListener('input', renderTabla);
   document.getElementById('filtro-lab').addEventListener('change', renderTabla);
 
+  (async () => {
+    await cargarCanceladas();
+    fillFiltroLab();
+    renderTabla();
+    updateStats();
+  })();
+
   function toggleSidebar()  { document.getElementById('sidebar').classList.toggle('collapsed'); }
   function toggleDropdown() { document.getElementById('dropdown-acciones').classList.toggle('open'); }
   function toggleMenu(item) {
@@ -386,5 +420,6 @@
   fillFiltroLab();
   renderTabla();
 </script>
+<script src="assets/js/volver.js" defer></script>
 </body>
 </html>

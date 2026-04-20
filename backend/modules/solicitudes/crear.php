@@ -30,7 +30,42 @@ if (empty($fechaInicio) || empty($fechaFin)) Response::error('Las fechas son obl
 if (empty($proposito)) Response::error('El propósito es obligatorio.');
 if (empty($elementos) || !is_array($elementos)) Response::error('Debe seleccionar al menos un elemento.');
 
+// Coherencia de fechas
+$tsInicio = strtotime($fechaInicio);
+$tsFin    = strtotime($fechaFin);
+if ($tsInicio === false || $tsFin === false) {
+    Response::error('Las fechas tienen un formato inválido.');
+}
+if ($tsFin <= $tsInicio) {
+    Response::error('La fecha fin debe ser posterior a la fecha de inicio.');
+}
+
 $pdo = Database::getConnection();
+
+// Validar disponibilidad de cada elemento en el rango de fechas solicitado.
+// Se considera "ocupado" si existe otra solicitud (pendiente, aprobada o
+// prestada) que solape con el intervalo [fechaInicio, fechaFin].
+$sqlColision = "SELECT sp.n_idsolicitud, e.t_nombre, e.t_numeroinventario
+                FROM solicitudes_prestamo sp
+                JOIN solicitudes_elementos se ON se.n_idsolicitud = sp.n_idsolicitud
+                JOIN elementos e ON e.n_idelemento = se.n_idelemento
+                WHERE se.n_idelemento = :eid
+                  AND sp.t_estado IN ('pendiente','aprobada','prestada')
+                  AND NOT (sp.dt_fechafin <= :fi OR sp.dt_fechainicio >= :ff)
+                LIMIT 1";
+$stmtColision = $pdo->prepare($sqlColision);
+foreach ($elementos as $elem) {
+    $eid = $elem['idelemento'] ?? 0;
+    if (!Validator::validarEntero($eid)) {
+        Response::error('Hay un elemento con ID inválido en la solicitud.');
+    }
+    $stmtColision->execute([':eid' => $eid, ':fi' => $fechaInicio, ':ff' => $fechaFin]);
+    $choque = $stmtColision->fetch();
+    if ($choque) {
+        $nom = $choque['t_nombre'] . ' (' . $choque['t_numeroinventario'] . ')';
+        Response::error("El elemento \"$nom\" ya está reservado en otra solicitud que se cruza con esas fechas.");
+    }
+}
 
 try {
     $pdo->beginTransaction();
@@ -67,6 +102,7 @@ try {
     Response::json(['n_idsolicitud' => (int)$idSolicitud], 201, 'Solicitud creada correctamente.');
 
 } catch (Exception $e) {
-    $pdo->rollBack();
-    Response::error('Error al crear la solicitud: ' . $e->getMessage(), 500);
+    if ($pdo->inTransaction()) $pdo->rollBack();
+    error_log('solicitudes/crear.php: ' . $e->getMessage());
+    Response::error('Error al crear la solicitud.', 500);
 }

@@ -32,12 +32,18 @@ if (!Validator::validarCorreo($correo)) {
     Response::error('El formato del correo no es válido.');
 }
 
+// Rate limiting por IP (defensa fuerza bruta).
+$ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+Auth::checkRateLimit($ip);
+
 // Intentar login
 $usuario = Auth::login($correo, $password);
 
 if ($usuario === false) {
+    Auth::registerFailedAttempt($ip);
     Response::error('Correo o contraseña incorrectos.', 401);
 }
 
-// Login exitoso — devolver datos del usuario
+// Login exitoso — limpiar intentos y devolver datos del usuario.
+Auth::clearFailedAttempts($ip);
 Response::json($usuario, 200, 'Login exitoso.');

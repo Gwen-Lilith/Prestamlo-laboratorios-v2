@@ -28,10 +28,18 @@ $sol = $stmt->fetch();
 if (!$sol) Response::error('Solicitud no encontrada.', 404);
 if ($sol['t_estado'] !== 'pendiente') Response::error('Solo se pueden rechazar solicitudes pendientes.');
 
-$pdo->prepare("UPDATE solicitudes_prestamo SET t_estado = 'rechazada', 
-               n_idusuarioaprobo = :uid, dt_fechaaprobacion = NOW(), 
-               t_observacionesauxiliar = :obs WHERE n_idsolicitud = :id")
-    ->execute([':uid' => $currentUser['n_idusuario'], ':obs' => $obs, ':id' => $id]);
+try {
+    $pdo->beginTransaction();
+    $pdo->prepare("UPDATE solicitudes_prestamo SET t_estado = 'rechazada',
+                   n_idusuarioaprobo = :uid, dt_fechaaprobacion = NOW(),
+                   t_observacionesauxiliar = :obs WHERE n_idsolicitud = :id")
+        ->execute([':uid' => $currentUser['n_idusuario'], ':obs' => $obs, ':id' => $id]);
 
-Logger::registrar($id, 'pendiente', 'rechazada', $obs, $currentUser['n_idusuario']);
-Response::json(null, 200, 'Solicitud rechazada.');
+    Logger::registrar($id, 'pendiente', 'rechazada', $obs, $currentUser['n_idusuario']);
+    $pdo->commit();
+    Response::json(null, 200, 'Solicitud rechazada.');
+} catch (Exception $e) {
+    if ($pdo->inTransaction()) $pdo->rollBack();
+    error_log('rechazar.php: ' . $e->getMessage());
+    Response::error('Error al rechazar la solicitud.', 500);
+}

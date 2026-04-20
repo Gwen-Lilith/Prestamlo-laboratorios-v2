@@ -2053,7 +2053,7 @@
                                 mod: s.laboratorio_nombre || '',
                                 salida: s.dt_fechainicio ? s.dt_fechainicio.substring(0, 10) : '',
                                 entrega: s.dt_fechadevolucion ? s.dt_fechadevolucion.substring(0, 10) : (s.dt_fechafin ? s.dt_fechafin.substring(0, 10) : ''),
-                                estado: s.t_estado === 'finalizada' ? 'Devuelto' : (s.t_estado === 'aprobada' || s.t_estado === 'en_curso' ? 'Activo' : 'Pendiente'),
+                                estado: s.t_estado === 'finalizada' ? 'Devuelto' : (s.t_estado === 'aprobada' || s.t_estado === 'prestada' ? 'Activo' : 'Pendiente'),
                                 obs: s.t_observaciones || ''
                             };
                             // Los elementos vienen concatenados en elementos_nombres
@@ -2671,6 +2671,7 @@
             document.getElementById('modal-det').addEventListener('click', function (e) { if (e.target === this) cerrarDet(); });
             document.getElementById('modal-fmt').addEventListener('click', function (e) { if (e.target === this) cerrarFmt(); });
         </script>
+<script src="assets/js/volver.js" defer></script>
 </body>
 
 </html>

@@ -694,26 +694,103 @@
     sessionStorage.removeItem('usuario'); window.location.href = 'index.html';
   });
 
-  // ── DATOS DEMO ──
-  let misSolicitudes = [
-    { id:1, elemento:'Osciloscopio Digital', lab:'Lab Automatización', fechaInicio:'2026-03-10', fechaFin:'2026-03-12', estado:'Aprobada',  justificacion:'Práctica de electrónica' },
-    { id:2, elemento:'Multímetro Fluke',     lab:'Lab Automatización', fechaInicio:'2026-03-15', fechaFin:'2026-03-15', estado:'Pendiente', justificacion:'Medición de circuitos' },
-    { id:3, elemento:'Laptop HP',            lab:'Lab de Física No 1', fechaInicio:'2026-02-20', fechaFin:'2026-02-25', estado:'Finalizada',justificacion:'Laboratorio de redes' },
-    { id:4, elemento:'Proyector Epson',      lab:'Lab de Física No 1', fechaInicio:'2026-02-10', fechaFin:'2026-02-10', estado:'Rechazada', justificacion:'Presentación académica' },
-  ];
+  // ── DATOS (todo desde backend) ──
+  const API = 'backend/modules/';
+  let misSolicitudes = [];
+  let misEntregas    = [];
+  let misNotificaciones = [];
+  let labsDisponibles     = []; // [{id, nombre}]
+  let elementosPorLabMap  = {}; // { n_idlaboratorio: [{id, nombre, estado}] }
 
-  let misEntregas = [
-    { id:1, elemento:'Osciloscopio Digital', lab:'Lab Automatización', fechaEntrega:'2026-03-10', fechaDevolucion:'2026-03-12', estado:'Prestado',  nota:'Entregar en buen estado' },
-    { id:2, elemento:'Laptop HP',            lab:'Lab de Física No 1', fechaEntrega:'2026-02-20', fechaDevolucion:'2026-02-25', estado:'Devuelto',  nota:'Devuelto sin daños' },
-  ];
+  function capitalizar(s) { s = String(s||''); return s.charAt(0).toUpperCase() + s.slice(1); }
 
-  const misNotificaciones = [
-    { tipo:'orange', icon:'fa-triangle-exclamation', titulo:'Solicitud pendiente de respuesta', sub:'Tu solicitud del Multímetro Fluke está en revisión' },
-    { tipo:'green',  icon:'fa-circle-check',         titulo:'Solicitud aprobada', sub:'El Osciloscopio Digital fue aprobado para el 10-12 de marzo' },
-    { tipo:'purple', icon:'fa-calendar',             titulo:'Recuerda devolver el equipo', sub:'El Osciloscopio Digital debe devolverse el 12 de marzo' },
-  ];
+  // Convierte estados del backend (pendiente/aprobada/...) al shape
+  // con Mayúscula inicial que la UI usaba antes.
+  function estadoSolToFront(t_estado) {
+    if (t_estado === 'prestada') return 'Aprobada';  // sigue siendo "activa" para el profesor
+    return capitalizar(t_estado || 'Pendiente');
+  }
 
-  let nextSolId = 5;
+  async function cargarMisDatos() {
+    try {
+      // Backend filtra automáticamente por n_idusuario cuando el rol es profesor.
+      const [rSol, rLab, rElem] = await Promise.all([
+        fetch(API + 'solicitudes/listar.php?_t='      + Date.now(), { credentials:'same-origin' }),
+        fetch(API + 'laboratorios/listar.php?_t='     + Date.now(), { credentials:'same-origin' }),
+        fetch(API + 'elementos/listar.php?_t='        + Date.now(), { credentials:'same-origin' })
+      ]);
+      const [jSol, jLab, jElem] = await Promise.all([rSol.json(), rLab.json(), rElem.json()]);
+
+      const rowsSol = (jSol.ok && Array.isArray(jSol.data)) ? jSol.data : [];
+
+      misSolicitudes = rowsSol.map(s => ({
+        id:            parseInt(s.n_idsolicitud, 10),
+        elemento:      s.elementos_nombres || '—',
+        lab:           s.laboratorio_nombre || '',
+        fechaInicio:   (s.dt_fechainicio || '').substring(0,10),
+        fechaFin:      (s.dt_fechafin    || '').substring(0,10),
+        estado:        estadoSolToFront(s.t_estado),
+        estadoBackend: s.t_estado || '',
+        justificacion: s.t_proposito || ''
+      }));
+
+      // Entregas del profesor = sus solicitudes 'prestada' (activas) y 'finalizada' (devueltas).
+      misEntregas = rowsSol
+        .filter(s => s.t_estado === 'prestada' || s.t_estado === 'finalizada')
+        .map(s => ({
+          id:               parseInt(s.n_idsolicitud, 10),
+          elemento:         s.elementos_nombres || '—',
+          lab:              s.laboratorio_nombre || '',
+          fechaEntrega:     (s.dt_fechainicio || '').substring(0,10),
+          fechaDevolucion:  (s.dt_fechafin    || '').substring(0,10),
+          estado:           s.t_estado === 'prestada' ? 'Prestado' : 'Devuelto',
+          nota:             ''
+        }));
+
+      // Derivamos notificaciones de las propias solicitudes.
+      misNotificaciones = [];
+      const pendientes = rowsSol.filter(s => s.t_estado === 'pendiente');
+      const aprobadas  = rowsSol.filter(s => s.t_estado === 'aprobada');
+      const prestadas  = rowsSol.filter(s => s.t_estado === 'prestada');
+      if (pendientes.length) misNotificaciones.push({ tipo:'orange', icon:'fa-triangle-exclamation',
+        titulo: `${pendientes.length} solicitud(es) pendiente(s) de respuesta`,
+        sub:    'Tus solicitudes están en revisión por el administrador' });
+      if (aprobadas.length)  misNotificaciones.push({ tipo:'green',  icon:'fa-circle-check',
+        titulo: `${aprobadas.length} solicitud(es) aprobada(s)`,
+        sub:    'Pasa por el laboratorio a recoger tus elementos' });
+      if (prestadas.length)  misNotificaciones.push({ tipo:'purple', icon:'fa-calendar',
+        titulo: `${prestadas.length} préstamo(s) activo(s) por devolver`,
+        sub:    'Revisa tus fechas de devolución' });
+      if (!misNotificaciones.length) misNotificaciones.push({ tipo:'green', icon:'fa-circle-check',
+        titulo: 'No tienes notificaciones', sub: 'Todo está al día' });
+
+      // Catálogo de labs y elementos para el formulario de nueva solicitud.
+      labsDisponibles = (jLab.ok && Array.isArray(jLab.data) ? jLab.data : []).map(l => ({
+        id: parseInt(l.n_idlaboratorio,10),
+        nombre: l.t_nombre || ''
+      }));
+      elementosPorLabMap = {};
+      (jElem.ok && Array.isArray(jElem.data) ? jElem.data : []).forEach(e => {
+        const idLab = parseInt(e.n_idlaboratorio,10);
+        if (!elementosPorLabMap[idLab]) elementosPorLabMap[idLab] = [];
+        elementosPorLabMap[idLab].push({
+          id: parseInt(e.n_idelemento,10),
+          nombre: e.t_nombre || '',
+          estado: e.t_estado || ''
+        });
+      });
+
+      // Rellenamos el select de labs del form.
+      const selLab = document.getElementById('sol-lab');
+      if (selLab) {
+        selLab.innerHTML = '<option value="">Selecciona laboratorio...</option>' +
+          labsDisponibles.map(l => `<option value="${l.id}">${l.nombre}</option>`).join('');
+      }
+    } catch (err) {
+      misSolicitudes = []; misEntregas = []; misNotificaciones = [];
+      showToast('No se pudo contactar al servidor.','error');
+    }
+  }
 
   // ── NAVEGACIÓN ──
   function mostrarVista(nombre) {
@@ -811,26 +888,38 @@
     abrirModal('modalDetalleSol');
   }
 
-  function cancelarSolicitud(id) {
-    misSolicitudes = misSolicitudes.filter(s=>s.id!==id);
-    renderSolicitudes(); updateStats();
-    showToast('Solicitud cancelada.','warning');
+  async function cancelarSolicitud(id) {
+    if (!confirm('¿Cancelar esta solicitud?')) return;
+    try {
+      const resp = await fetch(API + 'solicitudes/cancelar.php', {
+        method:'POST', credentials:'same-origin',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ id })
+      });
+      const json = await resp.json();
+      if (!resp.ok || !json.ok) { showToast(json.mensaje||'No se pudo cancelar.','error'); return; }
+      showToast('Solicitud cancelada.','warning');
+      await cargarMisDatos();
+      renderSolicitudes(); updateStats(); renderNotificaciones();
+    } catch (err) {
+      showToast('No se pudo contactar al servidor.','error');
+    }
   }
 
   // ── NUEVA SOLICITUD ──
-  const elementosPorLab = {
-    'Lab Automatización': ['Osciloscopio Digital','Multímetro Fluke','Fuente de Poder DC'],
-    'Lab de Física No 1': ['Laptop HP','Proyector Epson','Balanza Analítica'],
-    'Lab de Electrónica': ['Soldador de Estaño','Protoboard','Generador de Señales'],
-  };
-
+  // El catálogo de labs y elementos viene de elementosPorLabMap
+  // (cargado en cargarMisDatos).
   function cargarElementos() {
-    const lab = document.getElementById('sol-lab').value;
+    const labId = parseInt(document.getElementById('sol-lab').value, 10);
     const sel = document.getElementById('sol-elemento');
     sel.innerHTML = '<option value="">Selecciona elemento...</option>';
-    if (lab && elementosPorLab[lab]) {
-      elementosPorLab[lab].forEach(e => { const o = document.createElement('option'); o.value=e; o.textContent=e; sel.appendChild(o); });
-    }
+    const lista = elementosPorLabMap[labId] || [];
+    lista.filter(e => e.estado === 'disponible').forEach(e => {
+      const o = document.createElement('option');
+      o.value = e.id;
+      o.textContent = e.nombre;
+      sel.appendChild(o);
+    });
   }
 
   function limpiarFormSolicitud() {
@@ -839,17 +928,38 @@
     document.getElementById('sol-elemento').innerHTML='<option value="">Selecciona elemento...</option>';
   }
 
-  function enviarSolicitud() {
-    const lab      = document.getElementById('sol-lab').value;
-    const elemento = document.getElementById('sol-elemento').value;
-    const inicio   = document.getElementById('sol-fecha-inicio').value;
-    const fin      = document.getElementById('sol-fecha-fin').value;
-    if (!lab||!elemento||!inicio||!fin) { showToast('Completa todos los campos obligatorios.','error'); return; }
+  async function enviarSolicitud() {
+    const labId      = parseInt(document.getElementById('sol-lab').value, 10);
+    const elementoId = parseInt(document.getElementById('sol-elemento').value, 10);
+    const inicio     = document.getElementById('sol-fecha-inicio').value;
+    const fin        = document.getElementById('sol-fecha-fin').value;
+    const justif     = document.getElementById('sol-justificacion').value.trim();
+
+    if (!labId || !elementoId || !inicio || !fin) { showToast('Completa todos los campos obligatorios.','error'); return; }
     if (new Date(fin) < new Date(inicio)) { showToast('La fecha de fin no puede ser anterior a la de inicio.','error'); return; }
-    misSolicitudes.unshift({ id:nextSolId++, elemento, lab, fechaInicio:inicio, fechaFin:fin, estado:'Pendiente', justificacion:document.getElementById('sol-justificacion').value });
-    showToast('¡Solicitud enviada correctamente!','success');
-    mostrarVista('mis-solicitudes');
-    updateStats();
+    if (!justif) { showToast('Escribe la justificación.','error'); return; }
+
+    try {
+      const resp = await fetch(API + 'solicitudes/crear.php', {
+        method:'POST', credentials:'same-origin',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          idlaboratorio: labId,
+          fechainicio:   inicio + ' 00:00:00',
+          fechafin:      fin    + ' 23:59:59',
+          proposito:     justif,
+          elementos:     [{ idelemento: elementoId, cantidad: 1 }]
+        })
+      });
+      const json = await resp.json();
+      if (!resp.ok || !json.ok) { showToast(json.mensaje||'No se pudo enviar la solicitud.','error'); return; }
+      showToast('¡Solicitud enviada correctamente!','success');
+      await cargarMisDatos();
+      mostrarVista('mis-solicitudes');
+      updateStats();
+    } catch (err) {
+      showToast('No se pudo contactar al servidor.','error');
+    }
   }
 
   // ── ENTREGAS ──
@@ -990,9 +1100,12 @@
   }
 
   // ── INIT ──
-  updateStats();
-  renderNotificaciones(true);
-  renderCalendario();
+  (async () => {
+    await cargarMisDatos();
+    updateStats();
+    renderNotificaciones(true);
+    renderCalendario();
+  })();
 </script>
 </body>
 </html>

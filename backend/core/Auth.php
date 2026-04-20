@@ -163,6 +163,58 @@ class Auth {
     }
 
     /**
+     * Rate limiting básico para login (defensa contra fuerza bruta).
+     * Guarda intentos fallidos por IP en archivos temp (no requiere BD).
+     *
+     * Configuración: 5 intentos fallidos en 15 minutos -> bloqueo 15 min.
+     */
+    private static function rateFile($ip) {
+        return sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'upb_login_' . sha1($ip) . '.json';
+    }
+
+    /**
+     * Si la IP excedió el límite, corta la ejecución con 429.
+     * Por defecto: 10 intentos fallidos en 15 min -> bloqueo 15 min.
+     */
+    public static function checkRateLimit($ip, $maxIntentos = 10, $ventanaSegundos = 900) {
+        $file = self::rateFile($ip);
+        if (!is_file($file)) return;
+        $data = @json_decode(@file_get_contents($file), true);
+        if (!is_array($data)) return;
+        $ahora = time();
+        $recientes = array_values(array_filter(
+            $data,
+            function ($t) use ($ahora, $ventanaSegundos) { return ($ahora - (int)$t) < $ventanaSegundos; }
+        ));
+        if (count($recientes) >= $maxIntentos) {
+            $restante = $ventanaSegundos - ($ahora - min($recientes));
+            $minutos  = max(1, (int)ceil($restante / 60));
+            Response::error("Demasiados intentos fallidos. Espere $minutos minutos.", 429);
+        }
+    }
+
+    /**
+     * Registra un intento fallido para la IP.
+     */
+    public static function registerFailedAttempt($ip) {
+        $file = self::rateFile($ip);
+        $data = @json_decode(@file_get_contents($file), true);
+        if (!is_array($data)) $data = [];
+        $data[] = time();
+        // Conservar solo los últimos 20 timestamps.
+        if (count($data) > 20) $data = array_slice($data, -20);
+        @file_put_contents($file, json_encode($data), LOCK_EX);
+    }
+
+    /**
+     * Limpia los intentos tras un login exitoso.
+     */
+    public static function clearFailedAttempts($ip) {
+        $file = self::rateFile($ip);
+        if (is_file($file)) @unlink($file);
+    }
+
+    /**
      * STUB: Login via LDAP / Directorio Activo UPB
      * Preparado para futura integración con el Directorio Activo de la universidad
      * 

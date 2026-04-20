@@ -208,15 +208,15 @@
       <div class="nav-item" onclick="toggleMenu(this)">
         <div class="nav-link"><i class="nav-icon fa-solid fa-box-open"></i><span class="nav-label">Entregas</span><i class="nav-arrow fa-solid fa-chevron-right"></i></div>
         <div class="submenu">
-          <a class="submenu-link" href="#"><i class="fa-solid fa-list"></i> Ver Entregas</a>
-          <a class="submenu-link" href="#"><i class="fa-solid fa-plus"></i> Nueva Entrega</a>
+          <a class="submenu-link" href="ver-entregas.html"><i class="fa-solid fa-list"></i> Ver Entregas</a>
+          <a class="submenu-link" href="agregar-entrega.html"><i class="fa-solid fa-plus"></i> Nueva Entrega</a>
         </div>
       </div>
       <div class="nav-item" onclick="toggleMenu(this)">
         <div class="nav-link"><i class="nav-icon fa-solid fa-users"></i><span class="nav-label">Usuarios</span><i class="nav-arrow fa-solid fa-chevron-right"></i></div>
         <div class="submenu">
           <a class="submenu-link" href="Admin-Usuarios.html"><i class="fa-solid fa-list"></i> Ver Usuarios</a>
-          <a class="submenu-link" href="Admin-Crear-Usuario.html"><i class="fa-solid fa-user-plus"></i> Crear Usuario</a>
+          <a class="submenu-link" href="Admin-Usuarios.html?crear=1"><i class="fa-solid fa-user-plus"></i> Crear Usuario</a>
         </div>
       </div>
       <div class="nav-item open" onclick="toggleMenu(this)">
@@ -358,16 +358,49 @@
   document.getElementById('nav-avatar-img').src = avatares[usuario.rol] || 'assets/images/AVATARADMINISTRADOR.jpg';
   document.getElementById('btn-salir').addEventListener('click', () => { sessionStorage.removeItem('usuario'); window.location.href = 'index.html'; });
 
-  // Datos demo
-  let solicitudes = [
-    { id:1, solicitante:'María García', elemento:'Microscopio Óptico', laboratorio:'Lab. Física No 1', inventario:'INV-001', fechaSol:'2025-07-01', fechaUso:'2025-07-05', justificacion:'Práctica de biología celular del semestre', estado:'pendiente' },
-    { id:2, solicitante:'Carlos Ruiz',  elemento:'Multímetro Digital',  laboratorio:'Lab. Electrónica',  inventario:'INV-042', fechaSol:'2025-07-02', fechaUso:'2025-07-08', justificacion:'Proyecto de circuitos eléctricos',         estado:'pendiente' },
-    { id:3, solicitante:'Ana Torres',   elemento:'Osciloscopio',        laboratorio:'Lab. Automatización', inventario:'INV-015', fechaSol:'2025-06-28', fechaUso:'2025-07-03', justificacion:'Análisis de señales eléctricas',          estado:'aprobada'  },
-    { id:4, solicitante:'Luis Peña',    elemento:'Centrifugadora',      laboratorio:'Lab. Física No 1', inventario:'INV-088', fechaSol:'2025-06-25', fechaUso:'2025-07-01', justificacion:'Separación de muestras para investigación', estado:'rechazada' },
-    { id:5, solicitante:'Sofia Mora',   elemento:'Balanza Analítica',   laboratorio:'Almacén General',  inventario:'INV-033', fechaSol:'2025-07-03', fechaUso:'2025-07-10', justificacion:'Medición de reactivos para laboratorio',   estado:'pendiente' },
-  ];
-
+  // Datos (todos vienen del backend, nada en memoria)
+  const API = 'backend/modules/';
+  let solicitudes = [];
   let solicitudActual = null;
+
+  function escapeHtml(s) {
+    return String(s==null?'':s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+
+  async function cargarSolicitudes() {
+    try {
+      const resp = await fetch(API + 'solicitudes/listar.php?_t=' + Date.now(), { credentials:'same-origin' });
+      const json = await resp.json();
+      if (!resp.ok || !json.ok || !Array.isArray(json.data)) {
+        solicitudes = [];
+        toast('No se pudieron cargar las solicitudes.','error');
+        return;
+      }
+      solicitudes = json.data.map(s => ({
+        id:           parseInt(s.n_idsolicitud, 10),
+        solicitante:  `${s.t_nombres||''} ${s.t_apellidos||''}`.trim(),
+        elemento:     s.elementos_nombres || '—',
+        laboratorio:  s.laboratorio_nombre || '',
+        inventario:   '',  // el listar no trae inventario; se ve en detalle
+        fechaSol:     (s.dt_fechacreacion || '').substring(0,10),
+        fechaUso:     (s.dt_fechainicio   || '').substring(0,10),
+        justificacion: s.t_proposito || '',
+        estado:       s.t_estado || 'pendiente'
+      }));
+    } catch (err) {
+      solicitudes = [];
+      toast('No se pudo contactar al servidor.','error');
+    }
+  }
+
+  async function refrescarTodo() {
+    await cargarSolicitudes();
+    fillFiltroLab();
+    updateStats();
+    renderTabla();
+  }
 
   function renderTabla() {
     const buscar = document.getElementById('buscar').value.toLowerCase();
@@ -432,31 +465,56 @@
   }
 
   function fillFiltroLab() {
-    const labs = [...new Set(solicitudes.map(s=>s.laboratorio))];
-    const sel  = document.getElementById('filtro-lab');
+    const sel = document.getElementById('filtro-lab');
+    // Preservar la primera opción y el valor actual.
+    const first = sel.querySelector('option:first-child');
+    const actual = sel.value;
+    sel.innerHTML = '';
+    if (first) sel.appendChild(first);
+    const labs = [...new Set(solicitudes.map(s => s.laboratorio).filter(Boolean))].sort();
     labs.forEach(l => { const o = document.createElement('option'); o.value=l; o.textContent=l; sel.appendChild(o); });
+    if (actual) sel.value = actual;
   }
 
   function abrirAprobar(id) { solicitudActual=id; document.getElementById('obs-aprobar').value=''; document.getElementById('modal-aprobar').classList.add('open'); }
   function abrirRechazar(id){ solicitudActual=id; document.getElementById('obs-rechazar').value=''; document.getElementById('modal-rechazar').classList.add('open'); }
   function cerrarModal(id)  { document.getElementById(id).classList.remove('open'); }
 
-  function confirmarAprobar() {
-    const s = solicitudes.find(x=>x.id===solicitudActual);
-    if (s) s.estado = 'aprobada';
-    cerrarModal('modal-aprobar');
-    updateStats(); renderTabla();
-    toast('Solicitud aprobada correctamente.','success');
+  async function confirmarAprobar() {
+    const obs = document.getElementById('obs-aprobar').value.trim();
+    try {
+      const resp = await fetch(API + 'solicitudes/aprobar.php', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: solicitudActual, observaciones: obs })
+      });
+      const json = await resp.json();
+      if (!resp.ok || !json.ok) { toast(json.mensaje || 'No se pudo aprobar.', 'error'); return; }
+      cerrarModal('modal-aprobar');
+      toast('Solicitud aprobada correctamente.', 'success');
+      await refrescarTodo();
+    } catch (err) {
+      toast('No se pudo contactar al servidor.', 'error');
+    }
   }
 
-  function confirmarRechazar() {
+  async function confirmarRechazar() {
     const motivo = document.getElementById('obs-rechazar').value.trim();
-    if (!motivo) { alert('El motivo es obligatorio.'); return; }
-    const s = solicitudes.find(x=>x.id===solicitudActual);
-    if (s) s.estado = 'rechazada';
-    cerrarModal('modal-rechazar');
-    updateStats(); renderTabla();
-    toast('Solicitud rechazada.','error');
+    if (!motivo) { toast('El motivo es obligatorio.', 'error'); return; }
+    try {
+      const resp = await fetch(API + 'solicitudes/rechazar.php', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: solicitudActual, observaciones: motivo })
+      });
+      const json = await resp.json();
+      if (!resp.ok || !json.ok) { toast(json.mensaje || 'No se pudo rechazar.', 'error'); return; }
+      cerrarModal('modal-rechazar');
+      toast('Solicitud rechazada.', 'error');
+      await refrescarTodo();
+    } catch (err) {
+      toast('No se pudo contactar al servidor.', 'error');
+    }
   }
 
   function toast(msg, type='success') {
@@ -481,9 +539,14 @@
   document.addEventListener('click', e => { if (!e.target.closest('.acciones-wrap')) document.getElementById('dropdown-acciones').classList.remove('open'); });
   document.querySelectorAll('.submenu-link').forEach(l => l.addEventListener('click', e => e.stopPropagation()));
 
-  fillFiltroLab();
-  updateStats();
-  renderTabla();
+  // Init: cargar solicitudes reales desde el backend y renderizar.
+  (async () => {
+    await cargarSolicitudes();
+    fillFiltroLab();
+    updateStats();
+    renderTabla();
+  })();
 </script>
+<script src="assets/js/volver.js" defer></script>
 </body>
 </html>

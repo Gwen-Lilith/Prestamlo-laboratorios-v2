@@ -223,8 +223,8 @@
       <div class="nav-item" onclick="toggleMenu(this)">
         <div class="nav-link"><i class="nav-icon fa-solid fa-box-open"></i><span class="nav-label">Entregas</span><i class="nav-arrow fa-solid fa-chevron-right"></i></div>
         <div class="submenu">
-          <a class="submenu-link" href="#"><i class="fa-solid fa-list"></i> Ver Entregas</a>
-          <a class="submenu-link" href="#"><i class="fa-solid fa-plus"></i> Nueva Entrega</a>
+          <a class="submenu-link" href="ver-entregas.html"><i class="fa-solid fa-list"></i> Ver Entregas</a>
+          <a class="submenu-link" href="agregar-entrega.html"><i class="fa-solid fa-plus"></i> Nueva Entrega</a>
         </div>
       </div>
 
@@ -232,7 +232,7 @@
         <div class="nav-link"><i class="nav-icon fa-solid fa-users"></i><span class="nav-label">Usuarios</span><i class="nav-arrow fa-solid fa-chevron-right"></i></div>
         <div class="submenu">
           <a class="submenu-link" href="Admin-Usuarios.html"><i class="fa-solid fa-list"></i> Ver Usuarios</a>
-          <a class="submenu-link" href="Admin-Crear-Usuario.html"><i class="fa-solid fa-user-plus"></i> Crear Usuario</a>
+          <a class="submenu-link" href="Admin-Usuarios.html?crear=1"><i class="fa-solid fa-user-plus"></i> Crear Usuario</a>
         </div>
       </div>
 
@@ -485,7 +485,72 @@
 
   let laboratorios = [], tiposElemento = [], elementos = [];
   let editingElementoId = null, editingLabId = null, editingTipoId = null;
-  let nextIdElemento = 1, nextIdLab = 1, nextIdTipo = 1;
+
+  const API = 'backend/modules/';
+
+  function escapeHtml(s) {
+    return String(s==null?'':s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+
+  // Mapeo entre estados del frontend y los valores reales que usa el backend.
+  // Frontend:  Activo | Mantenimiento | Inactivo
+  // Backend:   disponible | mantenimiento | dado_de_baja (+ t_activo S/N)
+  function estadoBackendToFront(t_estado, t_activo) {
+    if (t_activo === 'N' || t_estado === 'dado_de_baja') return 'Inactivo';
+    if (t_estado === 'mantenimiento')                    return 'Mantenimiento';
+    return 'Activo'; // 'disponible' o 'prestado'
+  }
+  function estadoFrontToBackend(estadoFront) {
+    if (estadoFront === 'Mantenimiento') return 'mantenimiento';
+    if (estadoFront === 'Inactivo')      return 'dado_de_baja';
+    return 'disponible';
+  }
+
+  async function cargarTodo() {
+    try {
+      const [rLabs, rTipos, rElem] = await Promise.all([
+        fetch(API + 'laboratorios/listar.php?_t='     + Date.now(), { credentials:'same-origin' }),
+        fetch(API + 'tipos_elementos/listar.php?_t='  + Date.now(), { credentials:'same-origin' }),
+        fetch(API + 'elementos/listar.php?_t='        + Date.now(), { credentials:'same-origin' })
+      ]);
+      const [jLabs, jTipos, jElem] = await Promise.all([rLabs.json(), rTipos.json(), rElem.json()]);
+
+      laboratorios = (jLabs.ok && Array.isArray(jLabs.data) ? jLabs.data : []).map(l => ({
+        id:          parseInt(l.n_idlaboratorio,10),
+        nombre:      l.t_nombre || '',
+        descripcion: l.t_descripcion || '',
+        ubicacion:   l.t_ubicacion || '',
+        codigo:      l.t_codigo || ''
+      }));
+      tiposElemento = (jTipos.ok && Array.isArray(jTipos.data) ? jTipos.data : []).map(t => ({
+        id:          parseInt(t.n_idtipoelemento,10),
+        nombre:      t.t_nombre || '',
+        descripcion: t.t_descripcion || ''
+      }));
+      elementos = (jElem.ok && Array.isArray(jElem.data) ? jElem.data : []).map(e => ({
+        id:              parseInt(e.n_idelemento,10),
+        nombre:          e.t_nombre || '',
+        inventario:      e.t_numeroinventario || '',
+        marca:           e.t_marca || '',
+        modelo:          e.t_modelo || '',
+        caracteristicas: e.t_descripcion || '',
+        observaciones:   e.t_observaciones || '',
+        lab:             parseInt(e.n_idlaboratorio,10),
+        tipo:            parseInt(e.n_idtipoelemento,10),
+        estado:          estadoBackendToFront(e.t_estado, e.t_activo)
+      }));
+    } catch (err) {
+      showToast('No se pudo contactar al servidor.','error');
+    }
+  }
+
+  async function refrescarTodo() {
+    await cargarTodo();
+    poblarSelects();
+    renderElementos(); renderLabs(); renderTipos(); updateStats();
+  }
 
   function updateStats() {
     document.getElementById('stat-total').textContent    = elementos.length;
@@ -603,42 +668,101 @@
     document.getElementById('eq-tipo').value            = e.tipo;
     abrirModal('modalElemento');
   }
-  function guardarElemento() {
-    const nombre = document.getElementById('eq-nombre').value.trim();
+  async function guardarElemento() {
+    const nombre     = document.getElementById('eq-nombre').value.trim();
     const inventario = document.getElementById('eq-inventario').value.trim();
-    if (!nombre||!inventario) { showToast('Completa los campos obligatorios.','error'); return; }
-    const obj = {
-      nombre, inventario,
-      tipo:  parseInt(document.getElementById('eq-tipo').value),
-      lab:   parseInt(document.getElementById('eq-lab').value),
-      estado: document.getElementById('eq-estado').value,
-      marca:  document.getElementById('eq-marca').value.trim(),
-      caracteristicas: document.getElementById('eq-caracteristicas').value.trim()
+    if (!nombre || !inventario) { showToast('Completa los campos obligatorios.','error'); return; }
+
+    const idLab      = parseInt(document.getElementById('eq-lab').value, 10);
+    const idTipo     = parseInt(document.getElementById('eq-tipo').value, 10);
+    if (!idLab || !idTipo) { showToast('Selecciona laboratorio y tipo.','error'); return; }
+
+    const estadoFront = document.getElementById('eq-estado').value;
+    const marca       = document.getElementById('eq-marca').value.trim();
+    const descripcion = document.getElementById('eq-caracteristicas').value.trim();
+    const estadoBack  = estadoFrontToBackend(estadoFront);
+
+    const body = {
+      nombre,
+      numeroinventario: inventario,
+      marca,
+      descripcion,
+      idlaboratorio: idLab,
+      idtipoelemento: idTipo,
+      estado: estadoBack
     };
-    if (editingElementoId) {
-      const idx = elementos.findIndex(e => e.id===editingElementoId);
-      elementos[idx] = { ...elementos[idx], ...obj };
-      showToast('Elemento actualizado correctamente.','success');
-    } else {
-      elementos.push({ id: nextIdElemento++, ...obj });
-      showToast('Elemento registrado correctamente.','success');
+
+    try {
+      let resp, json, url;
+      if (editingElementoId) {
+        body.id = editingElementoId;
+        url = API + 'elementos/actualizar.php';
+      } else {
+        url = API + 'elementos/crear.php';
+      }
+      resp = await fetch(url, {
+        method:'POST', credentials:'same-origin',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(body)
+      });
+      json = await resp.json();
+      if (!resp.ok || !json.ok) { showToast(json.mensaje || 'No se pudo guardar.','error'); return; }
+
+      // Si edita, además aplica cambio de estado (crear.php ya lo setea al insertar).
+      const elemId = editingElementoId || (json.data && json.data.n_idelemento);
+      if (editingElementoId && elemId) {
+        await fetch(API + 'elementos/cambiar_estado.php', {
+          method:'POST', credentials:'same-origin',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ id: elemId, estado: estadoBack })
+        });
+      }
+
+      cerrarModal('modalElemento');
+      showToast(editingElementoId ? 'Elemento actualizado correctamente.' : 'Elemento registrado correctamente.', 'success');
+      await refrescarTodo();
+    } catch (err) {
+      showToast('No se pudo contactar al servidor.','error');
     }
-    cerrarModal('modalElemento'); renderElementos(); updateStats();
   }
+
   function confirmarInactivar(id) {
     const e = elementos.find(x => x.id===id);
+    if (!e) return;
     document.getElementById('confirm-text').textContent = `"${e.nombre}" será inactivo. El historial se conservará.`;
-    document.getElementById('btn-confirm-action').onclick = () => {
-      elementos.find(x => x.id===id).estado = 'Inactivo';
-      showToast('Elemento inactivado. Historial conservado.','warning');
-      cerrarModal('modalConfirm'); renderElementos(); updateStats();
+    document.getElementById('btn-confirm-action').onclick = async () => {
+      try {
+        const resp = await fetch(API + 'elementos/cambiar_estado.php', {
+          method:'POST', credentials:'same-origin',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ id, estado:'dado_de_baja' })
+        });
+        const json = await resp.json();
+        if (!resp.ok || !json.ok) { showToast(json.mensaje||'No se pudo inactivar.','error'); return; }
+        showToast('Elemento inactivado. Historial conservado.','warning');
+        cerrarModal('modalConfirm');
+        await refrescarTodo();
+      } catch (err) {
+        showToast('No se pudo contactar al servidor.','error');
+      }
     };
     abrirModal('modalConfirm');
   }
-  function activarElemento(id) {
-    elementos.find(e => e.id===id).estado = 'Activo';
-    showToast('Elemento activado correctamente.','success');
-    renderElementos(); updateStats();
+
+  async function activarElemento(id) {
+    try {
+      const resp = await fetch(API + 'elementos/cambiar_estado.php', {
+        method:'POST', credentials:'same-origin',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ id, estado:'disponible' })
+      });
+      const json = await resp.json();
+      if (!resp.ok || !json.ok) { showToast(json.mensaje||'No se pudo activar.','error'); return; }
+      showToast('Elemento activado correctamente.','success');
+      await refrescarTodo();
+    } catch (err) {
+      showToast('No se pudo contactar al servidor.','error');
+    }
   }
 
   function abrirModalLab() {
@@ -656,19 +780,29 @@
     document.getElementById('lab-descripcion').value = l.descripcion||'';
     abrirModal('modalLab');
   }
-  function guardarLab() {
+  async function guardarLab() {
     const nombre = document.getElementById('lab-nombre').value.trim();
     if (!nombre) { showToast('El nombre es obligatorio.','error'); return; }
     const descripcion = document.getElementById('lab-descripcion').value.trim();
-    if (editingLabId) {
-      const idx = laboratorios.findIndex(l => l.id===editingLabId);
-      laboratorios[idx] = { ...laboratorios[idx], nombre, descripcion };
-      showToast('Laboratorio actualizado.','success');
-    } else {
-      laboratorios.push({ id: nextIdLab++, nombre, descripcion });
-      showToast('Laboratorio registrado.','success');
+
+    const body = { nombre, descripcion };
+    const url  = editingLabId ? API + 'laboratorios/actualizar.php' : API + 'laboratorios/crear.php';
+    if (editingLabId) body.id = editingLabId;
+
+    try {
+      const resp = await fetch(url, {
+        method:'POST', credentials:'same-origin',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(body)
+      });
+      const json = await resp.json();
+      if (!resp.ok || !json.ok) { showToast(json.mensaje || 'No se pudo guardar.','error'); return; }
+      cerrarModal('modalLab');
+      showToast(editingLabId ? 'Laboratorio actualizado.' : 'Laboratorio registrado.','success');
+      await refrescarTodo();
+    } catch (err) {
+      showToast('No se pudo contactar al servidor.','error');
     }
-    cerrarModal('modalLab'); renderLabs(); poblarSelects();
   }
 
   function abrirModalTipo() {
@@ -686,19 +820,29 @@
     document.getElementById('tipo-descripcion').value = t.descripcion||'';
     abrirModal('modalTipo');
   }
-  function guardarTipo() {
+  async function guardarTipo() {
     const nombre = document.getElementById('tipo-nombre').value.trim();
     if (!nombre) { showToast('El nombre es obligatorio.','error'); return; }
     const descripcion = document.getElementById('tipo-descripcion').value.trim();
-    if (editingTipoId) {
-      const idx = tiposElemento.findIndex(t => t.id===editingTipoId);
-      tiposElemento[idx] = { ...tiposElemento[idx], nombre, descripcion };
-      showToast('Tipo actualizado.','success');
-    } else {
-      tiposElemento.push({ id: nextIdTipo++, nombre, descripcion });
-      showToast('Tipo registrado.','success');
+
+    const body = { nombre, descripcion };
+    const url  = editingTipoId ? API + 'tipos_elementos/actualizar.php' : API + 'tipos_elementos/crear.php';
+    if (editingTipoId) body.id = editingTipoId;
+
+    try {
+      const resp = await fetch(url, {
+        method:'POST', credentials:'same-origin',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(body)
+      });
+      const json = await resp.json();
+      if (!resp.ok || !json.ok) { showToast(json.mensaje || 'No se pudo guardar.','error'); return; }
+      cerrarModal('modalTipo');
+      showToast(editingTipoId ? 'Tipo actualizado.' : 'Tipo registrado.','success');
+      await refrescarTodo();
+    } catch (err) {
+      showToast('No se pudo contactar al servidor.','error');
     }
-    cerrarModal('modalTipo'); renderTipos(); poblarSelects();
   }
 
   function showToast(msg, type='success') {
@@ -710,7 +854,13 @@
     setTimeout(() => { t.style.opacity='0'; t.style.transition='opacity 0.3s'; setTimeout(() => t.remove(), 300); }, 3000);
   }
 
-  poblarSelects(); renderElementos(); renderLabs(); renderTipos(); updateStats();
+  // ── Init ──
+  (async () => {
+    await cargarTodo();
+    poblarSelects();
+    renderElementos(); renderLabs(); renderTipos(); updateStats();
+  })();
 </script>
+<script src="assets/js/volver.js" defer></script>
 </body>
 </html>

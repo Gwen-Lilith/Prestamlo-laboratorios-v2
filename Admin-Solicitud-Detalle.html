@@ -167,11 +167,11 @@
       <div class="nav-item"><a class="nav-link home" href="dashboard.html"><i class="nav-icon fa-solid fa-house"></i><span class="nav-label">Menú Principal</span></a></div>
       <div class="nav-item" onclick="toggleMenu(this)">
         <div class="nav-link"><i class="nav-icon fa-solid fa-box-open"></i><span class="nav-label">Entregas</span><i class="nav-arrow fa-solid fa-chevron-right"></i></div>
-        <div class="submenu"><a class="submenu-link" href="#"><i class="fa-solid fa-list"></i> Ver Entregas</a><a class="submenu-link" href="#"><i class="fa-solid fa-plus"></i> Nueva Entrega</a></div>
+        <div class="submenu"><a class="submenu-link" href="ver-entregas.html"><i class="fa-solid fa-list"></i> Ver Entregas</a><a class="submenu-link" href="agregar-entrega.html"><i class="fa-solid fa-plus"></i> Nueva Entrega</a></div>
       </div>
       <div class="nav-item" onclick="toggleMenu(this)">
         <div class="nav-link"><i class="nav-icon fa-solid fa-users"></i><span class="nav-label">Usuarios</span><i class="nav-arrow fa-solid fa-chevron-right"></i></div>
-        <div class="submenu"><a class="submenu-link" href="Admin-Usuarios.html"><i class="fa-solid fa-list"></i> Ver Usuarios</a><a class="submenu-link" href="Admin-Crear-Usuario.html"><i class="fa-solid fa-user-plus"></i> Crear Usuario</a></div>
+        <div class="submenu"><a class="submenu-link" href="Admin-Usuarios.html"><i class="fa-solid fa-list"></i> Ver Usuarios</a><a class="submenu-link" href="Admin-Usuarios.html?crear=1"><i class="fa-solid fa-user-plus"></i> Crear Usuario</a></div>
       </div>
       <div class="nav-item open" onclick="toggleMenu(this)">
         <div class="nav-link active"><i class="nav-icon fa-solid fa-cart-shopping"></i><span class="nav-label">Solicitudes</span><i class="nav-arrow fa-solid fa-chevron-right"></i></div>
@@ -237,26 +237,81 @@
   document.getElementById('nav-avatar-img').src = avatares[usuario.rol] || 'assets/images/AVATARADMINISTRADOR.jpg';
   document.getElementById('btn-salir').addEventListener('click', () => { sessionStorage.removeItem('usuario'); window.location.href = 'index.html'; });
 
-  const solicitudes = [
-    { id:1, solicitante:'María García', cedula:'1005432100', email:'maria.garcia@upb.edu.co', elemento:'Microscopio Óptico', laboratorio:'Lab. Física No 1', inventario:'INV-001', cantidad:1, fechaSol:'2025-07-01', fechaUso:'2025-07-05', fechaDevol:'2025-07-08', justificacion:'Práctica de biología celular del semestre', estado:'pendiente', historial:[{accion:'Solicitud creada',fecha:'2025-07-01 09:30',tipo:'purple'}] },
-    { id:2, solicitante:'Carlos Ruiz',  cedula:'1003210098', email:'carlos.ruiz@upb.edu.co',  elemento:'Multímetro Digital',  laboratorio:'Lab. Electrónica',    inventario:'INV-042', cantidad:2, fechaSol:'2025-07-02', fechaUso:'2025-07-08', fechaDevol:'2025-07-10', justificacion:'Proyecto de circuitos eléctricos',         estado:'pendiente', historial:[{accion:'Solicitud creada',fecha:'2025-07-02 11:00',tipo:'purple'}] },
-    { id:3, solicitante:'Ana Torres',   cedula:'1006789012', email:'ana.torres@upb.edu.co',   elemento:'Osciloscopio',        laboratorio:'Lab. Automatización', inventario:'INV-015', cantidad:1, fechaSol:'2025-06-28', fechaUso:'2025-07-03', fechaDevol:'2025-07-05', justificacion:'Análisis de señales eléctricas',          estado:'aprobada',  historial:[{accion:'Solicitud creada',fecha:'2025-06-28 08:00',tipo:'purple'},{accion:'Solicitud aprobada por Jairo Peña',fecha:'2025-06-29 10:15',tipo:'green'}] },
-    { id:4, solicitante:'Luis Peña',    cedula:'1004560023', email:'luis.pena@upb.edu.co',    elemento:'Centrifugadora',      laboratorio:'Lab. Física No 1',    inventario:'INV-088', cantidad:1, fechaSol:'2025-06-25', fechaUso:'2025-07-01', fechaDevol:'2025-07-02', justificacion:'Separación de muestras para investigación', estado:'rechazada', historial:[{accion:'Solicitud creada',fecha:'2025-06-25 14:20',tipo:'purple'},{accion:'Solicitud rechazada — Equipo en mantenimiento',fecha:'2025-06-26 09:00',tipo:'red'}] },
-    { id:5, solicitante:'Sofia Mora',   cedula:'1007893045', email:'sofia.mora@upb.edu.co',   elemento:'Balanza Analítica',   laboratorio:'Almacén General',     inventario:'INV-033', cantidad:1, fechaSol:'2025-07-03', fechaUso:'2025-07-10', fechaDevol:'2025-07-12', justificacion:'Medición de reactivos para laboratorio',   estado:'pendiente', historial:[{accion:'Solicitud creada',fecha:'2025-07-03 16:45',tipo:'purple'}] },
-  ];
-
+  // Todo viene del backend: detalle.php + historial_solicitudes.
+  const API = 'backend/modules/';
   let solicitudActual = null;
 
-  function buscarSolicitud() {
-    const id = parseInt(document.getElementById('input-id').value);
-    const s  = solicitudes.find(x => x.id === id);
+  function escapeHtml(s) {
+    return String(s==null?'':s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+
+  // Mapea transición de estado a color del historial.
+  function tipoHistorial(anterior, nuevo) {
+    if (nuevo === 'aprobada' || nuevo === 'finalizada')    return 'green';
+    if (nuevo === 'rechazada' || nuevo === 'cancelada')    return 'red';
+    if (nuevo === 'prestada')                              return 'yellow';
+    return 'purple';
+  }
+
+  async function buscarSolicitud() {
+    const id = parseInt(document.getElementById('input-id').value, 10);
     const cont = document.getElementById('detalle-container');
-    if (!s) {
-      cont.innerHTML = `<div class="empty-state" style="background:#fff;border-radius:10px;border:1px solid var(--border);padding:60px"><i class="fa-solid fa-triangle-exclamation" style="font-size:28px;display:block;margin-bottom:12px;color:var(--warning)"></i>No se encontró ninguna solicitud con el número <strong>#${id}</strong>.</div>`;
+
+    if (!id || id < 1) {
+      cont.innerHTML = '<div class="empty-state" style="background:#fff;border-radius:10px;border:1px solid var(--border);padding:60px"><i class="fa-solid fa-circle-info" style="font-size:28px;display:block;margin-bottom:12px;color:var(--text-light)"></i>Ingresa el número de solicitud y presiona Enter.</div>';
       document.getElementById('btn-csv').style.display='none';
       solicitudActual = null;
       return;
     }
+
+    let json;
+    try {
+      const resp = await fetch(API + 'solicitudes/detalle.php?id=' + id, { credentials:'same-origin' });
+      json = await resp.json();
+      if (!resp.ok || !json.ok) {
+        cont.innerHTML = `<div class="empty-state" style="background:#fff;border-radius:10px;border:1px solid var(--border);padding:60px"><i class="fa-solid fa-triangle-exclamation" style="font-size:28px;display:block;margin-bottom:12px;color:var(--warning)"></i>${escapeHtml(json && json.mensaje || 'No se encontró ninguna solicitud con el número #'+id+'.')}</div>`;
+        document.getElementById('btn-csv').style.display='none';
+        solicitudActual = null;
+        return;
+      }
+    } catch (err) {
+      cont.innerHTML = '<div class="empty-state" style="background:#fff;border-radius:10px;border:1px solid var(--border);padding:60px"><i class="fa-solid fa-plug-circle-xmark" style="font-size:28px;display:block;margin-bottom:12px;color:var(--warning)"></i>No se pudo contactar al servidor.</div>';
+      return;
+    }
+
+    const d = json.data || {};
+    const nombresElem = Array.isArray(d.elementos)
+      ? d.elementos.map(e => `${e.elemento_nombre}${e.t_numeroinventario?' ('+e.t_numeroinventario+')':''}`).join(', ')
+      : '—';
+    const inv = Array.isArray(d.elementos) && d.elementos.length === 1 ? (d.elementos[0].t_numeroinventario || '—') : '—';
+    const cantidad = Array.isArray(d.elementos)
+      ? d.elementos.reduce((acc, e) => acc + (parseInt(e.n_cantidad,10) || 0), 0)
+      : 0;
+
+    const s = {
+      id:            parseInt(d.n_idsolicitud, 10),
+      solicitante:   `${d.t_nombres||''} ${d.t_apellidos||''}`.trim(),
+      cedula:        d.t_codigoinstitucional || '',
+      email:         d.t_correo || '',
+      elemento:      nombresElem,
+      laboratorio:   d.laboratorio_nombre || '',
+      inventario:    inv,
+      cantidad:      cantidad || 1,
+      fechaSol:      (d.dt_fechacreacion  || '').substring(0,10),
+      fechaUso:      (d.dt_fechainicio    || '').substring(0,10),
+      fechaDevol:    (d.dt_fechafin       || '').substring(0,10),
+      justificacion: d.t_proposito || '',
+      estado:        d.t_estado || 'pendiente',
+      historial:     Array.isArray(d.historial) ? d.historial.map(h => ({
+                       accion: `${h.t_estadoanterior ? h.t_estadoanterior + ' → ' : ''}${h.t_estadonuevo}${h.t_comentario ? ' — ' + h.t_comentario : ''}`
+                             + ` (por ${h.usuario_nombres||''} ${h.usuario_apellidos||''})`.trim(),
+                       fecha:  (h.dt_fechaactu || '').replace('T',' ').substring(0,16),
+                       tipo:   tipoHistorial(h.t_estadoanterior, h.t_estadonuevo)
+                     })) : []
+    };
+
     solicitudActual = s;
     document.getElementById('btn-csv').style.display='flex';
     const badgeMap = { pendiente:'<span class="badge pendiente"><i class="fa-solid fa-clock"></i> Pendiente</span>', aprobada:'<span class="badge aprobada"><i class="fa-solid fa-check"></i> Aprobada</span>', rechazada:'<span class="badge rechazada"><i class="fa-solid fa-xmark"></i> Rechazada</span>' };
@@ -350,5 +405,6 @@
   document.addEventListener('click', e => { if (!e.target.closest('.acciones-wrap')) document.getElementById('dropdown-acciones').classList.remove('open'); });
   document.querySelectorAll('.submenu-link').forEach(l => l.addEventListener('click', e => e.stopPropagation()));
 </script>
+<script src="assets/js/volver.js" defer></script>
 </body>
 </html>

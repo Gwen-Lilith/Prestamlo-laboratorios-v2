@@ -29,8 +29,8 @@ $stmt = $pdo->prepare("SELECT t_estado FROM solicitudes_prestamo WHERE n_idsolic
 $stmt->execute([':id' => $id]);
 $sol = $stmt->fetch();
 if (!$sol) Response::error('Solicitud no encontrada.', 404);
-if (!in_array($sol['t_estado'], ['aprobada', 'en_curso'])) {
-    Response::error('Solo se puede registrar devolución de solicitudes aprobadas o en curso.');
+if (!in_array($sol['t_estado'], ['aprobada', 'prestada'])) {
+    Response::error('Solo se puede registrar devolución de solicitudes aprobadas o prestadas.');
 }
 
 try {
@@ -66,6 +66,7 @@ try {
     $pdo->commit();
     Response::json(null, 200, 'Devolución registrada correctamente.');
 } catch (Exception $e) {
-    $pdo->rollBack();
-    Response::error('Error al registrar devolución: ' . $e->getMessage(), 500);
+    if ($pdo->inTransaction()) $pdo->rollBack();
+    error_log('registrar_devolucion.php: ' . $e->getMessage());
+    Response::error('Error al registrar la devolución.', 500);
 }

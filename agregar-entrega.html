@@ -127,71 +127,96 @@ button:hover{
 </div>
 
   
-  <div class="form-group">
-    <label>Equipo</label>
-    <input type="text" id="equipo" placeholder="Ej: Computador Dell">
-  </div>
+  <p style="font-size:13px;color:#666;margin-bottom:12px">
+    Registra la entrega física de una solicitud <strong>aprobada</strong>.
+    El estado de la solicitud pasará a <em>prestada</em> y los elementos
+    quedarán bloqueados hasta su devolución.
+  </p>
 
   <div class="form-group">
-    <label>Usuario</label>
-    <input type="text" id="usuario">
+    <label>ID de la solicitud *</label>
+    <input type="number" id="id-solicitud" min="1" placeholder="Ej: 12" />
   </div>
 
-  <div class="form-group">
-    <label>Fecha</label>
-    <input type="date" id="fecha">
-  </div>
+  <div id="info-solicitud" style="display:none;background:#F9F9FC;border:1px solid #E2E2EE;border-radius:8px;padding:12px;margin-bottom:14px;font-size:13px"></div>
 
   <div class="form-group">
-    <label>Estado</label>
-    <select id="estado">
-      <option value="entregado">Entregado</option>
-      <option value="pendiente">Pendiente</option>
-    </select>
+    <label>Observaciones (opcional)</label>
+    <input type="text" id="obs" placeholder="Comentario sobre la entrega" />
   </div>
 
   <button onclick="guardarEntrega()">Guardar Entrega</button>
 </div>
 
 <script>
+const API = 'backend/modules/';
 
 function volver(){
   window.location.href = "dashboard.html";
 }
 
-function guardarEntrega(){
-  const equipo = document.getElementById('equipo').value.trim();
-  const usuario = document.getElementById('usuario').value.trim();
-  const fecha = document.getElementById('fecha').value;
-  const estado = document.getElementById('estado').value;
-
-  if(!equipo || !usuario || !fecha){
-    alert("Completa todos los campos");
-    return;
+// Al salir del campo ID, precargamos la info de la solicitud para confirmar.
+document.getElementById('id-solicitud').addEventListener('blur', async () => {
+  const id = parseInt(document.getElementById('id-solicitud').value, 10);
+  const info = document.getElementById('info-solicitud');
+  if (!id) { info.style.display = 'none'; return; }
+  try {
+    const resp = await fetch(API + 'solicitudes/detalle.php?id=' + id, { credentials:'same-origin' });
+    const json = await resp.json();
+    if (!resp.ok || !json.ok) {
+      info.style.display = 'block';
+      info.style.color = '#9D174D';
+      info.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> ' + (json.mensaje || 'No se encontró la solicitud.');
+      return;
+    }
+    const d = json.data;
+    info.style.display = 'block';
+    info.style.color = '#1A1A2E';
+    const nombreSol = `${d.t_nombres||''} ${d.t_apellidos||''}`.trim();
+    const elems = Array.isArray(d.elementos) ? d.elementos.map(e => e.elemento_nombre).join(', ') : '—';
+    info.innerHTML = `
+      <strong>Solicitud #${d.n_idsolicitud}</strong> — estado actual:
+      <strong style="color:#6B1F7C">${d.t_estado}</strong><br/>
+      Solicitante: ${nombreSol}<br/>
+      Laboratorio: ${d.laboratorio_nombre||'—'}<br/>
+      Elementos: ${elems}
+    `;
+  } catch (err) {
+    info.style.display = 'block';
+    info.style.color = '#9D174D';
+    info.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> No se pudo contactar al servidor.';
   }
+});
 
-  const entregas = JSON.parse(localStorage.getItem('entregas') || '[]');
+async function guardarEntrega(){
+  const id  = parseInt(document.getElementById('id-solicitud').value, 10);
+  const obs = document.getElementById('obs').value.trim();
 
-  entregas.push({
-    id: Date.now(),
-    equipo,
-    usuario,
-    fecha,
-    estado
-  });
+  if (!id || id < 1) { alert("Ingresa un ID de solicitud válido."); return; }
 
-  localStorage.setItem('entregas', JSON.stringify(entregas));
-
-  document.getElementById('msg-exito').style.display = 'block';
-
-  // limpiar formulario
-  document.getElementById('equipo').value = '';
-  document.getElementById('usuario').value = '';
-  document.getElementById('fecha').value = '';
-  document.getElementById('estado').value = 'entregado';
+  try {
+    const resp = await fetch(API + 'solicitudes/registrar_entrega.php', {
+      method:'POST',
+      credentials:'same-origin',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ id, observaciones: obs })
+    });
+    const json = await resp.json();
+    if (!resp.ok || !json.ok) {
+      alert(json.mensaje || 'No se pudo registrar la entrega.');
+      return;
+    }
+    document.getElementById('msg-exito').style.display = 'block';
+    document.getElementById('id-solicitud').value = '';
+    document.getElementById('obs').value = '';
+    document.getElementById('info-solicitud').style.display = 'none';
+  } catch (err) {
+    alert('No se pudo contactar al servidor.');
+  }
 }
 
 </script>
 
+<script src="assets/js/volver.js" defer></script>
 </body>
 </html>

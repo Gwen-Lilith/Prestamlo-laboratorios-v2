@@ -166,11 +166,11 @@
       <div class="nav-item"><a class="nav-link home" href="dashboard.html"><i class="nav-icon fa-solid fa-house"></i><span class="nav-label">Menú Principal</span></a></div>
       <div class="nav-item" onclick="toggleMenu(this)">
         <div class="nav-link"><i class="nav-icon fa-solid fa-box-open"></i><span class="nav-label">Entregas</span><i class="nav-arrow fa-solid fa-chevron-right"></i></div>
-        <div class="submenu"><a class="submenu-link" href="#"><i class="fa-solid fa-list"></i> Ver Entregas</a><a class="submenu-link" href="#"><i class="fa-solid fa-plus"></i> Nueva Entrega</a></div>
+        <div class="submenu"><a class="submenu-link" href="ver-entregas.html"><i class="fa-solid fa-list"></i> Ver Entregas</a><a class="submenu-link" href="agregar-entrega.html"><i class="fa-solid fa-plus"></i> Nueva Entrega</a></div>
       </div>
       <div class="nav-item" onclick="toggleMenu(this)">
         <div class="nav-link"><i class="nav-icon fa-solid fa-users"></i><span class="nav-label">Usuarios</span><i class="nav-arrow fa-solid fa-chevron-right"></i></div>
-        <div class="submenu"><a class="submenu-link" href="Admin-Usuarios.html"><i class="fa-solid fa-list"></i> Ver Usuarios</a><a class="submenu-link" href="Admin-Crear-Usuario.html"><i class="fa-solid fa-user-plus"></i> Crear Usuario</a></div>
+        <div class="submenu"><a class="submenu-link" href="Admin-Usuarios.html"><i class="fa-solid fa-list"></i> Ver Usuarios</a><a class="submenu-link" href="Admin-Usuarios.html?crear=1"><i class="fa-solid fa-user-plus"></i> Crear Usuario</a></div>
       </div>
       <div class="nav-item open" onclick="toggleMenu(this)">
         <div class="nav-link active"><i class="nav-icon fa-solid fa-cart-shopping"></i><span class="nav-label">Solicitudes</span><i class="nav-arrow fa-solid fa-chevron-right"></i></div>
@@ -256,14 +256,44 @@
   document.getElementById('nav-avatar-img').src = avatares[usuario.rol] || 'assets/images/AVATARADMINISTRADOR.jpg';
   document.getElementById('btn-salir').addEventListener('click', () => { sessionStorage.removeItem('usuario'); window.location.href = 'index.html'; });
 
-  const solicitudes = [
-    { id:1, solicitante:'María García',  elemento:'Microscopio Óptico',  laboratorio:'Lab. Física No 1',    inventario:'INV-001', cantidad:1, fechaSol:'2025-07-01', fechaUso:'2025-07-05', justificacion:'Práctica de biología celular del semestre', estado:'pendiente' },
-    { id:2, solicitante:'Carlos Ruiz',   elemento:'Multímetro Digital',  laboratorio:'Lab. Electrónica',    inventario:'INV-042', cantidad:2, fechaSol:'2025-07-02', fechaUso:'2025-07-08', justificacion:'Proyecto de circuitos eléctricos',         estado:'pendiente' },
-    { id:3, solicitante:'Ana Torres',    elemento:'Osciloscopio',         laboratorio:'Lab. Automatización', inventario:'INV-015', cantidad:1, fechaSol:'2025-06-28', fechaUso:'2025-07-03', justificacion:'Análisis de señales eléctricas',          estado:'aprobada'  },
-    { id:4, solicitante:'Luis Peña',     elemento:'Centrifugadora',       laboratorio:'Lab. Física No 1',    inventario:'INV-088', cantidad:1, fechaSol:'2025-06-25', fechaUso:'2025-07-01', justificacion:'Separación de muestras',                  estado:'rechazada' },
-    { id:5, solicitante:'Sofia Mora',    elemento:'Balanza Analítica',    laboratorio:'Almacén General',     inventario:'INV-033', cantidad:1, fechaSol:'2025-07-03', fechaUso:'2025-07-10', justificacion:'Medición de reactivos',                   estado:'pendiente' },
-    { id:6, solicitante:'Pedro Salcedo', elemento:'Cámara Termográfica',  laboratorio:'Lab. Automatización', inventario:'INV-067', cantidad:1, fechaSol:'2025-07-04', fechaUso:'2025-07-12', justificacion:'Análisis térmico de motores',             estado:'aprobada'  },
-  ];
+  // Todo viene del backend
+  const API = 'backend/modules/';
+  let solicitudes = [];
+
+  async function cargarSolicitudes() {
+    try {
+      const resp = await fetch(API + 'solicitudes/listar.php?_t=' + Date.now(), { credentials:'same-origin' });
+      const json = await resp.json();
+      if (!resp.ok || !json.ok || !Array.isArray(json.data)) { solicitudes = []; return; }
+      solicitudes = json.data.map(s => ({
+        id:           parseInt(s.n_idsolicitud, 10),
+        solicitante:  `${s.t_nombres||''} ${s.t_apellidos||''}`.trim(),
+        elemento:     s.elementos_nombres || '—',
+        laboratorio:  s.laboratorio_nombre || '',
+        inventario:   '',
+        cantidad:     1,
+        fechaSol:     (s.dt_fechacreacion || '').substring(0,10),
+        fechaUso:     (s.dt_fechainicio   || '').substring(0,10),
+        justificacion: s.t_proposito || '',
+        estado:       s.t_estado || 'pendiente'
+      }));
+    } catch (err) {
+      solicitudes = [];
+    }
+  }
+
+  // Rellena las opciones del filtro de laboratorio dinámicamente.
+  function fillFiltroLab() {
+    const sel = document.getElementById('f-lab');
+    if (!sel) return;
+    const first = sel.querySelector('option:first-child');
+    const actual = sel.value;
+    sel.innerHTML = '';
+    if (first) sel.appendChild(first);
+    const labs = [...new Set(solicitudes.map(s => s.laboratorio).filter(Boolean))].sort();
+    labs.forEach(l => { const o = document.createElement('option'); o.value=l; o.textContent=l; sel.appendChild(o); });
+    if (actual) sel.value = actual;
+  }
 
   function renderCards() {
     const texto  = document.getElementById('f-texto').value.toLowerCase();
@@ -338,7 +368,12 @@
   document.addEventListener('click', e => { if (!e.target.closest('.acciones-wrap')) document.getElementById('dropdown-acciones').classList.remove('open'); });
   document.querySelectorAll('.submenu-link').forEach(l => l.addEventListener('click', e => e.stopPropagation()));
 
-  renderCards();
+  (async () => {
+    await cargarSolicitudes();
+    fillFiltroLab();
+    renderCards();
+  })();
 </script>
+<script src="assets/js/volver.js" defer></script>
 </body>
 </html>
