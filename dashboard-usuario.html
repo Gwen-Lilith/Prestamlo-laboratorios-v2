@@ -800,9 +800,9 @@
     if (nombre === 'inicio')           document.getElementById('nav-inicio').classList.add('active');
     if (nombre === 'mis-solicitudes')  renderSolicitudes();
     if (nombre === 'mis-entregas')     renderEntregas();
-    if (nombre === 'calendario')       renderCalendario();
+    if (nombre === 'calendario')       { cargarHolidaysProf().then(renderCalendario); }
     if (nombre === 'informacion')      renderNotificaciones(false);
-    if (nombre === 'nueva-solicitud')  limpiarFormSolicitud();
+    if (nombre === 'nueva-solicitud')  { limpiarFormSolicitud(); cargarElementos(); }
     updateStats();
   }
 
@@ -907,17 +907,35 @@
   }
 
   // ── NUEVA SOLICITUD ──
-  // El catálogo de labs y elementos viene de elementosPorLabMap
-  // (cargado en cargarMisDatos).
+  // Muestra TODOS los elementos disponibles (de cualquier laboratorio).
+  // Si el profesor seleccionó un laboratorio, igual ve todos — el lab
+  // seleccionado solo filtra visualmente si coincide con el del elemento.
   function cargarElementos() {
     const labId = parseInt(document.getElementById('sol-lab').value, 10);
     const sel = document.getElementById('sol-elemento');
     sel.innerHTML = '<option value="">Selecciona elemento...</option>';
-    const lista = elementosPorLabMap[labId] || [];
-    lista.filter(e => e.estado === 'disponible').forEach(e => {
+
+    // Agregar prefijo con nombre del laboratorio para que el profesor
+    // sepa de cuál lab es cada elemento.
+    const labNombre = {};
+    labsDisponibles.forEach(l => { labNombre[l.id] = l.nombre; });
+
+    // Lista aplanada de TODOS los elementos disponibles de todos los labs.
+    const todos = [];
+    Object.keys(elementosPorLabMap).forEach(idLab => {
+      elementosPorLabMap[idLab].forEach(e => {
+        if (e.estado === 'disponible') {
+          todos.push({ ...e, idLab: parseInt(idLab, 10) });
+        }
+      });
+    });
+    todos.sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+    todos.forEach(e => {
       const o = document.createElement('option');
       o.value = e.id;
-      o.textContent = e.nombre;
+      o.dataset.idLab = e.idLab;
+      o.textContent = `${e.nombre} — ${labNombre[e.idLab] || ''}`;
       sel.appendChild(o);
     });
   }
@@ -929,15 +947,21 @@
   }
 
   async function enviarSolicitud() {
-    const labId      = parseInt(document.getElementById('sol-lab').value, 10);
-    const elementoId = parseInt(document.getElementById('sol-elemento').value, 10);
-    const inicio     = document.getElementById('sol-fecha-inicio').value;
-    const fin        = document.getElementById('sol-fecha-fin').value;
-    const justif     = document.getElementById('sol-justificacion').value.trim();
+    const elementoSel = document.getElementById('sol-elemento');
+    const elementoId  = parseInt(elementoSel.value, 10);
+    const inicio      = document.getElementById('sol-fecha-inicio').value;
+    const fin         = document.getElementById('sol-fecha-fin').value;
+    const justif      = document.getElementById('sol-justificacion').value.trim();
 
-    if (!labId || !elementoId || !inicio || !fin) { showToast('Completa todos los campos obligatorios.','error'); return; }
+    if (!elementoId || !inicio || !fin) { showToast('Completa todos los campos obligatorios.','error'); return; }
     if (new Date(fin) < new Date(inicio)) { showToast('La fecha de fin no puede ser anterior a la de inicio.','error'); return; }
     if (!justif) { showToast('Escribe la justificación.','error'); return; }
+
+    // El laboratorio se infiere del elemento seleccionado (data-idLab), así el
+    // profesor puede escoger cualquier elemento disponible de cualquier lab.
+    const opt = elementoSel.options[elementoSel.selectedIndex];
+    const labId = parseInt(opt && opt.dataset ? opt.dataset.idLab : document.getElementById('sol-lab').value, 10);
+    if (!labId) { showToast('No se pudo determinar el laboratorio del elemento.','error'); return; }
 
     try {
       const resp = await fetch(API + 'solicitudes/crear.php', {
@@ -977,10 +1001,39 @@
           <td>${e.fechaDevolucion}</td>
           <td>${badgeEntrega(e.estado)}</td>
           <td><div class="action-btns">
-            <button class="btn-icon" onclick="verDetalleEntrega(${e.id})"><i class="fa-solid fa-eye"></i></button>
+            <button class="btn-icon" title="Ver detalle" onclick="verDetalleEntrega(${e.id})"><i class="fa-solid fa-eye"></i></button>
+            ${e.estado === 'Prestado'
+              ? `<button class="btn-icon" title="Confirmar devolución" onclick="confirmarDevolucionPropia(${e.id})" style="color:var(--success)"><i class="fa-solid fa-check-double"></i></button>`
+              : ''}
           </div></td>
         </tr>`).join('');
     document.getElementById('entregas-count').textContent = `Mostrando ${filtered.length} entrega${filtered.length!==1?'s':''}`;
+  }
+
+  // Profesor confirma que ya devolvió físicamente los elementos.
+  // Llama a registrar_devolucion.php que ahora acepta al dueño además de admin.
+  async function confirmarDevolucionPropia(id) {
+    if (!confirm('¿Confirmar que devolviste los elementos de esta solicitud?\nEl préstamo se marcará como devuelto y los elementos volverán a estar disponibles.')) return;
+    try {
+      const resp = await fetch(API + 'solicitudes/registrar_devolucion.php', {
+        method:'POST', credentials:'same-origin',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          id,
+          observaciones: 'Devolución confirmada por el solicitante',
+          elementos: []
+        })
+      });
+      const json = await resp.json();
+      if (!resp.ok || !json.ok) { showToast(json.mensaje || 'No se pudo registrar la devolución.','error'); return; }
+      showToast('Devolución registrada. ¡Gracias!','success');
+      await cargarMisDatos();
+      renderEntregas();
+      renderSolicitudes();
+      updateStats();
+    } catch (err) {
+      showToast('No se pudo contactar al servidor.','error');
+    }
   }
 
   function verDetalleEntrega(id) {
@@ -997,11 +1050,25 @@
     abrirModal('modalDetalleEntrega');
   }
 
-  // ── CALENDARIO ──
+  // ── CALENDARIO (lee días no hábiles del backend, solo lectura para profesor) ──
   let calYear = new Date().getFullYear();
   let calMonth = new Date().getMonth();
-  const noHabiles = [];
+  let noHabiles = [];  // se pobla en cargarHolidaysProf()
   const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+  async function cargarHolidaysProf() {
+    try {
+      const resp = await fetch(API + 'calendario/listar.php?_t=' + Date.now(), { credentials:'same-origin' });
+      const json = await resp.json();
+      if (resp.ok && json.ok && Array.isArray(json.data)) {
+        noHabiles = json.data.map(d => d.dt_fecha);
+      } else {
+        noHabiles = [];
+      }
+    } catch (err) {
+      noHabiles = [];
+    }
+  }
 
   function renderCalendario() {
     const primerDia = new Date(calYear, calMonth, 1).getDay();
@@ -1101,7 +1168,7 @@
 
   // ── INIT ──
   (async () => {
-    await cargarMisDatos();
+    await Promise.all([cargarMisDatos(), cargarHolidaysProf()]);
     updateStats();
     renderNotificaciones(true);
     renderCalendario();

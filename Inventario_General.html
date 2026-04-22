@@ -1625,6 +1625,38 @@
                 grid-template-columns: 1fr
             }
         }
+
+        /* ── SIDEBAR LATERAL (look igual a Elementos_Prestados.html) ── */
+        .btn-menu-toggle { background: none; border: none; color: #fff; font-size: 18px; cursor: pointer; padding: 0 12px; height: 52px; display: flex; align-items: center; transition: background .2s }
+        .btn-menu-toggle:hover { background: rgba(255,255,255,.1) }
+        .navbar-logo { display: flex; align-items: center; padding: 0 10px }
+        .navbar-logo img { height: 32px; width: auto; object-fit: contain; border-radius: 3px }
+        .acciones-wrap { position: relative; margin-left: 10px }
+        .btn-acciones { background: rgba(255,255,255,.15); border: none; color: #fff; font-family: var(--fn); font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: background .2s }
+        .btn-acciones:hover { background: rgba(255,255,255,.25) }
+        .dropdown-acciones { display: none; position: absolute; top: calc(100% + 8px); left: 0; background: #fff; border-radius: 10px; box-shadow: 0 8px 32px rgba(0,0,0,.15); border: 1px solid #E8E8F0; min-width: 220px; z-index: 999; overflow: hidden; padding: 4px 0 }
+        .dropdown-acciones.open { display: block }
+        .dropdown-item { display: flex; align-items: center; gap: 10px; padding: 9px 14px; font-size: 13px; font-weight: 600; color: #1A1A2E; transition: background .15s; cursor: pointer; width: 100%; border: none; background: none; font-family: var(--fn); text-align: left; text-decoration: none }
+        .dropdown-item:hover { background: #F5EEF8; color: var(--pu) }
+        .dropdown-item i { width: 16px; text-align: center; color: var(--pi) }
+
+        .layout-inv { display: flex; flex: 1; overflow: hidden }
+        .sidebar { width: 200px; background: #fff; border-right: 1px solid #E8E8F0; display: flex; flex-direction: column; flex-shrink: 0; transition: width .25s ease; overflow: hidden }
+        .sidebar.collapsed { width: 0 }
+        .sidebar-nav { padding: 12px 0; flex: 1; overflow-y: auto }
+        .nav-item { position: relative }
+        .nav-link { display: flex; align-items: center; justify-content: space-between; padding: 10px 18px; color: #666680; font-size: 13px; font-weight: 600; cursor: pointer; transition: background .15s, color .15s; user-select: none; white-space: nowrap; text-decoration: none }
+        .nav-link:hover, .nav-link.active { color: var(--pi); background: #FDF0F7 }
+        .nav-link .nav-icon { margin-right: 8px; font-size: 14px; width: 16px; text-align: center; flex-shrink: 0 }
+        .nav-link .nav-label { flex: 1 }
+        .nav-link .nav-arrow { font-size: 10px; transition: transform .2s }
+        .nav-item.open .nav-arrow { transform: rotate(90deg) }
+        .submenu { display: none; padding: 2px 0 6px 0 }
+        .nav-item.open .submenu { display: block }
+        .submenu-link { display: flex; align-items: center; gap: 8px; padding: 7px 18px 7px 40px; font-size: 12px; font-weight: 600; color: #666680; text-decoration: none; transition: background .15s, color .15s }
+        .submenu-link:hover, .submenu-link.active { color: var(--pi); background: #FDF0F7 }
+        .submenu-link i { font-size: 11px; width: 14px; text-align: center }
+        .main-inv { flex: 1; overflow-y: auto }
     </style>
 </head>
 
@@ -1638,9 +1670,17 @@
     <!-- NAVBAR -->
     <header class="navbar">
         <div class="nb-left">
-            <div class="nb-logo">UPB</div>
-            <span class="nb-sep">|</span>
-            <div class="nb-title">Sistema de Laboratorios</div>
+            <button class="btn-menu-toggle" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
+            <div class="navbar-logo"><img src="assets/images/LOGOUPB.jpg" alt="UPB" /></div>
+            <div class="acciones-wrap">
+                <button class="btn-acciones" onclick="toggleDropdown()">Acciones Rápidas <i class="fa-solid fa-chevron-down" style="font-size:10px"></i></button>
+                <div class="dropdown-acciones" id="dropdown-acciones">
+                    <a class="dropdown-item" href="dashboard.html"><i class="fa-solid fa-house"></i> Menú Principal</a>
+                    <a class="dropdown-item" href="Admin-Usuarios.html"><i class="fa-solid fa-users"></i> Usuarios</a>
+                    <a class="dropdown-item" href="Admin-Equipos.html"><i class="fa-solid fa-desktop"></i> Elementos</a>
+                    <a class="dropdown-item" href="reporte-resumen.html"><i class="fa-solid fa-file-lines"></i> Resumen Préstamos</a>
+                </div>
+            </div>
         </div>
         <div class="nb-right">
             <div class="nb-userblock">
@@ -1652,31 +1692,57 @@
         </div>
     </header>
 
-    <div class="page">
-        <nav
-            style="background:#fff;border-bottom:1px solid #E8E8F0;padding:6px 22px;display:flex;gap:8px;flex-wrap:wrap">
-            <a href="dashboard.html"
-                style="padding:5px 12px;border-radius:6px;font-size:12px;font-weight:700;color:#6B1F7C;text-decoration:none;background:#F5EEF8;display:flex;align-items:center;gap:5px;font-family:'Nunito',sans-serif"><i
-                    class="fa-solid fa-house"></i> Menu Principal</a>
-            <a href="Admin-Equipos.html"
-                style="padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600;color:#666680;text-decoration:none;background:#F0F0F5;font-family:'Nunito',sans-serif"><i
-                    class="fa-solid fa-desktop"></i> Elementos</a>
-            <a href="Admin-Usuarios.html"
-                style="padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600;color:#666680;text-decoration:none;background:#F0F0F5;font-family:'Nunito',sans-serif"><i
-                    class="fa-solid fa-users"></i> Usuarios</a>
-            <a href="reporte-resumen.html"
-                style="padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600;color:#666680;text-decoration:none;background:#F0F0F5;font-family:'Nunito',sans-serif"><i
-                    class="fa-solid fa-table"></i> Resumen</a>
-            <a href="Prestamos_X_Elementos.html"
-                style="padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600;color:#666680;text-decoration:none;background:#F0F0F5;font-family:'Nunito',sans-serif"><i
-                    class="fa-solid fa-desktop"></i> Prestamos x Elemento</a>
-            <a href="Elementos_Prestados.html"
-                style="padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600;color:#666680;text-decoration:none;background:#F0F0F5;font-family:'Nunito',sans-serif"><i
-                    class="fa-solid fa-layer-group"></i> Prestados</a>
-            <a href="Admin_Calendario.html"
-                style="padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600;color:#666680;text-decoration:none;background:#F0F0F5;font-family:'Nunito',sans-serif"><i
-                    class="fa-solid fa-calendar"></i> Calendario</a>
-        </nav>
+    <div class="layout-inv">
+        <aside class="sidebar" id="sidebar">
+            <nav class="sidebar-nav">
+                <div class="nav-item">
+                    <a class="nav-link home" href="dashboard.html"><i class="nav-icon fa-solid fa-house"></i><span class="nav-label">Menú Principal</span></a>
+                </div>
+                <div class="nav-item" onclick="toggleMenu(this)">
+                    <div class="nav-link"><i class="nav-icon fa-solid fa-box-open"></i><span class="nav-label">Entregas</span><i class="nav-arrow fa-solid fa-chevron-right"></i></div>
+                    <div class="submenu">
+                        <a class="submenu-link" href="ver-entregas.html"><i class="fa-solid fa-list"></i> Ver Entregas</a>
+                        <a class="submenu-link" href="agregar-entrega.html"><i class="fa-solid fa-plus"></i> Nueva Entrega</a>
+                    </div>
+                </div>
+                <div class="nav-item" onclick="toggleMenu(this)">
+                    <div class="nav-link"><i class="nav-icon fa-solid fa-users"></i><span class="nav-label">Usuarios</span><i class="nav-arrow fa-solid fa-chevron-right"></i></div>
+                    <div class="submenu">
+                        <a class="submenu-link" href="Admin-Usuarios.html"><i class="fa-solid fa-list"></i> Ver Usuarios</a>
+                        <a class="submenu-link" href="Admin-Usuarios.html?crear=1"><i class="fa-solid fa-user-plus"></i> Crear Usuario</a>
+                    </div>
+                </div>
+                <div class="nav-item" onclick="toggleMenu(this)">
+                    <div class="nav-link"><i class="nav-icon fa-solid fa-cart-shopping"></i><span class="nav-label">Solicitudes</span><i class="nav-arrow fa-solid fa-chevron-right"></i></div>
+                    <div class="submenu">
+                        <a class="submenu-link" href="Admin-Solicitud-Elementos.html"><i class="fa-solid fa-clipboard-list"></i> Solicitud de Elementos</a>
+                        <a class="submenu-link" href="Admin-Solicitud-Detalle.html"><i class="fa-solid fa-file-alt"></i> Solicitud Detalle</a>
+                        <a class="submenu-link" href="Admin-Solicitudes-Seleccionar.html"><i class="fa-solid fa-search"></i> Seleccionar</a>
+                        <a class="submenu-link" href="Admin-Solicitudes-Canceladas.html"><i class="fa-solid fa-ban"></i> Cancelados</a>
+                    </div>
+                </div>
+                <div class="nav-item" onclick="toggleMenu(this)">
+                    <div class="nav-link"><i class="nav-icon fa-solid fa-gear"></i><span class="nav-label">Administración</span><i class="nav-arrow fa-solid fa-chevron-right"></i></div>
+                    <div class="submenu">
+                        <a class="submenu-link" href="Admin-Equipos.html"><i class="fa-solid fa-desktop"></i> Elementos</a>
+                        <a class="submenu-link" href="Admin_Calendario.html"><i class="fa-solid fa-calendar"></i> Calendario</a>
+                        <a class="submenu-link" href="Admin-Informacion-Importante.html"><i class="fa-solid fa-bullhorn"></i> Información Importante</a>
+                        <a class="submenu-link" href="Admin-Foto-Perfil.html"><i class="fa-solid fa-camera"></i> Foto Perfil</a>
+                    </div>
+                </div>
+                <div class="nav-item open" onclick="toggleMenu(this)">
+                    <div class="nav-link active"><i class="nav-icon fa-solid fa-file-lines"></i><span class="nav-label">Reportes</span><i class="nav-arrow fa-solid fa-chevron-right"></i></div>
+                    <div class="submenu">
+                        <a class="submenu-link" href="reporte-resumen.html"><i class="fa-solid fa-table"></i> Resumen Préstamos</a>
+                        <a class="submenu-link" href="Prestamos_X_Elementos.html"><i class="fa-solid fa-desktop"></i> Préstamos x Elemento</a>
+                        <a class="submenu-link" href="Elementos_Prestados.html"><i class="fa-solid fa-layer-group"></i> Elementos Prestados</a>
+                        <a class="submenu-link active" href="Inventario_General.html"><i class="fa-solid fa-clipboard-list"></i> Inventario General</a>
+                    </div>
+                </div>
+            </nav>
+        </aside>
+
+        <main class="main-inv">
         <div class="page">
 
             <!-- STATS -->
@@ -1950,6 +2016,8 @@
                 </div>
             </div>
         </div>
+        </main>
+    </div><!-- /.layout-inv -->
 
         <script>// ===== SESION =====
             const _u = sessionStorage.getItem('usuario');
@@ -1961,6 +2029,19 @@
             document.getElementById('btn-salir').addEventListener('click', () => {
                 sessionStorage.removeItem('usuario'); window.location.href = 'index.html';
             });
+
+            // ── Navegación: sidebar + dropdown ──
+            function toggleSidebar()  { document.getElementById('sidebar').classList.toggle('collapsed'); }
+            function toggleDropdown() { document.getElementById('dropdown-acciones').classList.toggle('open'); }
+            function toggleMenu(item) {
+                const isOpen = item.classList.contains('open');
+                document.querySelectorAll('.nav-item.open').forEach(el => el.classList.remove('open'));
+                if (!isOpen) item.classList.add('open');
+            }
+            document.addEventListener('click', e => {
+                if (!e.target.closest('.acciones-wrap')) document.getElementById('dropdown-acciones').classList.remove('open');
+            });
+            document.querySelectorAll('.submenu-link').forEach(l => l.addEventListener('click', e => e.stopPropagation()));
 
             const API = 'backend/modules/';
 

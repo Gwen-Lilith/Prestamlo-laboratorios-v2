@@ -13,7 +13,9 @@ require_once __DIR__ . '/../../core/Logger.php';
 require_once __DIR__ . '/../../config/db.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') Response::error('Método no permitido.', 405);
-Auth::requireRole(['administrador', 'auxiliar_tecnico']);
+// Cualquier usuario logueado puede iniciar una devolución; más abajo
+// validamos que sea el dueño de la solicitud o admin/auxiliar.
+Auth::requireLogin();
 
 $data = Validator::obtenerBodyJSON();
 $id       = $data['id'] ?? 0;
@@ -25,10 +27,18 @@ if (!Validator::validarEntero($id)) Response::error('ID inválido.');
 
 $pdo = Database::getConnection();
 
-$stmt = $pdo->prepare("SELECT t_estado FROM solicitudes_prestamo WHERE n_idsolicitud = :id");
+$stmt = $pdo->prepare("SELECT t_estado, n_idusuario FROM solicitudes_prestamo WHERE n_idsolicitud = :id");
 $stmt->execute([':id' => $id]);
 $sol = $stmt->fetch();
 if (!$sol) Response::error('Solicitud no encontrada.', 404);
+
+// Autorización: admin/auxiliar o el propio dueño.
+$esAdmin = in_array('administrador', $currentUser['roles']) ||
+           in_array('auxiliar_tecnico', $currentUser['roles']);
+if (!$esAdmin && (int)$sol['n_idusuario'] !== (int)$currentUser['n_idusuario']) {
+    Response::error('No tiene permisos para devolver esta solicitud.', 403);
+}
+
 if (!in_array($sol['t_estado'], ['aprobada', 'prestada'])) {
     Response::error('Solo se puede registrar devolución de solicitudes aprobadas o prestadas.');
 }

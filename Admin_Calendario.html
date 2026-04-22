@@ -326,14 +326,27 @@
   const today   = new Date();
   let viewYear  = today.getFullYear();
   let viewMonth = today.getMonth();
-  // Días no hábiles (no existe tabla en BD). Los persistimos localmente
-  // para que sobrevivan a refresh/cierre del navegador.
-  const holidays = (() => {
-    try { return JSON.parse(localStorage.getItem('calendario_holidays') || '{}'); }
-    catch (_) { return {}; }
-  })();
-  function saveHolidays(){
-    localStorage.setItem('calendario_holidays', JSON.stringify(holidays));
+  // Días no hábiles (ahora en BD, compartidos entre admin y profesor).
+  // Se poblan desde el backend en cargarHolidays().
+  let holidays = {}; // { 'YYYY-MM-DD': {motivo, desc, _id} }
+
+  async function cargarHolidays() {
+    try {
+      const resp = await fetch(API + 'calendario/listar.php?_t=' + Date.now(), { credentials:'same-origin' });
+      const json = await resp.json();
+      holidays = {};
+      if (resp.ok && json.ok && Array.isArray(json.data)) {
+        json.data.forEach(d => {
+          holidays[d.dt_fecha] = {
+            motivo: d.t_motivo || 'Marcado manual',
+            desc:   d.t_descripcion || '',
+            _id:    d.n_iddia
+          };
+        });
+      }
+    } catch (err) {
+      holidays = {};
+    }
   }
 
   // Solicitudes por día (desde el backend).
@@ -345,11 +358,26 @@
 
   function dateKey(y,m,d){ return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
 
-  function toggleHoliday(key){
-    if(holidays[key]){ delete holidays[key]; showToast('Día habilitado nuevamente.','warning'); }
-    else { holidays[key]={motivo:'Marcado manual',desc:''}; showToast('Día marcado como no hábil.','success'); }
-    saveHolidays();
-    renderCalendar();
+  async function toggleHoliday(key){
+    try {
+      const resp = await fetch(API + 'calendario/toggle.php', {
+        method:'POST', credentials:'same-origin',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ fecha: key, motivo: 'Marcado manual' })
+      });
+      const json = await resp.json();
+      if (!resp.ok || !json.ok) { showToast(json.mensaje || 'No se pudo actualizar.','error'); return; }
+      if (json.data && json.data.accion === 'eliminado') {
+        delete holidays[key];
+        showToast('Día habilitado nuevamente.','warning');
+      } else {
+        holidays[key] = { motivo: 'Marcado manual', desc: '', _id: json.data.n_iddia };
+        showToast('Día marcado como no hábil.','success');
+      }
+      renderCalendar();
+    } catch (err) {
+      showToast('No se pudo contactar al servidor.','error');
+    }
   }
 
   // Trae todas las solicitudes activas y futuras y las indexa por día
@@ -464,7 +492,23 @@
     }).join('');
   }
 
-  function eliminarHoliday(key){ delete holidays[key]; saveHolidays(); showToast('Día no hábil eliminado.','warning'); renderCalendar(); }
+  async function eliminarHoliday(key){
+    // Usamos el mismo endpoint toggle (si existe -> elimina)
+    try {
+      const resp = await fetch(API + 'calendario/toggle.php', {
+        method:'POST', credentials:'same-origin',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ fecha: key })
+      });
+      const json = await resp.json();
+      if (!resp.ok || !json.ok) { showToast(json.mensaje || 'No se pudo eliminar.','error'); return; }
+      delete holidays[key];
+      showToast('Día no hábil eliminado.','warning');
+      renderCalendar();
+    } catch (err) {
+      showToast('No se pudo contactar al servidor.','error');
+    }
+  }
 
   function showToast(msg,type='success'){
     const icons={success:'fa-circle-check',error:'fa-circle-exclamation',warning:'fa-triangle-exclamation'};
@@ -476,7 +520,7 @@
   }
 
   (async () => {
-    await cargarSolicitudesCalendario();
+    await Promise.all([cargarSolicitudesCalendario(), cargarHolidays()]);
     renderCalendar();
   })();
 </script>
