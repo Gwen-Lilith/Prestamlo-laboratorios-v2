@@ -38,9 +38,9 @@ class Auth {
         $pdo = Database::getConnection();
 
         // Buscar usuario activo por correo
-        $sql = "SELECT n_idusuario, t_codigoinstitucional, t_nombres, t_apellidos, 
-                       t_correo, t_contrasena, t_activo
-                FROM usuarios 
+        $sql = "SELECT n_idusuario, t_codigoinstitucional, t_nombres, t_apellidos,
+                       t_correo, t_contrasena, t_activo, t_fotoperfil
+                FROM usuarios
                 WHERE t_correo = :correo";
         $stmt = $pdo->prepare($sql);
         $stmt->execute([':correo' => $correo]);
@@ -81,6 +81,7 @@ class Auth {
         $_SESSION['nombre_completo'] = $usuario['t_nombres'] . ' ' . $usuario['t_apellidos'];
         $_SESSION['roles']         = $nombresRoles;
         $_SESSION['t_codigoinstitucional'] = $usuario['t_codigoinstitucional'];
+        $_SESSION['t_fotoperfil']  = $usuario['t_fotoperfil'] ?? null;
 
         return [
             'n_idusuario'   => $usuario['n_idusuario'],
@@ -89,7 +90,8 @@ class Auth {
             't_apellidos'   => $usuario['t_apellidos'],
             'nombre_completo' => $usuario['t_nombres'] . ' ' . $usuario['t_apellidos'],
             'roles'         => $nombresRoles,
-            't_codigoinstitucional' => $usuario['t_codigoinstitucional']
+            't_codigoinstitucional' => $usuario['t_codigoinstitucional'],
+            't_fotoperfil'  => $usuario['t_fotoperfil'] ?? null
         ];
     }
 
@@ -158,7 +160,8 @@ class Auth {
             't_apellidos'     => $_SESSION['t_apellidos'],
             'nombre_completo' => $_SESSION['nombre_completo'],
             'roles'           => $_SESSION['roles'],
-            't_codigoinstitucional' => $_SESSION['t_codigoinstitucional'] ?? ''
+            't_codigoinstitucional' => $_SESSION['t_codigoinstitucional'] ?? '',
+            't_fotoperfil'    => $_SESSION['t_fotoperfil'] ?? null
         ];
     }
 

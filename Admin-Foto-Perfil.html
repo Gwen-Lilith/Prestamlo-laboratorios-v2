@@ -329,7 +329,10 @@
       usuario:  'assets/images/AVATARPROFESOR.jpg'
     };
     const fotoDefault = avatares[usr.rol] || 'assets/images/AVATARADMINISTRADOR.jpg';
-    const fotoGuardada = sessionStorage.getItem('fotoPerfil') || fotoDefault;
+    // Prioridad: foto de BD (usr.foto) > sessionStorage > avatar por defecto.
+    const fotoGuardada = (usr.foto && usr.foto.length ? usr.foto : null)
+        || sessionStorage.getItem('fotoPerfil')
+        || fotoDefault;
 
     // Llenar navbar
     document.getElementById('nav-nombre').textContent = usr.nombre.toUpperCase();
@@ -382,15 +385,37 @@
       reader.readAsDataURL(file);
     }
 
-    function guardarFoto() {
+    async function guardarFoto() {
       if (!nuevaFotoBase64) return;
-      // Guardar en sessionStorage para que persista en esta sesión
-      sessionStorage.setItem('fotoPerfil', nuevaFotoBase64);
-      // Actualizar navbar y header inmediatamente
-      document.getElementById('nav-avatar-img').src = nuevaFotoBase64;
-      document.getElementById('fotoActual').src     = nuevaFotoBase64;
-      showToast('Foto de perfil actualizada correctamente.', 'success');
-      cancelarCambio();
+      const btn = document.getElementById('btnGuardar');
+      if (btn) btn.disabled = true;
+      try {
+        // Enviamos como form-urlencoded con el dataURL en el campo "data"
+        const body = new URLSearchParams();
+        body.append('data', nuevaFotoBase64);
+        const resp = await fetch('backend/modules/perfil/subir_foto.php', {
+          method: 'POST',
+          credentials: 'same-origin',
+          body
+        });
+        const json = await resp.json();
+        if (!resp.ok || !json.ok) {
+          showToast(json.mensaje || 'No se pudo guardar la foto.', 'error');
+          return;
+        }
+        // Actualizar sessionStorage y UI
+        const usr = JSON.parse(sessionStorage.getItem('usuario') || '{}');
+        usr.foto = json.data.ruta;
+        sessionStorage.setItem('usuario', JSON.stringify(usr));
+        document.getElementById('nav-avatar-img').src = json.data.ruta + '?t=' + Date.now();
+        document.getElementById('fotoActual').src     = json.data.ruta + '?t=' + Date.now();
+        showToast('Foto de perfil guardada en BD.', 'success');
+        cancelarCambio();
+      } catch (err) {
+        showToast('No se pudo contactar al servidor.', 'error');
+      } finally {
+        if (btn) btn.disabled = false;
+      }
     }
 
     function cancelarCambio() {

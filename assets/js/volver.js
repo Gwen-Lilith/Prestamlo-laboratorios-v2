@@ -7,6 +7,24 @@
  * se activa según lo que exista en el DOM de cada una.
  */
 (function () {
+  // ── Avatar global: si el usuario tiene foto de perfil guardada, úsala ──
+  // El sessionStorage guarda la ruta en usr.foto tras subir o al hacer login.
+  // Se aplica a cualquier <img id="nav-avatar-img"> en páginas internas.
+  function aplicarFotoPerfil() {
+    try {
+      const usr = JSON.parse(sessionStorage.getItem('usuario') || 'null');
+      if (!usr || !usr.foto) return;
+      document.querySelectorAll('#nav-avatar-img, .nav-avatar img').forEach(img => {
+        img.src = usr.foto + '?t=' + Date.now();
+      });
+    } catch (_) { /* ignore */ }
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', aplicarFotoPerfil);
+  } else {
+    aplicarFotoPerfil();
+  }
+
   // ── Dropdown "Acciones Rápidas" — cerrar siempre al hacer click en un item ──
   document.addEventListener('click', function (e) {
     const item = e.target.closest('.dropdown-item');

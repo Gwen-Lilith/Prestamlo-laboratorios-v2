@@ -924,6 +924,7 @@
           codigo: json.data.t_codigoinstitucional || '',
           rol: rolFront,
           roles: rolesArr,
+          foto: json.data.t_fotoperfil || null,   // ruta relativa de la foto (o null)
           lab: null,
           modulo: null
         };
@@ -971,15 +972,53 @@
       ['ss1', 'ss2', 'ss3', 'ss4'].forEach((id, i) => { const el = document.getElementById(id); el.className = 's-seg'; if (i < sc) el.classList.add(cl); });
     }
 
-    function enviarRegistro() {
-      const nombre = document.getElementById('reg-nombre').value.trim();
-      const email = document.getElementById('reg-email').value.trim();
-      const password = document.getElementById('reg-pass').value.trim();
-      const password2 = document.getElementById('reg-pass2').value.trim();
-      if (!nombre || !email || !password) { alert('Por favor completa los campos obligatorios.'); return; }
+    async function enviarRegistro() {
+      const nombre     = document.getElementById('reg-nombre').value.trim();
+      const apellidos  = document.getElementById('reg-apellidos').value.trim();
+      const cedula     = document.getElementById('reg-cedula').value.trim();
+      const telefono   = document.getElementById('reg-telefono').value.trim();
+      const email      = document.getElementById('reg-email').value.trim();
+      const password   = document.getElementById('reg-pass').value.trim();
+      const password2  = document.getElementById('reg-pass2').value.trim();
+
+      if (!nombre || !apellidos || !email || !password) {
+        alert('Por favor completa los campos obligatorios (nombre, apellidos, correo y contraseña).'); return;
+      }
       if (password !== password2) { alert('Las contraseñas no coinciden.'); return; }
-      document.getElementById('form-registro').style.display = 'none';
-      document.getElementById('pending-screen').classList.add('visible');
+      if (password.length < 4)   { alert('La contraseña debe tener al menos 4 caracteres.'); return; }
+
+      // Intentamos guardar en BD. El endpoint acepta autoregistro=true.
+      // El telefono y el modulo no se persisten (la tabla usuarios no tiene
+      // esos campos), pero los aceptamos en el form para compatibilidad.
+      try {
+        const resp = await fetch('backend/modules/usuarios/crear.php', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            autoregistro: true,
+            nombres:             nombre,
+            apellidos:           apellidos,
+            correo:              email,
+            password:            password,
+            codigoinstitucional: cedula || '',
+            rol:                 'profesor'  // por defecto: rol profesor
+          })
+        });
+        let json = null;
+        try { json = await resp.json(); } catch (_) {}
+
+        if (!resp.ok || !json || !json.ok) {
+          alert((json && json.mensaje) || 'No se pudo crear la cuenta. Verifica que el correo no esté registrado.');
+          return;
+        }
+
+        // Todo OK — mostramos la pantalla de "cuenta creada"
+        document.getElementById('form-registro').style.display = 'none';
+        document.getElementById('pending-screen').classList.add('visible');
+      } catch (err) {
+        alert('No se pudo contactar al servidor. Verifica que XAMPP esté activo.');
+      }
     }
 
     function volverLogin() {
