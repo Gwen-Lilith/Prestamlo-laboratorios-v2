@@ -218,41 +218,92 @@ class Auth {
     }
 
     /**
-     * STUB: Login via LDAP / Directorio Activo UPB
-     * Preparado para futura integración con el Directorio Activo de la universidad
-     * 
-     * @param string $correo   Correo institucional
-     * @param string $password Contraseña LDAP
-     * @return array|false
+     * Login via LDAP / Directorio Activo UPB.
+     * Usa la extensión nativa `ldap` de PHP. Requiere `extension=ldap`
+     * habilitada en php.ini. Credenciales en backend/config/config.php.
+     *
+     * Flujo:
+     *   1. Intenta bind anónimo con las credenciales user@DOMINIO
+     *   2. Si el bind es exitoso (AD valida al usuario), busca el correo
+     *      correspondiente en la tabla local `usuarios`.
+     *   3. Si existe localmente, levanta la sesión PHP.
+     *   4. Si NO existe localmente, devuelve 'not_provisioned' para que
+     *      el controlador decida si crearlo o rechazarlo.
+     *
+     * @param string $name     Nombre de usuario AD (sin @dominio)
+     * @param string $password Contraseña AD
+     * @return array|string|false  array con datos del usuario si OK,
+     *                             'not_provisioned' si AD valida pero no
+     *                             hay usuario local, false si AD rechaza.
      */
-    /*
-    public static function login_ldap($correo, $password) {
-        // Configuración del servidor LDAP de la UPB
-        // $ldap_host = 'ldap://directorio.upb.edu.co';
-        // $ldap_port = 389;
-        // $ldap_base_dn = 'DC=upb,DC=edu,DC=co';
-        //
-        // $ldap_conn = ldap_connect($ldap_host, $ldap_port);
-        // ldap_set_option($ldap_conn, LDAP_OPT_PROTOCOL_VERSION, 3);
-        // ldap_set_option($ldap_conn, LDAP_OPT_REFERRALS, 0);
-        //
-        // // Intentar bind con las credenciales del usuario
-        // $ldap_dn = "CN={$correo},{$ldap_base_dn}";
-        // $bind = @ldap_bind($ldap_conn, $ldap_dn, $password);
-        //
-        // if ($bind) {
-        //     // Usuario autenticado por LDAP
-        //     // Buscar o crear en la tabla local de usuarios
-        //     // Asignar rol por defecto (profesor)
-        //     // Iniciar sesión local
-        //     ldap_close($ldap_conn);
-        //     return self::login($correo, $password);
-        // }
-        //
-        // ldap_close($ldap_conn);
-        // return false;
+    public static function login_ldap($name, $password) {
+        if (!extension_loaded('ldap')) return false;
+        if (empty($name) || empty($password)) return false;
 
-        return false; // Stub - no implementado aún
+        $userPrincipal = $name . '@' . LDAP_DOMAIN;
+
+        // Intentar bind — primero por IP, luego por hostname.
+        $bindOk = self::ldapBind(LDAP_URL, $userPrincipal, $password);
+        if (!$bindOk && defined('LDAP_SERVER_HOST') && LDAP_SERVER_HOST !== LDAP_URL) {
+            $bindOk = self::ldapBind(LDAP_SERVER_HOST, $userPrincipal, $password);
+        }
+        if (!$bindOk) return false;
+
+        // AD validó. Buscar al usuario localmente (por correo común en UPB).
+        $correoIntento = $name . '@upb.edu.co';
+        $pdo = Database::getConnection();
+        $stmt = $pdo->prepare("SELECT n_idusuario, t_correo, t_nombres, t_apellidos,
+                                      t_codigoinstitucional, t_activo, t_fotoperfil
+                               FROM usuarios WHERE t_correo = :c OR t_codigoinstitucional = :n
+                               LIMIT 1");
+        $stmt->execute([':c' => $correoIntento, ':n' => $name]);
+        $usuario = $stmt->fetch();
+        if (!$usuario || $usuario['t_activo'] !== 'S') {
+            return 'not_provisioned';
+        }
+
+        // Obtener roles activos
+        $sqlRoles = "SELECT r.t_nombrerol FROM usuarios_roles ur
+                     JOIN roles r ON r.n_idrol = ur.n_idrol
+                     WHERE ur.n_idusuario = :id AND ur.t_activo = 'S'";
+        $stmtR = $pdo->prepare($sqlRoles);
+        $stmtR->execute([':id' => $usuario['n_idusuario']]);
+        $roles = array_column($stmtR->fetchAll(), 't_nombrerol');
+
+        // Levantar sesión local.
+        self::iniciarSesion();
+        $_SESSION['n_idusuario']         = $usuario['n_idusuario'];
+        $_SESSION['t_correo']            = $usuario['t_correo'];
+        $_SESSION['t_nombres']           = $usuario['t_nombres'];
+        $_SESSION['t_apellidos']         = $usuario['t_apellidos'];
+        $_SESSION['nombre_completo']     = $usuario['t_nombres'] . ' ' . $usuario['t_apellidos'];
+        $_SESSION['roles']               = $roles;
+        $_SESSION['t_codigoinstitucional'] = $usuario['t_codigoinstitucional'];
+        $_SESSION['t_fotoperfil']        = $usuario['t_fotoperfil'] ?? null;
+
+        return [
+            'n_idusuario'           => $usuario['n_idusuario'],
+            't_correo'              => $usuario['t_correo'],
+            't_nombres'             => $usuario['t_nombres'],
+            't_apellidos'           => $usuario['t_apellidos'],
+            'nombre_completo'       => $usuario['t_nombres'] . ' ' . $usuario['t_apellidos'],
+            'roles'                 => $roles,
+            't_codigoinstitucional' => $usuario['t_codigoinstitucional'],
+            't_fotoperfil'          => $usuario['t_fotoperfil'] ?? null
+        ];
     }
-    */
+
+    /**
+     * Helper: intenta un bind LDAP. true si las credenciales son válidas.
+     */
+    private static function ldapBind($url, $userPrincipal, $password) {
+        $ldap = @ldap_connect($url);
+        if (!$ldap) return false;
+        @ldap_set_option($ldap, LDAP_OPT_PROTOCOL_VERSION, 3);
+        @ldap_set_option($ldap, LDAP_OPT_REFERRALS,        0);
+        @ldap_set_option($ldap, LDAP_OPT_NETWORK_TIMEOUT,  5);
+        $ok = @ldap_bind($ldap, $userPrincipal, $password);
+        @ldap_unbind($ldap);
+        return (bool)$ok;
+    }
 }

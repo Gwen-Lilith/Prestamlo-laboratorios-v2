@@ -14,6 +14,14 @@ define('DB_CHARSET', 'utf8mb4');
 // URL base del proyecto (ajustar según ubicación en htdocs)
 define('BASE_URL', '/prestamo-laboratorios/');
 
+// ── Configuración LDAP / Directorio Activo UPB ──
+// Credenciales entregadas por el CTIC. El servidor LDAP está en la red
+// interna de la UPB; desde fuera del campus estas conexiones fallarán.
+define('LDAP_URL',         'ldap://10.146.36.100:389');
+define('LDAP_SERVER_HOST', 'ldap://polilla.upbbga.edu.co:389');   // fallback por hostname
+define('LDAP_DOMAIN',      'bga.upb');
+define('LDAP_BASE_DN',     'OU=OU Empleados,DC=bga,DC=upb');
+
 // Zona horaria
 date_default_timezone_set('America/Bogota');
 
