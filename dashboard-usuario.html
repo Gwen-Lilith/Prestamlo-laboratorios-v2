@@ -1149,25 +1149,55 @@
     else document.getElementById('notif-full').innerHTML = html;
   }
 
-  // ── PERFIL ──
-  function guardarPerfil() {
+  // ── PERFIL (HU-08.07) — actualiza nombres/apellidos y contraseña en BD ──
+  async function guardarPerfil() {
     const nombre = document.getElementById('edit-p-nombre').value.trim();
     const pass   = document.getElementById('edit-p-pass').value;
     const pass2  = document.getElementById('edit-p-pass2').value;
     if (!nombre) { showToast('El nombre no puede estar vacío.','error'); return; }
     if (pass && pass !== pass2) { showToast('Las contraseñas no coinciden.','error'); return; }
-    if (pass && pass.length < 6) { showToast('La contraseña debe tener mínimo 6 caracteres.','error'); return; }
-    usr.nombre = nombre;
-    sessionStorage.setItem('usuario', JSON.stringify(usr));
-    document.getElementById('nav-nombre').textContent = nombre.toUpperCase();
-    document.getElementById('bienvenida-nombre').textContent = nombre;
-    document.getElementById('perfil-nombre-display').textContent = nombre;
-    document.getElementById('pd-nombre').textContent = nombre;
-    document.getElementById('sidebar-nombre').textContent = nombre;
-    document.getElementById('perfilInitials').textContent = nombre.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
-    document.getElementById('edit-p-pass').value  = '';
-    document.getElementById('edit-p-pass2').value = '';
-    showToast('Perfil actualizado correctamente.','success');
+    if (pass && pass.length < 4) { showToast('La contraseña debe tener mínimo 4 caracteres.','error'); return; }
+
+    // Separar nombre completo en nombres + apellidos.
+    const partes = nombre.split(/\s+/);
+    const nombresOnly   = partes.slice(0, Math.ceil(partes.length / 2)).join(' ');
+    const apellidosOnly = partes.slice(Math.ceil(partes.length / 2)).join(' ');
+
+    const body = { nombres: nombresOnly, apellidos: apellidosOnly };
+    if (pass) {
+      const passActual = prompt('Para cambiar la contraseña, ingresa tu contraseña ACTUAL:');
+      if (!passActual) { showToast('Cambio de contraseña cancelado.','warning'); return; }
+      body.password_actual = passActual;
+      body.password_nuevo  = pass;
+    }
+
+    try {
+      const resp = await fetch(API + 'perfil/actualizar_perfil.php', {
+        method:'POST', credentials:'same-origin',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(body)
+      });
+      const json = await resp.json();
+      if (!resp.ok || !json.ok) { showToast(json.mensaje||'No se pudo guardar.','error'); return; }
+
+      usr.nombre = nombre;
+      sessionStorage.setItem('usuario', JSON.stringify(usr));
+      document.getElementById('nav-nombre').textContent = nombre.toUpperCase();
+      document.getElementById('bienvenida-nombre').textContent = nombre;
+      const elPerfilNombre = document.getElementById('perfil-nombre-display');
+      if (elPerfilNombre) elPerfilNombre.textContent = nombre;
+      const elPdNombre = document.getElementById('pd-nombre');
+      if (elPdNombre) elPdNombre.textContent = nombre;
+      const elSb = document.getElementById('sidebar-nombre');
+      if (elSb) elSb.textContent = nombre;
+      const elIni = document.getElementById('perfilInitials');
+      if (elIni) elIni.textContent = nombre.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+      document.getElementById('edit-p-pass').value  = '';
+      document.getElementById('edit-p-pass2').value = '';
+      showToast('Perfil actualizado en BD correctamente.','success');
+    } catch (err) {
+      showToast('No se pudo contactar al servidor.','error');
+    }
   }
 
   function cambiarFotoPerfil(e) {

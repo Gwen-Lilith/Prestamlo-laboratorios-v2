@@ -924,7 +924,11 @@
           codigo: json.data.t_codigoinstitucional || '',
           rol: rolFront,
           roles: rolesArr,
-          foto: json.data.t_fotoperfil || null,   // ruta relativa de la foto (o null)
+          foto: json.data.t_fotoperfil || null,
+          token: json.data.token || null,            // HU-08.01 JWT
+          token_type: json.data.token_type || 'Bearer',
+          expires_in: json.data.expires_in || 0,
+          token_issued_at: Math.floor(Date.now() / 1000),
           lab: null,
           modulo: null
         };

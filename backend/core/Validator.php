@@ -20,6 +20,33 @@ class Validator {
     }
 
     /**
+     * Valida que un string no exceda la longitud máxima permitida (HU-10.03).
+     * Si excede, corta el texto a esa longitud preservando UTF-8.
+     */
+    public static function limitarLongitud($valor, $max) {
+        if ($valor === null) return '';
+        $valor = trim((string)$valor);
+        return mb_substr($valor, 0, $max, 'UTF-8');
+    }
+
+    /**
+     * Devuelve true si el string está dentro del rango de longitud.
+     */
+    public static function validarLongitud($valor, $min = 0, $max = PHP_INT_MAX) {
+        if ($valor === null) return $min === 0;
+        $len = mb_strlen((string)$valor, 'UTF-8');
+        return $len >= $min && $len <= $max;
+    }
+
+    /**
+     * Sanitización HTML de salida (no se debe usar al guardar en BD,
+     * sólo al renderizar en una vista PHP). Útil para evitar XSS.
+     */
+    public static function escapeHtml($valor) {
+        return htmlspecialchars((string)$valor, ENT_QUOTES, 'UTF-8');
+    }
+
+    /**
      * Validar formato de correo electrónico
      * @param string $correo
      * @return bool

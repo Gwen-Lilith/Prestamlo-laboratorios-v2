@@ -47,6 +47,22 @@ if ($usuario === false) {
     Response::error('Correo o contraseña incorrectos.', 401);
 }
 
-// Login exitoso — limpiar intentos y devolver datos del usuario.
+// Login exitoso — limpiar intentos y devolver datos del usuario + JWT.
 Auth::clearFailedAttempts($ip);
+
+// HU-08.01 — emitir token JWT (HMAC-SHA256, TTL 8h por config)
+require_once __DIR__ . '/../../core/Jwt.php';
+$token = Jwt::encode([
+    'sub'       => (int)$usuario['n_idusuario'],
+    'email'     => $usuario['t_correo'],
+    'nombres'   => $usuario['t_nombres'],
+    'apellidos' => $usuario['t_apellidos'],
+    'roles'     => $usuario['roles'],
+    'codigo'    => $usuario['t_codigoinstitucional'],
+    'foto'      => $usuario['t_fotoperfil'] ?? null
+]);
+$usuario['token']      = $token;
+$usuario['token_type'] = 'Bearer';
+$usuario['expires_in'] = JWT_TTL_HOURS * 3600;
+
 Response::json($usuario, 200, 'Login exitoso.');

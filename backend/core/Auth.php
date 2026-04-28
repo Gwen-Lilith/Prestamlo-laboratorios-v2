@@ -8,6 +8,7 @@
 
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/Response.php';
+require_once __DIR__ . '/Jwt.php';
 
 class Auth {
 
@@ -118,9 +119,26 @@ class Auth {
      */
     public static function requireLogin() {
         self::iniciarSesion();
-        if (!isset($_SESSION['n_idusuario'])) {
-            Response::error('No autenticado. Inicie sesión.', 401);
+        // 1) Sesión PHP clásica
+        if (isset($_SESSION['n_idusuario'])) return;
+        // 2) JWT en header Authorization (HU-08.01)
+        $token = Jwt::leerHeader();
+        if ($token) {
+            $payload = Jwt::decode($token);
+            if ($payload && !empty($payload['sub'])) {
+                // Hidratar la sesión con los claims del JWT.
+                $_SESSION['n_idusuario']           = (int)$payload['sub'];
+                $_SESSION['t_correo']              = $payload['email']  ?? '';
+                $_SESSION['t_nombres']             = $payload['nombres'] ?? '';
+                $_SESSION['t_apellidos']           = $payload['apellidos'] ?? '';
+                $_SESSION['nombre_completo']       = trim(($payload['nombres']??'').' '.($payload['apellidos']??''));
+                $_SESSION['roles']                 = $payload['roles'] ?? [];
+                $_SESSION['t_codigoinstitucional'] = $payload['codigo'] ?? '';
+                $_SESSION['t_fotoperfil']          = $payload['foto']   ?? null;
+                return;
+            }
         }
+        Response::error('No autenticado. Inicie sesión.', 401);
     }
 
     /**
