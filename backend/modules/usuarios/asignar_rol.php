@@ -12,6 +12,7 @@ header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../../core/Auth.php';
 require_once __DIR__ . '/../../core/Response.php';
 require_once __DIR__ . '/../../core/Validator.php';
+require_once __DIR__ . '/../../core/Auditor.php';
 require_once __DIR__ . '/../../config/db.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -55,5 +56,10 @@ $stmt->execute([
     ':rid'    => $rol['n_idrol'],
     ':asigno' => $_SESSION['n_idusuario']
 ]);
+
+// Auditoría
+Auditor::registrar('usuarios', 'asignar_rol', $idUsuario,
+    $_SESSION['n_idusuario'] ?? 0,
+    "Rol '$rolNombre' asignado al usuario #$idUsuario");
 
 Response::json(null, 200, "Rol '$rolNombre' asignado correctamente.");

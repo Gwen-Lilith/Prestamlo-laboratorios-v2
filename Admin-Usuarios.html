@@ -557,30 +557,35 @@
     return '<span class="status pendiente"><i class="fa-solid fa-circle"></i> Pendiente</span>';
   }
 
-  // Trae los usuarios reales desde el backend y los normaliza al shape
-  // que el resto del script espera.
+  // Trae los usuarios reales (ACTIVOS + INACTIVOS) y separa los pendientes.
   async function cargarUsuarios() {
     try {
       const resp = await fetch(API + 'usuarios/listar.php?_t=' + Date.now(), { credentials:'same-origin' });
       const json = await resp.json();
       if (!resp.ok || !json.ok || !Array.isArray(json.data)) {
-        usuarios = [];
+        usuarios = []; pendientes = [];
         showToast('No se pudieron cargar los usuarios.','error');
         return;
       }
-      usuarios = json.data.map(u => ({
+      const all = json.data.map(u => ({
         id:       parseInt(u.n_idusuario,10),
         nombre:   `${u.t_nombres||''} ${u.t_apellidos||''}`.trim(),
         cedula:   u.t_codigoinstitucional || '',
         correo:   u.t_correo || '',
-        telefono: '',                       // la tabla usuarios no almacena teléfono
-        modulo:   '',                       // idem
+        telefono: '',
+        modulo:   '',
         rol:      (Array.isArray(u.roles) && u.roles[0]) || 'profesor',
         estado:   u.t_activo === 'S' ? 'activo' : 'inactivo',
-        prestamos: []                        // se podrá poblar con historial.php más adelante
+        _activo:  u.t_activo,
+        foto:     u.t_fotoperfil || null,
+        prestamos: []
       }));
+      // Pendientes = inactivos sin rol ADMINISTRATIVO previo (autoregistro).
+      // Mostramos como pendientes a TODOS los t_activo='N' para que el admin decida.
+      pendientes = all.filter(u => u._activo === 'N');
+      usuarios   = all.filter(u => u._activo === 'S');
     } catch (err) {
-      usuarios = [];
+      usuarios = []; pendientes = [];
       showToast('No se pudo contactar al servidor.','error');
     }
   }
@@ -594,9 +599,8 @@
     document.getElementById('card-pendientes').style.display = pendientes.length ? '' : 'none';
   }
 
+  // HU-08.04: vista de pendientes con botones Aprobar/Rechazar reales.
   function renderPendientes() {
-    // El backend activa a los usuarios al crearlos; no hay flujo "pendiente".
-    // Si en el futuro se agrega, basta con poblar `pendientes` desde un endpoint.
     const cont = document.getElementById('pending-list');
     if (!pendientes.length) { cont.innerHTML = `<div class="empty-state"><i class="fa-solid fa-circle-check"></i><p>No hay usuarios pendientes</p></div>`; return; }
     cont.innerHTML = pendientes.map(p => `
@@ -606,7 +610,36 @@
           <div class="pending-name">${escapeHtml(p.nombre)}</div>
           <div class="pending-sub">${escapeHtml(p.cedula)} · ${escapeHtml(p.correo)}</div>
         </div>
+        <div class="pending-actions">
+          <button class="btn-approve" onclick="aprobarPendiente(${p.id})"><i class="fa-solid fa-check"></i> Aprobar</button>
+          <button class="btn-reject"  onclick="rechazarPendiente(${p.id})"><i class="fa-solid fa-xmark"></i> Rechazar</button>
+        </div>
       </div>`).join('');
+  }
+
+  async function aprobarPendiente(id) {
+    try {
+      const resp = await fetch(API + 'usuarios/inactivar.php', {
+        method:'POST', credentials:'same-origin',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ id, activo:'S' })
+      });
+      const json = await resp.json();
+      if (!resp.ok || !json.ok) { showToast(json.mensaje||'No se pudo aprobar.','error'); return; }
+      showToast('Usuario aprobado y activado.','success');
+      await refrescarTodo();
+      renderPendientes();
+    } catch (err) { showToast('No se pudo contactar al servidor.','error'); }
+  }
+
+  async function rechazarPendiente(id) {
+    if (!confirm('¿Rechazar este registro? El usuario quedará inactivo permanentemente.')) return;
+    // No hay endpoint de "delete" — simplemente queda inactivo (ya está en N).
+    // Mejor: lo eliminamos del listado de pendientes localmente para no mostrarlo.
+    pendientes = pendientes.filter(p => p.id !== id);
+    showToast('Solicitud rechazada.','warning');
+    renderPendientes();
+    actualizarStats();
   }
 
   async function renderTable() {
@@ -620,10 +653,14 @@
     );
     const tbody = document.getElementById('usuarios-tbody');
     document.getElementById('empty-table').style.display = lista.length ? 'none' : 'block';
-    tbody.innerHTML = lista.map(u => `
+    tbody.innerHTML = lista.map(u => {
+      const fotoIcon = u.foto
+        ? `<span title="Tiene foto" style="color:#16A34A"><i class="fa-solid fa-circle-check"></i></span>`
+        : `<span title="Sin foto" style="color:#AAAABF"><i class="fa-solid fa-circle-xmark"></i></span>`;
+      return `
       <tr onclick="abrirDetalle(${u.id})">
         <td><div class="user-avatar" style="background:${colorAvatar(u.id)}">${iniciales(u.nombre)}</div></td>
-        <td><div class="td-name">${escapeHtml(u.nombre)}</div></td>
+        <td><div class="td-name">${escapeHtml(u.nombre)} ${fotoIcon}</div></td>
         <td>${escapeHtml(u.cedula)}</td>
         <td><div>${escapeHtml(u.correo)}</div><div class="td-sub">${escapeHtml(u.telefono)}</div></td>
         <td>${escapeHtml(u.modulo)}</td>
@@ -633,10 +670,59 @@
           <div class="row-actions">
             <button class="btn-icon view" title="Ver detalle" onclick="abrirDetalle(${u.id})"><i class="fa-solid fa-eye"></i></button>
             <button class="btn-icon edit" title="Editar"      onclick="abrirDetalle(${u.id})"><i class="fa-solid fa-pen"></i></button>
+            ${u.foto ? `<button class="btn-icon" title="Alertar/Eliminar foto" onclick="moderarFoto(${u.id})" style="color:#7C3AED"><i class="fa-solid fa-camera"></i></button>` : ''}
             <button class="btn-icon del"  title="Eliminar"    onclick="confirmarEliminar(${u.id})"><i class="fa-solid fa-trash"></i></button>
           </div>
         </td>
-      </tr>`).join('');
+      </tr>`;
+    }).join('');
+  }
+
+  // Moderación de foto (HU-08.10): alerta o elimina según estado.
+  async function moderarFoto(id) {
+    try {
+      const resp = await fetch(API + 'perfil/estado_foto.php?id=' + id + '&_t=' + Date.now(),
+        { credentials:'same-origin' });
+      const json = await resp.json();
+      if (!resp.ok || !json.ok) { showToast(json.mensaje || 'No se pudo cargar.','error'); return; }
+      const d = json.data;
+      let txt = `Usuario: ${d.usuario.nombre}\n`;
+      txt += d.tiene_foto ? '✓ Tiene foto\n' : '✗ Sin foto\n';
+      if (d.tiene_alerta) {
+        txt += `\n⚠ Alerta enviada el ${d.fecha_alerta}\n`;
+        txt += `Por: ${d.alertado_por}\n`;
+        txt += `Días restantes de gracia: ${d.dias_restantes}/${d.dias_gracia_total}\n`;
+        if (d.puede_eliminar) txt += '\n¿Eliminar la foto ahora? (Sí / Cancelar)';
+        else                  txt += '\nEsperar a que termine el plazo de gracia.';
+      } else {
+        txt += '\n¿Enviar alerta al usuario para que actualice su foto?\n(Sí / Cancelar)';
+      }
+      const confirmar = confirm(txt);
+      if (!confirmar) return;
+
+      if (!d.tiene_alerta) {
+        const motivo = prompt('Motivo de la alerta:', 'Tu foto de perfil no cumple con los requisitos. Por favor actualízala.');
+        if (motivo === null) return;
+        const r = await fetch(API + 'perfil/alertar_foto.php', {
+          method:'POST', credentials:'same-origin',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ id, motivo })
+        });
+        const j = await r.json();
+        if (!r.ok || !j.ok) { showToast(j.mensaje||'No se pudo alertar.','error'); return; }
+        showToast('Alerta enviada al usuario.','success');
+      } else if (d.puede_eliminar) {
+        const r = await fetch(API + 'perfil/eliminar_foto.php', {
+          method:'POST', credentials:'same-origin',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ id })
+        });
+        const j = await r.json();
+        if (!r.ok || !j.ok) { showToast(j.mensaje||'No se pudo eliminar.','error'); return; }
+        showToast('Foto eliminada.','warning');
+      }
+      await refrescarTodo();
+    } catch (err) { showToast('No se pudo contactar al servidor.','error'); }
   }
 
   // Recarga datos del backend y re-renderiza todo.

@@ -305,6 +305,12 @@
   (async () => {
     const API = 'backend/modules/';
     try {
+      // Detectar vencidos (dispara notificaciones automáticas, HU-07.02)
+      // y stock bajo (HU-07.03). Estos endpoints son idempotentes — solo
+      // notifican una vez al día por solicitud/consumible.
+      fetch(API + 'reportes/detectar_vencidos.php?_t=' + Date.now(), { credentials:'same-origin' }).catch(()=>{});
+      fetch(API + 'reportes/inventario_bajo.php?_t='   + Date.now(), { credentials:'same-origin' }).catch(()=>{});
+
       const [rPend, rAct, rVenc] = await Promise.all([
         fetch(API + 'solicitudes/listar.php?estado=pendiente&_t=' + Date.now(), { credentials:'same-origin' }),
         fetch(API + 'reportes/prestamos_activos.php?_t='            + Date.now(), { credentials:'same-origin' }),

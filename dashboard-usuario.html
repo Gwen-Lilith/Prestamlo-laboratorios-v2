@@ -1002,12 +1002,46 @@
           <td>${badgeEntrega(e.estado)}</td>
           <td><div class="action-btns">
             <button class="btn-icon" title="Ver detalle" onclick="verDetalleEntrega(${e.id})"><i class="fa-solid fa-eye"></i></button>
+            <a class="btn-icon" title="Descargar evidencia PDF" href="backend/modules/solicitudes/evidencia_pdf.php?id=${e.id}" target="_blank" style="color:#DC2626"><i class="fa-solid fa-file-pdf"></i></a>
             ${e.estado === 'Prestado'
-              ? `<button class="btn-icon" title="Confirmar devolución" onclick="confirmarDevolucionPropia(${e.id})" style="color:var(--success)"><i class="fa-solid fa-check-double"></i></button>`
+              ? `<button class="btn-icon" title="Renovar préstamo" onclick="abrirRenovar(${e.id})" style="color:#D97706"><i class="fa-solid fa-clock-rotate-left"></i></button>
+                 <button class="btn-icon" title="Confirmar devolución" onclick="confirmarDevolucionPropia(${e.id})" style="color:var(--success)"><i class="fa-solid fa-check-double"></i></button>`
               : ''}
           </div></td>
         </tr>`).join('');
     document.getElementById('entregas-count').textContent = `Mostrando ${filtered.length} entrega${filtered.length!==1?'s':''}`;
+  }
+
+  // Renovar préstamo activo (HU-04.11). Pide nueva fecha y la manda al backend.
+  async function abrirRenovar(id) {
+    const e = misEntregas.find(x => x.id === id); if (!e) return;
+    const propuesta = prompt(
+      `Renovar préstamo #${id}\n` +
+      `Elemento: ${e.elemento}\n` +
+      `Fecha actual de devolución: ${e.fechaDevolucion}\n\n` +
+      `Ingresa la nueva fecha de devolución (YYYY-MM-DD):`,
+      e.fechaDevolucion
+    );
+    if (!propuesta) return;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(propuesta)) {
+      showToast('Formato de fecha inválido. Usa YYYY-MM-DD.', 'error'); return;
+    }
+    try {
+      const resp = await fetch(API + 'solicitudes/renovar.php', {
+        method:'POST', credentials:'same-origin',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          id,
+          nueva_fecha_fin: propuesta + ' 23:59:59',
+          motivo: 'Renovación solicitada desde dashboard del usuario'
+        })
+      });
+      const json = await resp.json();
+      if (!resp.ok || !json.ok) { showToast(json.mensaje||'No se pudo renovar.','error'); return; }
+      showToast('Préstamo renovado hasta ' + propuesta, 'success');
+      await cargarMisDatos();
+      renderEntregas(); renderSolicitudes(); updateStats();
+    } catch (err) { showToast('No se pudo contactar al servidor.','error'); }
   }
 
   // Profesor confirma que ya devolvió físicamente los elementos.

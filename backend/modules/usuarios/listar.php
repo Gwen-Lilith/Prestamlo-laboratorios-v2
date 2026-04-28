@@ -22,8 +22,9 @@ $estado = $_GET['estado'] ?? '';
 $rol    = $_GET['rol'] ?? '';
 $buscar = $_GET['buscar'] ?? '';
 
-$sql = "SELECT u.n_idusuario, u.t_codigoinstitucional, u.t_nombres, u.t_apellidos, 
-               u.t_correo, u.t_activo, u.dt_fechacreacion,
+$sql = "SELECT u.n_idusuario, u.t_codigoinstitucional, u.t_nombres, u.t_apellidos,
+               u.t_correo, u.t_activo, u.dt_fechacreacion, u.t_fotoperfil,
+               u.dt_alerta_foto, u.t_motivo_alerta,
                GROUP_CONCAT(r.t_nombrerol SEPARATOR ',') AS roles
         FROM usuarios u
         LEFT JOIN usuarios_roles ur ON ur.n_idusuario = u.n_idusuario AND ur.t_activo = 'S'

@@ -39,6 +39,9 @@ Auth::checkRateLimit($ip);
 // Intentar login
 $usuario = Auth::login($correo, $password);
 
+if ($usuario === 'pending') {
+    Response::error('Tu cuenta está pendiente de aprobación por el administrador.', 403);
+}
 if ($usuario === false) {
     Auth::registerFailedAttempt($ip);
     Response::error('Correo o contraseña incorrectos.', 401);

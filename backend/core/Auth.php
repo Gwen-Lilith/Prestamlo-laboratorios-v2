@@ -51,9 +51,10 @@ class Auth {
             return false;
         }
 
-        // Verificar que está activo
+        // Verificar que está activo. Distinguimos 'N' (pendiente / inactivo)
+        // para que el endpoint pueda dar mensaje específico.
         if ($usuario['t_activo'] !== 'S') {
-            return false;
+            return 'pending';
         }
 
         // Verificar contraseña con bcrypt

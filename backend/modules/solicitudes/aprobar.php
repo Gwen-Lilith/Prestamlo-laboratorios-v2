@@ -10,6 +10,7 @@ require_once __DIR__ . '/../../core/Auth.php';
 require_once __DIR__ . '/../../core/Response.php';
 require_once __DIR__ . '/../../core/Validator.php';
 require_once __DIR__ . '/../../core/Logger.php';
+require_once __DIR__ . '/../../core/Notificador.php';
 require_once __DIR__ . '/../../config/db.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') Response::error('Método no permitido.', 405);
@@ -43,6 +44,19 @@ try {
         ->execute([':aprobador' => $currentUser['n_idusuario'], ':obs' => $obs, ':id' => $id]);
 
     Logger::registrar($id, 'pendiente', 'aprobada', $obs ?: 'Solicitud aprobada', $currentUser['n_idusuario']);
+
+    // Notificar al solicitante (HU-07.01)
+    $solInfo = $pdo->prepare("SELECT n_idusuario FROM solicitudes_prestamo WHERE n_idsolicitud = :id");
+    $solInfo->execute([':id' => $id]);
+    $idSolicitante = $solInfo->fetchColumn();
+    if ($idSolicitante) {
+        Notificador::notificar(
+            $idSolicitante, 'aprobada',
+            'Tu solicitud #' . $id . ' fue aprobada',
+            'Pasa por el laboratorio a recoger tus elementos. ' . ($obs ? "Observación: $obs" : ''),
+            'dashboard-usuario.html', $id
+        );
+    }
 
     $pdo->commit();
     Response::json(null, 200, 'Solicitud aprobada correctamente.');

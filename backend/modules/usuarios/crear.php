@@ -58,13 +58,15 @@ $hashPass = !empty($password) ? password_hash($password, PASSWORD_BCRYPT) : null
 $sql = "INSERT INTO usuarios (t_codigoinstitucional, t_nombres, t_apellidos, t_correo, t_contrasena, t_activo) 
         VALUES (:codigo, :nombres, :apellidos, :correo, :contrasena, :activo)";
 $stmt = $pdo->prepare($sql);
+// HU-08.03: el auto-registro queda 'N' (pendiente de aprobación);
+// solo cuando lo crea un admin/auxiliar logueado se activa directo.
 $stmt->execute([
     ':codigo'     => $codigo,
     ':nombres'    => $nombres,
     ':apellidos'  => $apellidos,
     ':correo'     => $correo,
     ':contrasena' => $hashPass,
-    ':activo'     => $autoregistro ? 'S' : 'S'
+    ':activo'     => $autoregistro ? 'N' : 'S'
 ]);
 $nuevoId = $pdo->lastInsertId();
 

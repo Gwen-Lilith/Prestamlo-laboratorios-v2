@@ -8,6 +8,7 @@ require_once __DIR__ . '/../../core/Auth.php';
 require_once __DIR__ . '/../../core/Response.php';
 require_once __DIR__ . '/../../core/Validator.php';
 require_once __DIR__ . '/../../core/Logger.php';
+require_once __DIR__ . '/../../core/Notificador.php';
 require_once __DIR__ . '/../../config/db.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') Response::error('Método no permitido.', 405);
@@ -36,6 +37,18 @@ try {
         ->execute([':uid' => $currentUser['n_idusuario'], ':obs' => $obs, ':id' => $id]);
 
     Logger::registrar($id, 'pendiente', 'rechazada', $obs, $currentUser['n_idusuario']);
+
+    // Notificar al solicitante
+    $solInfo = $pdo->prepare("SELECT n_idusuario FROM solicitudes_prestamo WHERE n_idsolicitud = :id");
+    $solInfo->execute([':id' => $id]);
+    $idSolicitante = $solInfo->fetchColumn();
+    if ($idSolicitante) {
+        Notificador::notificar($idSolicitante, 'rechazada',
+            'Tu solicitud #' . $id . ' fue rechazada',
+            $obs ?: 'Sin motivo especificado.',
+            'dashboard-usuario.html', $id);
+    }
+
     $pdo->commit();
     Response::json(null, 200, 'Solicitud rechazada.');
 } catch (Exception $e) {

@@ -42,6 +42,25 @@ if ($tsFin <= $tsInicio) {
 
 $pdo = Database::getConnection();
 
+// HU-05.03 — Validar y calcular dias habiles entre fechaInicio y fechaFin.
+// Saltamos sabados, domingos y dias en la tabla dias_no_habiles.
+$diasNoHabiles = $pdo->query("SELECT dt_fecha FROM dias_no_habiles")->fetchAll(PDO::FETCH_COLUMN);
+$noHabilesSet  = array_flip($diasNoHabiles);
+$cur = strtotime(date('Y-m-d', $tsInicio));
+$end = strtotime(date('Y-m-d', $tsFin));
+$diasHabiles = 0;
+while ($cur <= $end) {
+    $f   = date('Y-m-d', $cur);
+    $dow = (int)date('N', $cur);  // 1=Lunes ... 7=Domingo
+    if ($dow < 6 && !isset($noHabilesSet[$f])) {
+        $diasHabiles++;
+    }
+    $cur = strtotime('+1 day', $cur);
+}
+if ($diasHabiles < 1) {
+    Response::error('El rango de fechas seleccionado no incluye ningún día hábil. Elige otras fechas.');
+}
+
 // Validar disponibilidad de cada elemento en el rango de fechas solicitado.
 // Se considera "ocupado" si existe otra solicitud (pendiente, aprobada o
 // prestada) que solape con el intervalo [fechaInicio, fechaFin].

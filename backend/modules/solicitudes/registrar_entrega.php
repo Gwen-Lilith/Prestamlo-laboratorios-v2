@@ -14,6 +14,7 @@ require_once __DIR__ . '/../../core/Auth.php';
 require_once __DIR__ . '/../../core/Response.php';
 require_once __DIR__ . '/../../core/Validator.php';
 require_once __DIR__ . '/../../core/Logger.php';
+require_once __DIR__ . '/../../core/Notificador.php';
 require_once __DIR__ . '/../../config/db.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') Response::error('Método no permitido.', 405);
@@ -80,6 +81,20 @@ try {
     Logger::registrar($id, 'aprobada', 'prestada',
         $obs ?: 'Entrega física registrada',
         $currentUser['n_idusuario']);
+
+    // Notificar al solicitante
+    $solQ = $pdo->prepare("SELECT n_idusuario, dt_fechafin FROM solicitudes_prestamo WHERE n_idsolicitud = :id");
+    $solQ->execute([':id' => $id]);
+    $solRow = $solQ->fetch();
+    if ($solRow) {
+        $fechaDev = (new DateTime($solRow['dt_fechafin']))->format('d/m/Y');
+        Notificador::notificar(
+            $solRow['n_idusuario'], 'prestada',
+            'Préstamo #' . $id . ' entregado',
+            "Recuerda devolver los elementos antes del $fechaDev.",
+            'dashboard-usuario.html', $id
+        );
+    }
 
     $pdo->commit();
     Response::json(null, 200, 'Entrega registrada correctamente.');
