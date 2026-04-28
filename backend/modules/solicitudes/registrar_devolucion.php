@@ -10,16 +10,21 @@ require_once __DIR__ . '/../../core/Auth.php';
 require_once __DIR__ . '/../../core/Response.php';
 require_once __DIR__ . '/../../core/Validator.php';
 require_once __DIR__ . '/../../core/Logger.php';
+require_once __DIR__ . '/../../core/Notificador.php';
+require_once __DIR__ . '/../../core/Auditor.php';
 require_once __DIR__ . '/../../config/db.php';
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') Response::error('Método no permitido.', 405);
+// REST: HU-04.05 pide PATCH para registrar devolución
+$metodo = $_SERVER['REQUEST_METHOD'];
+if (!in_array($metodo, ['POST', 'PATCH'])) Response::error('Método no permitido.', 405);
 // Cualquier usuario logueado puede iniciar una devolución; más abajo
 // validamos que sea el dueño de la solicitud o admin/auxiliar.
 Auth::requireLogin();
 
 $data = Validator::obtenerBodyJSON();
 $id       = $data['id'] ?? 0;
-$obs      = Validator::obtenerCampo($data, 'observaciones');
+// HU-10.03: limitar observaciones (campo libre)
+$obs      = Validator::limitarLongitud(Validator::obtenerCampo($data, 'observaciones'), 500);
 $elementos= $data['elementos'] ?? [];
 $currentUser = Auth::currentUser();
 
@@ -72,6 +77,22 @@ try {
     }
 
     Logger::registrar($id, $estadoAnterior, 'finalizada', $obs ?: 'Devolución registrada', $currentUser['n_idusuario']);
+
+    // HU-09.02: registrar en auditoría con lista de estados de retorno
+    Auditor::registrar('solicitudes_prestamo', 'registrar_devolucion', (int)$id, $currentUser['n_idusuario'],
+        "Devolución de la solicitud #$id (" . count($elemsSol) . " elementos)" . ($obs ? " — $obs" : ''),
+        ['antes' => ['t_estado' => $estadoAnterior],
+         'despues' => ['t_estado' => 'finalizada', 'elementos_estado_retorno' => $elementos]]);
+
+    // HU-07.01: notificar al dueño que su devolución quedó registrada
+    if (!empty($sol['n_idusuario'])) {
+        Notificador::notificar(
+            (int)$sol['n_idusuario'], 'devuelta',
+            'Devolución registrada para la solicitud #' . $id,
+            'Tu préstamo fue devuelto correctamente. Gracias por usar el laboratorio.',
+            'dashboard-usuario.html', $id
+        );
+    }
 
     $pdo->commit();
     Response::json(null, 200, 'Devolución registrada correctamente.');

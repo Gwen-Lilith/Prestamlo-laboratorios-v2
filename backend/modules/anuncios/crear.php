@@ -7,14 +7,16 @@ header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../../core/Auth.php';
 require_once __DIR__ . '/../../core/Response.php';
 require_once __DIR__ . '/../../core/Validator.php';
+require_once __DIR__ . '/../../core/Auditor.php';
 require_once __DIR__ . '/../../config/db.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') Response::error('Método no permitido.', 405);
 Auth::requireRole(['administrador', 'auxiliar_tecnico']);
 
 $data = Validator::obtenerBodyJSON();
-$titulo   = Validator::obtenerCampo($data, 'titulo');
-$mensaje  = Validator::obtenerCampo($data, 'mensaje');
+// HU-10.03: limitar longitudes para anuncios (evitan páginas cargadas con basura)
+$titulo   = Validator::limitarLongitud(Validator::obtenerCampo($data, 'titulo'), 150);
+$mensaje  = Validator::limitarLongitud(Validator::obtenerCampo($data, 'mensaje'), 1000);
 $tipo     = Validator::obtenerCampo($data, 'tipo');
 $estado   = Validator::obtenerCampo($data, 'estado');
 $fechaPub = Validator::obtenerCampo($data, 'fechaPub');
@@ -44,4 +46,12 @@ $stmt->execute([
     ':uid'      => $currentUser['n_idusuario']
 ]);
 
-Response::json(['n_idanuncio' => (int)$pdo->lastInsertId()], 201, 'Anuncio creado correctamente.');
+$nuevoId = (int)$pdo->lastInsertId();
+
+// HU-09.03: trazabilidad
+Auditor::registrar('anuncios', 'crear', $nuevoId, $currentUser['n_idusuario'],
+    "Anuncio '$titulo' (tipo: $tipo) publicado",
+    ['despues' => ['t_titulo' => $titulo, 't_tipo' => $tipo, 't_estado' => $estado,
+                   'dt_fechapub' => $fechaPub, 'dt_fechaexp' => $fechaExp]]);
+
+Response::json(['n_idanuncio' => $nuevoId], 201, 'Anuncio creado correctamente.');

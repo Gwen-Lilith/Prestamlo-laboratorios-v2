@@ -12,6 +12,7 @@ header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../../core/Auth.php';
 require_once __DIR__ . '/../../core/Response.php';
 require_once __DIR__ . '/../../core/Validator.php';
+require_once __DIR__ . '/../../core/Auditor.php';
 require_once __DIR__ . '/../../config/db.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -22,17 +23,19 @@ $data = Validator::obtenerBodyJSON();
 
 // Si es autoregistro (desde el formulario público), no requiere login
 $autoregistro = isset($data['autoregistro']) && $data['autoregistro'] === true;
+$currentUser = null;
 if (!$autoregistro) {
     Auth::requireRole(['administrador', 'auxiliar_tecnico']);
+    $currentUser = Auth::currentUser();
 }
 
-// Validaciones
-$nombres   = Validator::obtenerCampo($data, 'nombres');
-$apellidos = Validator::obtenerCampo($data, 'apellidos');
-$correo    = Validator::obtenerCampo($data, 'correo');
+// Validaciones — HU-10.03: limitar longitudes para prevenir overflow / SQL malformado
+$nombres   = Validator::limitarLongitud(Validator::obtenerCampo($data, 'nombres'), 100);
+$apellidos = Validator::limitarLongitud(Validator::obtenerCampo($data, 'apellidos'), 100);
+$correo    = Validator::limitarLongitud(Validator::obtenerCampo($data, 'correo'), 150);
 $password  = $data['password'] ?? '';
-$codigo    = Validator::obtenerCampo($data, 'codigoinstitucional');
-$rolNombre = Validator::obtenerCampo($data, 'rol');
+$codigo    = Validator::limitarLongitud(Validator::obtenerCampo($data, 'codigoinstitucional'), 20);
+$rolNombre = Validator::limitarLongitud(Validator::obtenerCampo($data, 'rol'), 50);
 
 if (empty($nombres) || empty($correo)) {
     Response::error('Nombre y correo son obligatorios.');
@@ -86,5 +89,16 @@ if (!empty($rolNombre)) {
         ]);
     }
 }
+
+// HU-09.01 + HU-09.03: registrar la creación del usuario en auditoría
+$autorId = $autoregistro ? (int)$nuevoId : ($currentUser['n_idusuario'] ?? (int)$nuevoId);
+Auditor::registrar('usuarios', $autoregistro ? 'autoregistro' : 'crear',
+    (int)$nuevoId, $autorId,
+    ($autoregistro
+        ? "Auto-registro de '$correo' (queda pendiente de aprobación)"
+        : "Usuario '$correo' creado por administrador con rol '$rolNombre'"),
+    ['despues' => ['t_correo' => $correo, 't_nombres' => $nombres,
+                   't_apellidos' => $apellidos, 't_codigoinstitucional' => $codigo,
+                   'rol' => $rolNombre, 't_activo' => $autoregistro ? 'N' : 'S']]);
 
 Response::json(['n_idusuario' => (int)$nuevoId], 201, 'Usuario creado correctamente.');

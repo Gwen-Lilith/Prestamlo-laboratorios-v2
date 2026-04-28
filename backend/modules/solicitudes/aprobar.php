@@ -11,14 +11,18 @@ require_once __DIR__ . '/../../core/Response.php';
 require_once __DIR__ . '/../../core/Validator.php';
 require_once __DIR__ . '/../../core/Logger.php';
 require_once __DIR__ . '/../../core/Notificador.php';
+require_once __DIR__ . '/../../core/Auditor.php';
 require_once __DIR__ . '/../../config/db.php';
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') Response::error('Método no permitido.', 405);
+// REST: HU-04.03 pide PATCH; aceptar también POST por compatibilidad con el front actual
+$metodo = $_SERVER['REQUEST_METHOD'];
+if (!in_array($metodo, ['POST', 'PATCH'])) Response::error('Método no permitido.', 405);
 Auth::requireRole(['administrador', 'auxiliar_tecnico']);
 
 $data = Validator::obtenerBodyJSON();
 $id  = $data['id'] ?? 0;
-$obs = Validator::obtenerCampo($data, 'observaciones');
+// HU-10.03: limitar longitud de observaciones (campo libre)
+$obs = Validator::limitarLongitud(Validator::obtenerCampo($data, 'observaciones'), 500);
 $currentUser = Auth::currentUser();
 
 if (!Validator::validarEntero($id)) Response::error('ID inválido.');
@@ -57,6 +61,11 @@ try {
             'dashboard-usuario.html', $id
         );
     }
+
+    // HU-09.02: dejar trazabilidad en auditoria_acciones (paralelo a Logger en historial_solicitudes)
+    Auditor::registrar('solicitudes_prestamo', 'aprobar', (int)$id, $currentUser['n_idusuario'],
+        "Solicitud #$id aprobada" . ($obs ? " — $obs" : ''),
+        ['antes' => ['t_estado' => 'pendiente'], 'despues' => ['t_estado' => 'aprobada']]);
 
     $pdo->commit();
     Response::json(null, 200, 'Solicitud aprobada correctamente.');

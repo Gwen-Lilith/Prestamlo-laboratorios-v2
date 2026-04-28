@@ -8,13 +8,18 @@ require_once __DIR__ . '/../../core/Auth.php';
 require_once __DIR__ . '/../../core/Response.php';
 require_once __DIR__ . '/../../core/Validator.php';
 require_once __DIR__ . '/../../core/Logger.php';
+require_once __DIR__ . '/../../core/Auditor.php';
 require_once __DIR__ . '/../../config/db.php';
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') Response::error('Método no permitido.', 405);
+// REST: HU-04.07 pide PATCH para cancelar
+$metodo = $_SERVER['REQUEST_METHOD'];
+if (!in_array($metodo, ['POST', 'PATCH'])) Response::error('Método no permitido.', 405);
 Auth::requireLogin();
 
 $data = Validator::obtenerBodyJSON();
-$id = $data['id'] ?? 0;
+$id     = $data['id'] ?? 0;
+// HU-04.07: motivo de cancelación (opcional pero registrar si viene)
+$motivo = Validator::limitarLongitud(Validator::obtenerCampo($data, 'motivo') ?: Validator::obtenerCampo($data, 'observaciones'), 500);
 $currentUser = Auth::currentUser();
 
 if (!Validator::validarEntero($id)) Response::error('ID inválido.');
@@ -36,7 +41,15 @@ try {
     $pdo->beginTransaction();
     $pdo->prepare("UPDATE solicitudes_prestamo SET t_estado = 'cancelada' WHERE n_idsolicitud = :id")
         ->execute([':id' => $id]);
-    Logger::registrar($id, 'pendiente', 'cancelada', 'Solicitud cancelada', $currentUser['n_idusuario']);
+
+    $detalleHist = $motivo ? "Solicitud cancelada — $motivo" : 'Solicitud cancelada';
+    Logger::registrar($id, 'pendiente', 'cancelada', $detalleHist, $currentUser['n_idusuario']);
+
+    // HU-09.02: registrar en auditoría con el motivo
+    Auditor::registrar('solicitudes_prestamo', 'cancelar', (int)$id, $currentUser['n_idusuario'],
+        "Solicitud #$id cancelada" . ($motivo ? " — motivo: $motivo" : ''),
+        ['antes' => ['t_estado' => 'pendiente'], 'despues' => ['t_estado' => 'cancelada']]);
+
     $pdo->commit();
     Response::json(null, 200, 'Solicitud cancelada.');
 } catch (Exception $e) {

@@ -15,14 +15,18 @@ require_once __DIR__ . '/../../core/Response.php';
 require_once __DIR__ . '/../../core/Validator.php';
 require_once __DIR__ . '/../../core/Logger.php';
 require_once __DIR__ . '/../../core/Notificador.php';
+require_once __DIR__ . '/../../core/Auditor.php';
 require_once __DIR__ . '/../../config/db.php';
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') Response::error('Método no permitido.', 405);
+// REST: HU-04.04 pide PATCH para cambio de estado a 'prestada'
+$metodo = $_SERVER['REQUEST_METHOD'];
+if (!in_array($metodo, ['POST', 'PATCH'])) Response::error('Método no permitido.', 405);
 Auth::requireRole(['administrador', 'auxiliar_tecnico']);
 
 $data = Validator::obtenerBodyJSON();
 $id  = $data['id'] ?? 0;
-$obs = Validator::obtenerCampo($data, 'observaciones');
+// HU-10.03: limitar observaciones (campo libre)
+$obs = Validator::limitarLongitud(Validator::obtenerCampo($data, 'observaciones'), 500);
 $currentUser = Auth::currentUser();
 
 if (!Validator::validarEntero($id)) Response::error('ID inválido.');
@@ -95,6 +99,13 @@ try {
             'dashboard-usuario.html', $id
         );
     }
+
+    // HU-09.02: dejar trazabilidad detallada (con lista de elementos entregados)
+    $idsEntregados = array_map(fn($e) => (int)$e['n_idelemento'], $elementos);
+    Auditor::registrar('solicitudes_prestamo', 'registrar_entrega', (int)$id, $currentUser['n_idusuario'],
+        "Entrega física de la solicitud #$id (" . count($elementos) . " elementos)" . ($obs ? " — $obs" : ''),
+        ['antes' => ['t_estado' => 'aprobada'],
+         'despues' => ['t_estado' => 'prestada', 'elementos_entregados' => $idsEntregados]]);
 
     $pdo->commit();
     Response::json(null, 200, 'Entrega registrada correctamente.');

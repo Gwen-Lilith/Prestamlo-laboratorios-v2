@@ -613,10 +613,31 @@
                   <div class="input-wrap"><i class="input-icon fa-solid fa-user"></i><input class="form-control" type="text" id="edit-p-nombre"/></div>
                 </div>
                 <div class="form-group">
-                  <label class="form-label">Teléfono</label>
-                  <div class="input-wrap"><i class="input-icon fa-solid fa-phone"></i><input class="form-control" type="text" id="edit-p-telefono"/></div>
+                  <label class="form-label">Teléfono <span style="font-weight:400;color:#6b7280;font-size:.78em">(con prefijo país, ej. +57301...)</span></label>
+                  <div class="input-wrap"><i class="input-icon fa-solid fa-phone"></i><input class="form-control" type="text" id="edit-p-telefono" placeholder="+573001234567"/></div>
                 </div>
               </div>
+
+              <!-- HU-07.04: Configuración multi-canal de notificaciones (correo / whatsapp / inapp) -->
+              <div class="form-section-title" style="margin-top:4px"><i class="fa-solid fa-bell"></i> Notificaciones</div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Canal preferido</label>
+                  <div class="input-wrap"><i class="input-icon fa-solid fa-paper-plane"></i>
+                    <select class="form-control" id="edit-p-canal">
+                      <option value="inapp">Solo aplicación (campanita)</option>
+                      <option value="correo">Aplicación + correo electrónico</option>
+                      <option value="whatsapp">Aplicación + WhatsApp</option>
+                      <option value="todos">Aplicación + correo + WhatsApp</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">API key WhatsApp <span style="font-weight:400;color:#6b7280;font-size:.78em">(CallMeBot — opcional)</span></label>
+                  <div class="input-wrap"><i class="input-icon fa-brands fa-whatsapp"></i><input class="form-control" type="text" id="edit-p-apikey" placeholder="Sin clave envía solo enlace wa.me"/></div>
+                </div>
+              </div>
+
               <div class="form-section-title" style="margin-top:4px"><i class="fa-solid fa-lock"></i> Cambiar Contraseña</div>
               <div class="form-row">
                 <div class="form-group">
@@ -686,6 +707,23 @@
   document.getElementById('pd-rol').textContent     = 'Profesor / Usuario';
   document.getElementById('edit-p-nombre').value    = usr.nombre;
   document.getElementById('perfilInitials').textContent = usr.nombre.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+
+  // HU-08.07 + HU-07.04: precargar datos completos del perfil desde la BD
+  // (teléfono, API key WhatsApp, canal preferido) la primera vez.
+  fetch('backend/modules/perfil/datos.php', { credentials:'same-origin' })
+    .then(r => r.json())
+    .then(j => {
+      if (j && j.ok && j.data) {
+        const d = j.data;
+        const elTel = document.getElementById('edit-p-telefono');
+        const elKey = document.getElementById('edit-p-apikey');
+        const elCan = document.getElementById('edit-p-canal');
+        if (elTel) elTel.value = d.t_telefono || '';
+        if (elKey) elKey.value = d.t_telefono_apikey || '';
+        if (elCan && d.t_canal_preferido) elCan.value = d.t_canal_preferido;
+      }
+    })
+    .catch(() => {/* sin BD usamos los valores en blanco */});
 
   const avatarSrc = 'assets/images/AVATARPROFESOR.jpg';
   document.getElementById('nav-avatar-img').src = avatarSrc;
@@ -1149,21 +1187,32 @@
     else document.getElementById('notif-full').innerHTML = html;
   }
 
-  // ── PERFIL (HU-08.07) — actualiza nombres/apellidos y contraseña en BD ──
+  // ── PERFIL (HU-08.07 + HU-07.04) — actualiza datos personales, canal multi-notif y password en BD ──
   async function guardarPerfil() {
-    const nombre = document.getElementById('edit-p-nombre').value.trim();
-    const pass   = document.getElementById('edit-p-pass').value;
-    const pass2  = document.getElementById('edit-p-pass2').value;
+    const nombre   = document.getElementById('edit-p-nombre').value.trim();
+    const telefono = document.getElementById('edit-p-telefono')?.value.trim() || '';
+    const apikey   = document.getElementById('edit-p-apikey')?.value.trim() || '';
+    const canal    = document.getElementById('edit-p-canal')?.value || 'inapp';
+    const pass     = document.getElementById('edit-p-pass').value;
+    const pass2    = document.getElementById('edit-p-pass2').value;
     if (!nombre) { showToast('El nombre no puede estar vacío.','error'); return; }
     if (pass && pass !== pass2) { showToast('Las contraseñas no coinciden.','error'); return; }
     if (pass && pass.length < 4) { showToast('La contraseña debe tener mínimo 4 caracteres.','error'); return; }
+    // HU-07.04: si elige whatsapp como canal pero no hay teléfono, avisar.
+    if ((canal === 'whatsapp' || canal === 'todos') && !telefono) {
+      showToast('Para usar WhatsApp debes ingresar tu teléfono con prefijo país.','warning'); return;
+    }
 
     // Separar nombre completo en nombres + apellidos.
     const partes = nombre.split(/\s+/);
     const nombresOnly   = partes.slice(0, Math.ceil(partes.length / 2)).join(' ');
     const apellidosOnly = partes.slice(Math.ceil(partes.length / 2)).join(' ');
 
-    const body = { nombres: nombresOnly, apellidos: apellidosOnly };
+    // Solo se envían los campos modificables; el endpoint solo aplica los presentes.
+    const body = {
+      nombres: nombresOnly, apellidos: apellidosOnly,
+      telefono, telefono_apikey: apikey, canal_preferido: canal
+    };
     if (pass) {
       const passActual = prompt('Para cambiar la contraseña, ingresa tu contraseña ACTUAL:');
       if (!passActual) { showToast('Cambio de contraseña cancelado.','warning'); return; }

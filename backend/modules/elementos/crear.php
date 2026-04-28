@@ -9,18 +9,21 @@ header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../../core/Auth.php';
 require_once __DIR__ . '/../../core/Response.php';
 require_once __DIR__ . '/../../core/Validator.php';
+require_once __DIR__ . '/../../core/Auditor.php';
 require_once __DIR__ . '/../../config/db.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') Response::error('Método no permitido.', 405);
 Auth::requireRole(['administrador', 'auxiliar_tecnico']);
+$currentUser = Auth::currentUser();
 
 $data = Validator::obtenerBodyJSON();
-$nombre      = Validator::obtenerCampo($data, 'nombre');
-$inventario  = Validator::obtenerCampo($data, 'numeroinventario');
-$marca       = Validator::obtenerCampo($data, 'marca');
-$modelo      = Validator::obtenerCampo($data, 'modelo');
-$descripcion = Validator::obtenerCampo($data, 'descripcion');
-$observ      = Validator::obtenerCampo($data, 'observaciones');
+// HU-10.03: limitar longitud para prevenir ataques de buffer y datos malformados
+$nombre      = Validator::limitarLongitud(Validator::obtenerCampo($data, 'nombre'), 150);
+$inventario  = Validator::limitarLongitud(Validator::obtenerCampo($data, 'numeroinventario'), 50);
+$marca       = Validator::limitarLongitud(Validator::obtenerCampo($data, 'marca'), 80);
+$modelo      = Validator::limitarLongitud(Validator::obtenerCampo($data, 'modelo'), 80);
+$descripcion = Validator::limitarLongitud(Validator::obtenerCampo($data, 'descripcion'), 500);
+$observ      = Validator::limitarLongitud(Validator::obtenerCampo($data, 'observaciones'), 500);
 $idLab       = $data['idlaboratorio'] ?? 0;
 $idTipo      = $data['idtipoelemento'] ?? 0;
 $estado      = Validator::obtenerCampo($data, 'estado') ?: 'disponible';
@@ -51,5 +54,15 @@ $nuevoId = $pdo->lastInsertId();
 $codigoQr = 'QR-' . $nuevoId . '-' . substr(md5($nuevoId . time()), 0, 8);
 $pdo->prepare("UPDATE elementos SET t_codigoqr = :qr WHERE n_idelemento = :id")
     ->execute([':qr' => $codigoQr, ':id' => $nuevoId]);
+
+// HU-09.03: registrar la creación en auditoría con todos los datos del nuevo elemento
+Auditor::registrar('elementos', 'crear', (int)$nuevoId, $currentUser['n_idusuario'],
+    "Elemento '$nombre' creado en laboratorio $idLab",
+    ['despues' => [
+        't_nombre' => $nombre, 't_numeroinventario' => $inventario,
+        't_marca' => $marca, 't_modelo' => $modelo,
+        'n_idlaboratorio' => $idLab, 'n_idtipoelemento' => $idTipo,
+        't_estado' => $estado, 't_codigoqr' => $codigoQr
+    ]]);
 
 Response::json(['n_idelemento' => (int)$nuevoId, 't_codigoqr' => $codigoQr], 201, 'Elemento creado correctamente.');
