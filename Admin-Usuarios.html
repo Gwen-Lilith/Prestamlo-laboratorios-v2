@@ -1149,8 +1149,12 @@
 
   // ── Init ──
   (async () => {
-    renderPendientes();
+    // Bug fix: antes se llamaba renderPendientes() ANTES de cargar los datos,
+    // por eso la lista de pendientes salía vacía aunque el contador "Pendientes 2"
+    // sí se actualizaba (las stats se calculan después de cargarUsuarios).
+    // Ahora primero traemos los datos y DESPUÉS renderizamos todo.
     await cargarUsuarios();
+    renderPendientes();
     renderTable();
     actualizarStats();
 
