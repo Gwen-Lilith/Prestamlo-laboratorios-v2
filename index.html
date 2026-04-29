@@ -986,10 +986,11 @@
       const password2  = document.getElementById('reg-pass2').value.trim();
 
       if (!nombre || !apellidos || !email || !password) {
-        alert('Por favor completa los campos obligatorios (nombre, apellidos, correo y contraseña).'); return;
+        await uiAlert({ titulo:'Faltan datos', mensaje:'Por favor completa los campos obligatorios:\n• Nombre\n• Apellidos\n• Correo\n• Contraseña', tipo:'warning' });
+        return;
       }
-      if (password !== password2) { alert('Las contraseñas no coinciden.'); return; }
-      if (password.length < 4)   { alert('La contraseña debe tener al menos 4 caracteres.'); return; }
+      if (password !== password2) { await uiAlert({ mensaje:'Las contraseñas no coinciden.', tipo:'error' }); return; }
+      if (password.length < 4)    { await uiAlert({ mensaje:'La contraseña debe tener al menos 4 caracteres.', tipo:'warning' }); return; }
 
       // Intentamos guardar en BD. El endpoint acepta autoregistro=true.
       // El telefono y el modulo no se persisten (la tabla usuarios no tiene
@@ -1013,7 +1014,7 @@
         try { json = await resp.json(); } catch (_) {}
 
         if (!resp.ok || !json || !json.ok) {
-          alert((json && json.mensaje) || 'No se pudo crear la cuenta. Verifica que el correo no esté registrado.');
+          await uiAlert({ titulo:'No se pudo crear', mensaje:(json && json.mensaje) || 'No se pudo crear la cuenta. Verifica que el correo no esté registrado.', tipo:'error' });
           return;
         }
 
@@ -1021,7 +1022,7 @@
         document.getElementById('form-registro').style.display = 'none';
         document.getElementById('pending-screen').classList.add('visible');
       } catch (err) {
-        alert('No se pudo contactar al servidor. Verifica que XAMPP esté activo.');
+        await uiAlert({ mensaje:'No se pudo contactar al servidor. Verifica que XAMPP esté activo.', tipo:'error' });
       }
     }
 
@@ -1056,6 +1057,8 @@
       pc.appendChild(p);
     }
   </script>
+<!-- volver.js expone uiConfirm/uiAlert/uiPrompt globales -->
+<script src="assets/js/volver.js"></script>
 </body>
 
 </html>

@@ -628,15 +628,17 @@
         telefono: '',
         modulo:   '',
         rol:      (Array.isArray(u.roles) && u.roles[0]) || 'profesor',
+        // S=activo, N=pendiente, R=rechazado (mismo trato visual que inactivo)
         estado:   u.t_activo === 'S' ? 'activo' : 'inactivo',
         _activo:  u.t_activo,
         foto:     u.t_fotoperfil || null,
         prestamos: []
       }));
-      // Pendientes = inactivos sin rol ADMINISTRATIVO previo (autoregistro).
-      // Mostramos como pendientes a TODOS los t_activo='N' para que el admin decida.
+      // Solo los t_activo='N' aparecen como pendientes de aprobación.
+      // Los rechazados (t_activo='R') quedan en la lista general como inactivos
+      // para que el admin pueda revisarlos en historial pero no en cola de aprobación.
       pendientes = all.filter(u => u._activo === 'N');
-      usuarios   = all.filter(u => u._activo === 'S');
+      usuarios   = all.filter(u => u._activo === 'S' || u._activo === 'R');
     } catch (err) {
       usuarios = []; pendientes = [];
       showToast('No se pudo contactar al servidor.','error');
@@ -686,13 +688,28 @@
   }
 
   async function rechazarPendiente(id) {
-    if (!confirm('¿Rechazar este registro? El usuario quedará inactivo permanentemente.')) return;
-    // No hay endpoint de "delete" — simplemente queda inactivo (ya está en N).
-    // Mejor: lo eliminamos del listado de pendientes localmente para no mostrarlo.
-    pendientes = pendientes.filter(p => p.id !== id);
-    showToast('Solicitud rechazada.','warning');
-    renderPendientes();
-    actualizarStats();
+    const ok = await uiConfirm({
+      titulo: 'Rechazar registro',
+      mensaje: '¿Rechazar este registro?\nEl usuario no podrá iniciar sesión y dejará de aparecer en la lista de pendientes.',
+      ok: 'Sí, rechazar',
+      peligro: true
+    });
+    if (!ok) return;
+    // HU-08.04: persistir en BD con t_activo = 'R' (rechazado).
+    // Antes solo se borraba del array local — al recargar volvía a aparecer.
+    try {
+      const resp = await fetch(API + 'usuarios/inactivar.php', {
+        method:'POST', credentials:'same-origin',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ id, activo:'R' })
+      });
+      const json = await resp.json();
+      if (!resp.ok || !json.ok) { showToast(json.mensaje||'No se pudo rechazar.','error'); return; }
+      showToast('Solicitud rechazada y guardada en BD.','warning');
+      await refrescarTodo();
+    } catch (err) {
+      showToast('No se pudo contactar al servidor.','error');
+    }
   }
 
   async function renderTable() {
@@ -841,7 +858,12 @@
   // necesidad de eliminar la imagen.
   async function ejecutarCancelarAlerta() {
     if (!_fotoModerarId) return;
-    if (!confirm('¿Quitar la alerta de este usuario?\n\nLa foto se conserva intacta y el usuario recibirá una notificación informándole que la alerta fue retirada.')) return;
+    const ok = await uiConfirm({
+      titulo: 'Quitar alerta',
+      mensaje: '¿Quitar la alerta de este usuario?\n\nLa foto se conserva intacta y el usuario recibirá una notificación informándole que la alerta fue retirada.',
+      ok: 'Sí, quitar alerta'
+    });
+    if (!ok) return;
     try {
       const r = await fetch(API + 'perfil/cancelar_alerta_foto.php', {
         method:'POST', credentials:'same-origin',
@@ -861,7 +883,13 @@
     if (!_fotoModerarId) return;
     if (forzar) {
       // Confirmación adicional para no eliminar por accidente saltando la gracia
-      if (!confirm('¿Eliminar la foto AHORA mismo, saltando el plazo de gracia?\n\nEsta acción quedará registrada en auditoría como eliminación forzada y se notificará al usuario.')) return;
+      const ok = await uiConfirm({
+        titulo: 'Eliminar foto inmediatamente',
+        mensaje: '¿Eliminar la foto AHORA mismo, saltando el plazo de gracia?\n\nEsta acción queda registrada en auditoría como eliminación forzada y se notificará al usuario.',
+        ok: 'Sí, eliminar ahora',
+        peligro: true
+      });
+      if (!ok) return;
     }
     try {
       const r = await fetch(API + 'perfil/eliminar_foto.php', {

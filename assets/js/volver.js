@@ -262,3 +262,193 @@
     insertar();
   }
 })();
+
+/* ════════════════════════════════════════════════════════════════════
+   Diálogos UI globales — reemplazan los confirm()/alert()/prompt()
+   nativos del navegador (esos popups negros "localhost dice...")
+   por modales internos consistentes con el resto de la app.
+
+   Cualquier archivo HTML que importe volver.js puede usar:
+       await uiConfirm({ titulo, mensaje, ok, peligro:true })
+       await uiAlert({ titulo, mensaje, tipo:'info'|'warning'|'error'|'success' })
+       await uiPrompt({ titulo, mensaje, defecto, multilinea:true })
+   Las tres funciones devuelven Promise: confirm/prompt resuelven con
+   true/false o con string/null. alert siempre resuelve con true.
+   ════════════════════════════════════════════════════════════════════ */
+(function () {
+  // Evitar duplicar la inyección si volver.js se carga dos veces
+  if (window.uiConfirm) return;
+
+  function montar(html) {
+    const wrap = document.createElement('div');
+    wrap.innerHTML = html;
+    const node = wrap.firstElementChild;
+    document.body.appendChild(node);
+    // Forzar reflow para que la transición de entrada se vea
+    void node.offsetWidth;
+    node.classList.add('open');
+    return node;
+  }
+
+  function cerrar(node) {
+    node.classList.remove('open');
+    setTimeout(() => node.remove(), 180);
+  }
+
+  const COLORES = {
+    info:    { bg:'#2563EB', icono:'fa-circle-info' },
+    warning: { bg:'#F59E0B', icono:'fa-triangle-exclamation' },
+    error:   { bg:'#DC2626', icono:'fa-circle-xmark' },
+    success: { bg:'#16A34A', icono:'fa-circle-check' },
+    danger:  { bg:'#DC2626', icono:'fa-triangle-exclamation' },
+    primary: { bg:'#6B1F7C', icono:'fa-circle-question' }
+  };
+
+  function escHtml(s){return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+  // Estilos base — iguales a los modales que ya existen en los HTML admin
+  const ESTILO_OVERLAY = 'position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;transition:opacity .18s';
+  const ESTILO_OPEN    = 'opacity:1';
+  const ESTILO_BOX     = 'background:#fff;border-radius:14px;box-shadow:0 24px 60px rgba(0,0,0,.28);width:100%;max-width:440px;overflow:hidden;font-family:inherit;color:#1A1A2E';
+
+  /**
+   * Confirmación: devuelve Promise<boolean>.
+   * Sustituto directo de confirm(). El sí queda en color "peligro"
+   * (rojo) si opciones.peligro = true, sino en morado UPB.
+   */
+  window.uiConfirm = function (opciones) {
+    return new Promise(resolve => {
+      const o = opciones || {};
+      const tipo  = o.peligro ? 'danger' : 'primary';
+      const cfg   = COLORES[tipo];
+      const ok    = o.ok    || (o.peligro ? 'Confirmar' : 'Aceptar');
+      const cancel= o.cancel|| 'Cancelar';
+      const titulo= o.titulo|| '¿Confirmar acción?';
+      const mensaje = o.mensaje || '';
+      const html = `
+        <div class="ui-modal" style="${ESTILO_OVERLAY}">
+          <div style="${ESTILO_BOX}">
+            <div style="display:flex;align-items:center;gap:12px;padding:18px 22px;border-bottom:1px solid #EDEDF3">
+              <div style="width:34px;height:34px;border-radius:50%;background:${cfg.bg};color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                <i class="fa-solid ${cfg.icono}"></i>
+              </div>
+              <div style="font-weight:700;font-size:15px">${escHtml(titulo)}</div>
+            </div>
+            <div style="padding:18px 22px;font-size:13.5px;line-height:1.55;color:#4B4B66;white-space:pre-wrap">${escHtml(mensaje)}</div>
+            <div style="display:flex;gap:8px;padding:12px 18px 16px;justify-content:flex-end">
+              <button type="button" data-ui-cancel style="background:#F3F4F6;color:#1A1A2E;border:1px solid #E5E7EB;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer">${escHtml(cancel)}</button>
+              <button type="button" data-ui-ok style="background:${cfg.bg};color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer">${escHtml(ok)}</button>
+            </div>
+          </div>
+        </div>`;
+      const node = montar(html);
+      // Aplicar estilo "abierto"
+      const overlay = node;
+      overlay.style.opacity = '1';
+      const close = (val) => { cerrar(overlay); resolve(val); };
+      overlay.querySelector('[data-ui-ok]').onclick     = () => close(true);
+      overlay.querySelector('[data-ui-cancel]').onclick = () => close(false);
+      overlay.addEventListener('click', e => { if (e.target === overlay) close(false); });
+      // ESC cancela, Enter acepta
+      const onKey = (e) => {
+        if (e.key === 'Escape') { document.removeEventListener('keydown', onKey); close(false); }
+        if (e.key === 'Enter')  { document.removeEventListener('keydown', onKey); close(true); }
+      };
+      document.addEventListener('keydown', onKey);
+      // Foco en OK
+      setTimeout(() => overlay.querySelector('[data-ui-ok]')?.focus(), 60);
+    });
+  };
+
+  /**
+   * Alerta informativa — sustituto directo de alert().
+   * Para mensajes muy cortos preferir el toast (showToast) que ya existe
+   * en algunos HTML; uiAlert es para textos un poco más largos o críticos.
+   */
+  window.uiAlert = function (opciones) {
+    if (typeof opciones === 'string') opciones = { mensaje: opciones };
+    const o = opciones || {};
+    const tipo = o.tipo || 'info';
+    const cfg  = COLORES[tipo] || COLORES.info;
+    const titulo = o.titulo || ({info:'Información', warning:'Atención', error:'Error', success:'Listo'}[tipo] || 'Aviso');
+    return new Promise(resolve => {
+      const html = `
+        <div class="ui-modal" style="${ESTILO_OVERLAY}">
+          <div style="${ESTILO_BOX}">
+            <div style="display:flex;align-items:center;gap:12px;padding:18px 22px;border-bottom:1px solid #EDEDF3">
+              <div style="width:34px;height:34px;border-radius:50%;background:${cfg.bg};color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                <i class="fa-solid ${cfg.icono}"></i>
+              </div>
+              <div style="font-weight:700;font-size:15px">${escHtml(titulo)}</div>
+            </div>
+            <div style="padding:18px 22px;font-size:13.5px;line-height:1.55;color:#4B4B66;white-space:pre-wrap">${escHtml(o.mensaje||'')}</div>
+            <div style="display:flex;padding:12px 18px 16px;justify-content:flex-end">
+              <button type="button" data-ui-ok style="background:${cfg.bg};color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:13px;font-weight:600;cursor:pointer">Aceptar</button>
+            </div>
+          </div>
+        </div>`;
+      const node = montar(html);
+      node.style.opacity = '1';
+      const close = () => { cerrar(node); resolve(true); };
+      node.querySelector('[data-ui-ok]').onclick = close;
+      node.addEventListener('click', e => { if (e.target === node) close(); });
+      const onKey = (e) => { if (e.key === 'Escape' || e.key === 'Enter') { document.removeEventListener('keydown', onKey); close(); } };
+      document.addEventListener('keydown', onKey);
+      setTimeout(() => node.querySelector('[data-ui-ok]')?.focus(), 60);
+    });
+  };
+
+  /**
+   * Pedir un input — sustituto directo de prompt().
+   * Devuelve Promise<string|null>: el valor o null si cancela.
+   * Soporta multilinea (textarea).
+   */
+  window.uiPrompt = function (opciones) {
+    if (typeof opciones === 'string') opciones = { mensaje: opciones };
+    const o = opciones || {};
+    const titulo  = o.titulo  || 'Ingresa un valor';
+    const mensaje = o.mensaje || '';
+    const defecto = o.defecto != null ? o.defecto : '';
+    const tipoHtml = o.tipo === 'password' ? 'password' : 'text';
+    const multi   = !!o.multilinea;
+    return new Promise(resolve => {
+      const inputHtml = multi
+        ? `<textarea data-ui-input rows="4" style="width:100%;padding:10px 12px;border:1.5px solid #D1D5DB;border-radius:8px;font-family:inherit;font-size:14px;resize:vertical;box-sizing:border-box">${escHtml(defecto)}</textarea>`
+        : `<input data-ui-input type="${tipoHtml}" value="${escHtml(defecto)}" style="width:100%;padding:10px 12px;border:1.5px solid #D1D5DB;border-radius:8px;font-family:inherit;font-size:14px;box-sizing:border-box"/>`;
+      const html = `
+        <div class="ui-modal" style="${ESTILO_OVERLAY}">
+          <div style="${ESTILO_BOX}">
+            <div style="display:flex;align-items:center;gap:12px;padding:18px 22px;border-bottom:1px solid #EDEDF3">
+              <div style="width:34px;height:34px;border-radius:50%;background:#6B1F7C;color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                <i class="fa-solid fa-pen"></i>
+              </div>
+              <div style="font-weight:700;font-size:15px">${escHtml(titulo)}</div>
+            </div>
+            <div style="padding:16px 22px">
+              ${mensaje ? `<div style="font-size:13px;line-height:1.5;color:#4B4B66;margin-bottom:10px;white-space:pre-wrap">${escHtml(mensaje)}</div>` : ''}
+              ${inputHtml}
+            </div>
+            <div style="display:flex;gap:8px;padding:12px 18px 16px;justify-content:flex-end">
+              <button type="button" data-ui-cancel style="background:#F3F4F6;color:#1A1A2E;border:1px solid #E5E7EB;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer">Cancelar</button>
+              <button type="button" data-ui-ok style="background:#6B1F7C;color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:13px;font-weight:600;cursor:pointer">Aceptar</button>
+            </div>
+          </div>
+        </div>`;
+      const node = montar(html);
+      node.style.opacity = '1';
+      const input = node.querySelector('[data-ui-input]');
+      const close = (val) => { cerrar(node); resolve(val); };
+      node.querySelector('[data-ui-ok]').onclick     = () => close(input.value);
+      node.querySelector('[data-ui-cancel]').onclick = () => close(null);
+      node.addEventListener('click', e => { if (e.target === node) close(null); });
+      // ESC cancela, Enter (sin shift en textarea) acepta
+      input.addEventListener('keydown', e => {
+        if (e.key === 'Enter' && !multi) { e.preventDefault(); close(input.value); }
+        if (e.key === 'Enter' && multi && (e.ctrlKey || e.metaKey)) { e.preventDefault(); close(input.value); }
+      });
+      const onKey = (e) => { if (e.key === 'Escape') { document.removeEventListener('keydown', onKey); close(null); } };
+      document.addEventListener('keydown', onKey);
+      setTimeout(() => { input.focus(); if (!multi) input.select(); }, 60);
+    });
+  };
+})();

@@ -2151,7 +2151,7 @@
                     aplicar();
                 } catch (err) {
                     console.error('Error cargando datos:', err);
-                    alert('Error al cargar el inventario desde el servidor.');
+                    await uiAlert({ titulo:'Error de carga', mensaje:'Error al cargar el inventario desde el servidor.', tipo:'error' });
                 }
             }
             // ── DATOS ──
@@ -2402,7 +2402,7 @@
                 const tipoId = document.getElementById('ef-tipo').value;
                 const moduloId = document.getElementById('ef-modulo').value;
                 if (!inv || !nombre || !tipoId) {
-                    alert('Por favor completa los campos obligatorios: No. Inventario, Nombre y Tipo de Elemento.');
+                    await uiAlert({ titulo:'Faltan datos', mensaje:'Por favor completa los campos obligatorios:\n• No. Inventario\n• Nombre\n• Tipo de Elemento', tipo:'warning' });
                     return;
                 }
 
@@ -2434,7 +2434,7 @@
 
                     if (!result.ok) {
                         document.getElementById('spinner').classList.remove('vis');
-                        alert('Error al guardar: ' + (result.mensaje || 'error desconocido'));
+                        await uiAlert({ titulo:'Error al guardar', mensaje: result.mensaje || 'Error desconocido al guardar.', tipo:'error' });
                         return;
                     }
 
@@ -2471,7 +2471,7 @@
                     aplicar();
                 } catch (err) {
                     console.error('Error de red al guardar:', err);
-                    alert('No se pudo conectar con el servidor. Revisa tu conexión.');
+                    await uiAlert({ mensaje:'No se pudo conectar con el servidor. Revisa tu conexión.', tipo:'error' });
                 } finally {
                     document.getElementById('spinner').classList.remove('vis');
                 }
@@ -2496,7 +2496,7 @@
                     const result = await resp.json();
 
                     if (!result.ok) {
-                        alert('Error al cambiar estado: ' + (result.mensaje || 'error desconocido'));
+                        await uiAlert({ titulo:'Error al cambiar estado', mensaje: result.mensaje || 'Error desconocido.', tipo:'error' });
                         return;
                     }
 
@@ -2517,7 +2517,7 @@
                     aplicar();
                 } catch (err) {
                     console.error('Error de red al cambiar estado:', err);
-                    alert('No se pudo conectar con el servidor.');
+                    await uiAlert({ mensaje:'No se pudo conectar con el servidor.', tipo:'error' });
                 } finally {
                     document.getElementById('spinner').classList.remove('vis');
                 }
@@ -2590,8 +2590,8 @@
                 return `<div class="fmt-doc">${copia(1)}<hr class="fmt-corte">${copia(2)}</div>`;
             }
 
-            function abrirFormato() {
-                if (!seleccionados.size) { alert('Selecciona al menos un elemento con el checkbox.'); return; }
+            async function abrirFormato() {
+                if (!seleccionados.size) { await uiAlert({ mensaje:'Selecciona al menos un elemento con el checkbox.', tipo:'warning' }); return; }
                 const items = [...seleccionados].sort((a, b) => a - b).map(i => DATOS[i]);
                 document.getElementById('fmt-body').innerHTML = htmlFormato(items);
                 document.getElementById('fmt-info').textContent = `${items.length} elemento${items.length !== 1 ? 's' : ''} seleccionado${items.length !== 1 ? 's' : ''}`;

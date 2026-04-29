@@ -1000,7 +1000,13 @@
   }
 
   async function cancelarSolicitud(id) {
-    if (!confirm('¿Cancelar esta solicitud?')) return;
+    const ok = await uiConfirm({
+      titulo: 'Cancelar solicitud',
+      mensaje: '¿Estás seguro de cancelar esta solicitud?\nNo se podrá deshacer.',
+      ok: 'Sí, cancelar',
+      peligro: true
+    });
+    if (!ok) return;
     try {
       const resp = await fetch(API + 'solicitudes/cancelar.php', {
         method:'POST', credentials:'same-origin',
@@ -1126,13 +1132,11 @@
   // Renovar préstamo activo (HU-04.11). Pide nueva fecha y la manda al backend.
   async function abrirRenovar(id) {
     const e = misEntregas.find(x => x.id === id); if (!e) return;
-    const propuesta = prompt(
-      `Renovar préstamo #${id}\n` +
-      `Elemento: ${e.elemento}\n` +
-      `Fecha actual de devolución: ${e.fechaDevolucion}\n\n` +
-      `Ingresa la nueva fecha de devolución (YYYY-MM-DD):`,
-      e.fechaDevolucion
-    );
+    const propuesta = await uiPrompt({
+      titulo: 'Renovar préstamo #' + id,
+      mensaje: `Elemento: ${e.elemento}\nFecha actual de devolución: ${e.fechaDevolucion}\n\nIngresa la nueva fecha de devolución (YYYY-MM-DD):`,
+      defecto: e.fechaDevolucion
+    });
     if (!propuesta) return;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(propuesta)) {
       showToast('Formato de fecha inválido. Usa YYYY-MM-DD.', 'error'); return;
@@ -1158,7 +1162,12 @@
   // Profesor confirma que ya devolvió físicamente los elementos.
   // Llama a registrar_devolucion.php que ahora acepta al dueño además de admin.
   async function confirmarDevolucionPropia(id) {
-    if (!confirm('¿Confirmar que devolviste los elementos de esta solicitud?\nEl préstamo se marcará como devuelto y los elementos volverán a estar disponibles.')) return;
+    const ok = await uiConfirm({
+      titulo: 'Confirmar devolución',
+      mensaje: '¿Confirmar que devolviste los elementos de esta solicitud?\nEl préstamo se marcará como devuelto y los elementos volverán a estar disponibles.',
+      ok: 'Sí, devolver'
+    });
+    if (!ok) return;
     try {
       const resp = await fetch(API + 'solicitudes/registrar_devolucion.php', {
         method:'POST', credentials:'same-origin',
@@ -1371,7 +1380,11 @@
       telefono, telefono_apikey: apikey, canal_preferido: canal
     };
     if (pass) {
-      const passActual = prompt('Para cambiar la contraseña, ingresa tu contraseña ACTUAL:');
+      const passActual = await uiPrompt({
+        titulo: 'Confirmar contraseña actual',
+        mensaje: 'Para cambiar la contraseña debes ingresar tu contraseña ACTUAL:',
+        tipo: 'password'
+      });
       if (!passActual) { showToast('Cambio de contraseña cancelado.','warning'); return; }
       body.password_actual = passActual;
       body.password_nuevo  = pass;

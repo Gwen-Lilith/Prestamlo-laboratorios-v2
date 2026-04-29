@@ -777,9 +777,16 @@
     }
 
     async function responderSolicitud(id, accion) {
-      const comentario = accion === 'rechazar'
-        ? (prompt('Motivo del rechazo (opcional):') || '')
-        : '';
+      let comentario = '';
+      if (accion === 'rechazar') {
+        const txt = await uiPrompt({
+          titulo: 'Motivo del rechazo',
+          mensaje: 'Indica al solicitante por qué se rechaza (opcional, pero recomendado):',
+          multilinea: true
+        });
+        if (txt === null) return;  // canceló
+        comentario = txt;
+      }
       try {
         const resp = await fetch('backend/modules/solicitudes_laboratorio/responder.php', {
           method: 'POST',
@@ -789,7 +796,7 @@
         });
         const json = await resp.json();
         if (!resp.ok || !json.ok) {
-          alert(json.mensaje || 'No se pudo procesar la solicitud.');
+          await uiAlert({ titulo:'No se pudo procesar', mensaje: json.mensaje || 'No se pudo procesar la solicitud.', tipo:'error' });
           return;
         }
         if (accion === 'aprobar') {
@@ -800,7 +807,7 @@
         }
         await renderSolicitudes();
       } catch (err) {
-        alert('No se pudo contactar al servidor.');
+        await uiAlert({ mensaje:'No se pudo contactar al servidor.', tipo:'error' });
       }
     }
 
@@ -873,7 +880,7 @@
         try { json = await resp.json(); } catch (_) { json = null; }
 
         if (!resp.ok || !json || !json.ok) {
-          alert((json && json.mensaje) || 'No se pudo crear el laboratorio.');
+          await uiAlert({ titulo:'No se pudo crear', mensaje:(json && json.mensaje) || 'No se pudo crear el laboratorio.', tipo:'error' });
           return;
         }
 
@@ -892,7 +899,7 @@
           document.getElementById('nuevo-lab-descripcion').value = '';
         }, 1500);
       } catch (err) {
-        alert('No se pudo contactar al servidor. Verifica que XAMPP esté activo.');
+        await uiAlert({ mensaje:'No se pudo contactar al servidor. Verifica que XAMPP esté activo.', tipo:'error' });
       } finally {
         if (btnGuardar) btnGuardar.disabled = false;
       }
@@ -925,7 +932,7 @@
         try { json = await resp.json(); } catch (_) { json = null; }
 
         if (!resp.ok || !json || !json.ok) {
-          alert((json && json.mensaje) || 'No se pudo enviar la solicitud.');
+          await uiAlert({ titulo:'No se pudo enviar', mensaje:(json && json.mensaje) || 'No se pudo enviar la solicitud.', tipo:'error' });
           return;
         }
 
@@ -937,12 +944,13 @@
           document.getElementById('sol-lab-motivo').value = '';
         }, 2000);
       } catch (err) {
-        alert('No se pudo contactar al servidor. Verifica que XAMPP esté activo.');
+        await uiAlert({ mensaje:'No se pudo contactar al servidor. Verifica que XAMPP esté activo.', tipo:'error' });
       } finally {
         if (btnEnviar) btnEnviar.disabled = false;
       }
     }
   </script>
-
+<!-- volver.js expone uiConfirm/uiAlert/uiPrompt globales -->
+<script src="assets/js/volver.js"></script>
 </body>
 </html>s

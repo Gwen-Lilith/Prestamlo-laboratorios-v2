@@ -1,10 +1,14 @@
 <?php
 /**
- * Endpoint: Inactivar usuario (inactivación lógica, nunca DELETE)
- * Método: POST
- * Body: { id, activo: "S"|"N" }
- * 
- * Sistema de Préstamo de Laboratorio - UPB Bucaramanga
+ * Endpoint: Cambiar estado de usuario (inactivación lógica — nunca DELETE físico).
+ * Método: POST | PATCH | DELETE
+ * Body: { id, activo: "S"|"N"|"R" }
+ *
+ * Estados (t_activo):
+ *   S = activo
+ *   N = inactivo / pendiente de aprobación (autoregistro)
+ *   R = rechazado por admin (HU-08.04) — no aparece en lista de pendientes
+ *       y no puede iniciar sesión, pero queda en BD para historial.
  */
 
 header('Content-Type: application/json; charset=utf-8');
@@ -32,8 +36,8 @@ if (!Validator::validarEntero($id)) {
     Response::error('ID de usuario inválido.');
 }
 
-if (!Validator::validarEnSet($activo, ['S', 'N'])) {
-    Response::error('El valor de activo debe ser S o N.');
+if (!Validator::validarEnSet($activo, ['S', 'N', 'R'])) {
+    Response::error('El valor de activo debe ser S (activo), N (inactivo) o R (rechazado).');
 }
 
 $pdo = Database::getConnection();
@@ -46,10 +50,11 @@ $activoAnt = $antData['t_activo'] ?? null;
 $stmt = $pdo->prepare("UPDATE usuarios SET t_activo = :activo WHERE n_idusuario = :id");
 $stmt->execute([':activo' => $activo, ':id' => $id]);
 
-$accion = $activo === 'S' ? 'activado' : 'inactivado';
+$accion = ['S' => 'activado', 'N' => 'inactivado', 'R' => 'rechazado'][$activo] ?? 'modificado';
 
 // HU-09.01 + HU-08.04: trazabilidad de activación/rechazo
-Auditor::registrar('usuarios', $activo === 'S' ? 'activar' : 'inactivar',
+$accionAud = ['S' => 'activar', 'N' => 'inactivar', 'R' => 'rechazar'][$activo] ?? 'cambiar_estado';
+Auditor::registrar('usuarios', $accionAud,
     (int)$id, $currentUser['n_idusuario'],
     "Usuario '$correoAnt' $accion (de '$activoAnt' a '$activo')",
     ['antes' => ['t_activo' => $activoAnt], 'despues' => ['t_activo' => $activo]]);

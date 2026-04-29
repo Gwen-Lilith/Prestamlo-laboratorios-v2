@@ -826,8 +826,8 @@ function generarHTMLFormato(items){
   return `<div class="formato-doc">${copia(1)}<hr class="fmt-corte">${copia(2)}</div>`;
 }
 
-function abrirFormatoSeleccionados(){
-  if(!seleccionados.size){ alert('Selecciona al menos un registro con el checkbox.'); return; }
+async function abrirFormatoSeleccionados(){
+  if(!seleccionados.size){ await uiAlert({ mensaje:'Selecciona al menos un registro con el checkbox.', tipo:'warning' }); return; }
   const items=[...seleccionados].sort((a,b)=>a-b).map(i=>DATOS[i]);
   itemsParaPDF=items;
   document.getElementById('modal-formato-body').innerHTML=generarHTMLFormato(items);
@@ -848,7 +848,7 @@ function imgToBase64(src){
 }
 
 async function generarPDFFormato(items){
-  if(!items||!items.length){ alert('No hay registros para generar el PDF.'); return; }
+  if(!items||!items.length){ await uiAlert({ mensaje:'No hay registros para generar el PDF.', tipo:'warning' }); return; }
   document.getElementById('spinner').classList.add('visible');
   const logoB64=await imgToBase64('assets/images/LOGOUPB.jpg');
   const {jsPDF}=window.jspdf;
@@ -891,7 +891,7 @@ async function generarPDFFormato(items){
 }
 
 async function exportarPDF(){
-  if(!seleccionados.size){ alert('Selecciona al menos un registro con el checkbox para exportar el PDF.'); return; }
+  if(!seleccionados.size){ await uiAlert({ mensaje:'Selecciona al menos un registro con el checkbox para exportar el PDF.', tipo:'warning' }); return; }
   const items=[...seleccionados].sort((a,b)=>a-b).map(i=>DATOS[i]);
   await generarPDFFormato(items);
 }
