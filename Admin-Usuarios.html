@@ -840,14 +840,16 @@
     const motivo = document.getElementById('fotoMotivo').value.trim();
     if (!motivo) { showToast('El motivo no puede estar vacío.','warning'); return; }
     try {
-      const r = await fetch(API + 'perfil/alertar_foto.php', {
+      const r = await fetch(API + 'perfil/alertar_foto.php?_t=' + Date.now(), {
         method:'POST', credentials:'same-origin',
-        headers:{'Content-Type':'application/json'},
+        cache: 'no-store',
+        headers:{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'},
         body: JSON.stringify({ id: _fotoModerarId, motivo })
       });
       const j = await r.json();
       if (!r.ok || !j.ok) { showToast(j.mensaje||'No se pudo alertar.','error'); return; }
-      showToast('Alerta enviada al usuario.','success');
+      showToast(j.mensaje || 'Alerta enviada al usuario.','success');
+      _fotoModerarId = null;
       cerrarModal('modalFoto');
       await refrescarTodo();
     } catch { showToast('No se pudo contactar al servidor.','error'); }
@@ -865,16 +867,19 @@
     });
     if (!ok) return;
     try {
-      const r = await fetch(API + 'perfil/cancelar_alerta_foto.php', {
+      // Cache-bust con timestamp para evitar respuestas cacheadas del navegador
+      const r = await fetch(API + 'perfil/cancelar_alerta_foto.php?_t=' + Date.now(), {
         method:'POST', credentials:'same-origin',
-        headers:{'Content-Type':'application/json'},
+        cache: 'no-store',
+        headers:{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'},
         body: JSON.stringify({ id: _fotoModerarId })
       });
       const j = await r.json();
       if (!r.ok || !j.ok) { showToast(j.mensaje||'No se pudo quitar la alerta.','error'); return; }
       showToast('Alerta retirada correctamente.','success');
+      _fotoModerarId = null;     // limpiar referencia
       cerrarModal('modalFoto');
-      await refrescarTodo();
+      await refrescarTodo();      // recarga la tabla y los pendientes desde BD
     } catch { showToast('No se pudo contactar al servidor.','error'); }
   }
 
@@ -892,14 +897,16 @@
       if (!ok) return;
     }
     try {
-      const r = await fetch(API + 'perfil/eliminar_foto.php', {
+      const r = await fetch(API + 'perfil/eliminar_foto.php?_t=' + Date.now(), {
         method:'POST', credentials:'same-origin',
-        headers:{'Content-Type':'application/json'},
+        cache: 'no-store',
+        headers:{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'},
         body: JSON.stringify({ id: _fotoModerarId, forzar: !!forzar })
       });
       const j = await r.json();
       if (!r.ok || !j.ok) { showToast(j.mensaje||'No se pudo eliminar.','error'); return; }
       showToast(forzar ? 'Foto eliminada inmediatamente.' : 'Foto eliminada.','warning');
+      _fotoModerarId = null;
       cerrarModal('modalFoto');
       await refrescarTodo();
     } catch { showToast('No se pudo contactar al servidor.','error'); }
@@ -909,6 +916,7 @@
   async function refrescarTodo() {
     await cargarUsuarios();
     renderTable();
+    renderPendientes();   // re-render lista de pendientes (rechazados ya no aparecen)
     actualizarStats();
   }
 
