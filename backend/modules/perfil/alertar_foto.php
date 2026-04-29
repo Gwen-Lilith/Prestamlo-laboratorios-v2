@@ -43,11 +43,13 @@ $pdo->prepare("UPDATE usuarios SET
         ':id'        => $id
     ]);
 
-// Crear notificación in-app al usuario
+// Crear notificación in-app al usuario.
+// Importante: el link debe apuntar al panel del USUARIO (dashboard-usuario.html),
+// no a Admin-Foto-Perfil.html que es una vista admin sin permisos para el profesor.
 Notificador::notificar($id, 'alerta_foto',
     'Actualiza tu foto de perfil',
     $motivo,
-    'Admin-Foto-Perfil.html', $id);
+    'dashboard-usuario.html', $id);
 
 // Auditar
 Auditor::registrar('usuarios', 'alertar_foto', $id, $user['n_idusuario'],

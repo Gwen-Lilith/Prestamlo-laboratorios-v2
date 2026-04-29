@@ -789,6 +789,8 @@
           }
           if (elPerfilInits) elPerfilInits.style.display = 'none';
           document.getElementById('nav-avatar-img').src = url;
+          // Compatibilidad con volver.js (lee usr.foto) — guardamos en ambas.
+          usr.foto = d.t_fotoperfil;
           usr.fotoperfil = d.t_fotoperfil;
           sessionStorage.setItem('usuario', JSON.stringify(usr));
         }
@@ -907,7 +909,10 @@
     if (nombre === 'mis-solicitudes')  renderSolicitudes();
     if (nombre === 'mis-entregas')     renderEntregas();
     if (nombre === 'calendario')       { cargarHolidaysProf().then(renderCalendario); }
-    if (nombre === 'informacion')      renderNotificaciones(false);
+    // HU-08.10 + HU-07.04: refrescar notificaciones reales del backend
+    // cada vez que entra a la pestaña Información (ahí se ven todas las
+    // alertas del admin: foto, cambios de estado, vencimientos, etc.).
+    if (nombre === 'informacion')      cargarNotificacionesReales().then(() => renderNotificaciones(false));
     if (nombre === 'nueva-solicitud')  { limpiarFormSolicitud(); cargarElementos(); }
     updateStats();
   }
@@ -1244,15 +1249,96 @@
   }
 
   // ── NOTIFICACIONES ──
+  // Mezcla notificaciones REALES de la BD (`notificaciones`) con los stats
+  // calculados localmente (pendientes, aprobadas, prestadas). Las del backend
+  // van primero porque son acciones del admin (alertas, cambios de estado, etc.)
+  // que el usuario debe ver con prioridad.
+  let notificacionesReales = [];
+
+  // Mapea el t_tipo del backend a clase de color usada por la UI legacy.
+  function tipoNotifBackend(t) {
+    if (t === 'aprobada' || t === 'devuelta') return 'green';
+    if (t === 'rechazada' || t === 'vencida')  return 'red';
+    if (t === 'prestada' || t === 'stock_bajo') return 'orange';
+    if (t === 'alerta_foto') return 'purple';
+    return 'orange';
+  }
+  function iconoNotifBackend(t) {
+    const map = {
+      aprobada: 'fa-circle-check', rechazada: 'fa-circle-xmark',
+      prestada: 'fa-box-open', devuelta: 'fa-circle-check',
+      vencida: 'fa-clock', alerta_foto: 'fa-camera',
+      stock_bajo: 'fa-triangle-exclamation', info: 'fa-circle-info'
+    };
+    return map[t] || 'fa-bell';
+  }
+
+  // HU-07.04 + HU-08.10: trae notificaciones reales del backend para el
+  // usuario logueado (alertas del admin como "tu foto no cumple requisitos",
+  // cambios de estado de solicitudes, etc.) y las mezcla con los stats locales.
+  async function cargarNotificacionesReales() {
+    try {
+      const resp = await fetch(API + 'notificaciones/listar.php?_t=' + Date.now(),
+        { credentials:'same-origin' });
+      const json = await resp.json();
+      if (!resp.ok || !json.ok) { notificacionesReales = []; return; }
+      const arr = (json.data && json.data.notificaciones) || [];
+      notificacionesReales = arr.map(n => ({
+        id:     n.n_idnotificacion,
+        tipo:   tipoNotifBackend(n.t_tipo),
+        icon:   iconoNotifBackend(n.t_tipo),
+        titulo: n.t_titulo,
+        sub:    n.t_mensaje,
+        leida:  n.t_leida === 'S',
+        link:   n.t_link || '',
+        fecha:  (n.dt_fechacreacion||'').replace('T',' ').substring(0,16),
+        _real:  true
+      }));
+    } catch (_) { notificacionesReales = []; }
+  }
+
   function renderNotificaciones(soloInicio) {
-    const iconMap = { orange:'fa-triangle-exclamation', green:'fa-circle-check', purple:'fa-calendar', red:'fa-circle-xmark' };
-    const html = misNotificaciones.map(n=>`
-      <div class="notif-item">
-        <div class="notif-icon ${n.tipo}"><i class="fa-solid ${n.icon}"></i></div>
-        <div><div class="notif-title">${n.titulo}</div><div class="notif-sub">${n.sub}</div></div>
-      </div>`).join('');
-    if (soloInicio !== false) document.getElementById('notif-inicio').innerHTML = html;
-    else document.getElementById('notif-full').innerHTML = html;
+    // Las notificaciones reales del backend van primero (más importantes).
+    const merged = [...notificacionesReales, ...misNotificaciones];
+    const html = merged.map(n=>{
+      // Si es real (de BD) tiene id; le ponemos handler para marcar leída + abrir link
+      const accion = n._real
+        ? `onclick="abrirNotifReal(${n.id}, '${(n.link||'').replace(/'/g,"\\'")}')"`
+        : '';
+      const noLeida = (n._real && !n.leida) ? 'background:#FAF5FB;border-left:3px solid #7C3AED' : '';
+      const fechaTxt = n.fecha ? `<div style="font-size:10px;color:#AAAABF;margin-top:3px">${n.fecha}</div>` : '';
+      return `
+        <div class="notif-item" ${accion} style="cursor:${n._real?'pointer':'default'};${noLeida}">
+          <div class="notif-icon ${n.tipo}"><i class="fa-solid ${n.icon}"></i></div>
+          <div style="flex:1"><div class="notif-title">${n.titulo}</div><div class="notif-sub">${n.sub}</div>${fechaTxt}</div>
+        </div>`;
+    }).join('');
+    if (soloInicio !== false) {
+      const el = document.getElementById('notif-inicio');
+      if (el) el.innerHTML = html;
+    } else {
+      const el = document.getElementById('notif-full');
+      if (el) el.innerHTML = html;
+    }
+  }
+
+  // Marca como leída la notificación y, si tiene link asociado, navega.
+  async function abrirNotifReal(id, link) {
+    try {
+      await fetch(API + 'notificaciones/marcar_leida.php', {
+        method:'POST', credentials:'same-origin',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ id })
+      });
+    } catch(_) {}
+    if (link && link !== 'dashboard-usuario.html') {
+      window.location.href = link;
+    } else {
+      // Estaba en el mismo dashboard: solo refrescar para que el badge baje
+      await cargarNotificacionesReales();
+      renderNotificaciones(false);
+      renderNotificaciones(true);
+    }
   }
 
   // ── PERFIL (HU-08.07 + HU-07.04) — actualiza datos personales, canal multi-notif y password en BD ──
@@ -1370,6 +1456,8 @@
         document.getElementById('perfilImg').src = url;
         document.getElementById('nav-avatar-img').src = url;
         // Persistir en sessionStorage para los próximos navigates
+        // Compatibilidad con volver.js (lee usr.foto) — guardamos en ambas.
+        usr.foto = ruta;
         usr.fotoperfil = ruta;
         sessionStorage.setItem('usuario', JSON.stringify(usr));
       }
@@ -1398,11 +1486,30 @@
 
   // ── INIT ──
   (async () => {
-    await Promise.all([cargarMisDatos(), cargarHolidaysProf()]);
+    // HU-08.10 + HU-07.04: cargamos las notificaciones reales del backend
+    // junto con los datos del usuario. Las alertas del admin (foto no cumple
+    // requisitos, cambios de estado, etc.) aparecen tanto en la campanita
+    // (volver.js) como en la sección "Información Importante".
+    await Promise.all([cargarMisDatos(), cargarHolidaysProf(), cargarNotificacionesReales()]);
     updateStats();
     renderNotificaciones(true);
     renderCalendario();
+
+    // Polling cada 60s para que las alertas nuevas del admin aparezcan
+    // sin necesidad de refrescar la página. La campanita de volver.js
+    // hace su propio polling para el badge — esta función actualiza la
+    // sección "Información" del dashboard.
+    setInterval(async () => {
+      await cargarNotificacionesReales();
+      // Solo re-renderizar si el usuario está en la vista de información o inicio
+      const enInfo   = document.getElementById('vista-informacion')?.classList.contains('active');
+      const enInicio = document.getElementById('vista-inicio')?.classList.contains('active');
+      if (enInfo)   renderNotificaciones(false);
+      if (enInicio) renderNotificaciones(true);
+    }, 60000);
   })();
 </script>
+<!-- volver.js inyecta la campanita de notificaciones in-app + dropdown helpers + foto perfil applier -->
+<script src="assets/js/volver.js"></script>
 </body>
 </html>
