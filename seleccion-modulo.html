@@ -664,7 +664,7 @@
       profesor: 'assets/images/AVATARPROFESOR.jpg',
       usuario:  'assets/images/AVATARPROFESOR.jpg'
     };
-    document.getElementById('nav-avatar-img').src = avatares[usuario.rol] || 'assets/images/AVATARADMINISTRADOR.jpg';
+    document.getElementById('nav-avatar-img').src = usuario.foto || avatares[usuario.rol] || 'assets/images/AVATARADMINISTRADOR.jpg';
 
     // Adaptar botón según rol
     if (usuario.rol !== 'admin') {

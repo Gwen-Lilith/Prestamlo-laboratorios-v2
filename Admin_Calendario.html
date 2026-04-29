@@ -295,7 +295,7 @@
     profesor: 'assets/images/AVATARPROFESOR.jpg',
     usuario:  'assets/images/AVATARPROFESOR.jpg'
   };
-  document.getElementById('nav-avatar-img').src = avatares[usr.rol] || 'assets/images/AVATARADMINISTRADOR.jpg';
+  document.getElementById('nav-avatar-img').src = usr.foto || avatares[usr.rol] || 'assets/images/AVATARADMINISTRADOR.jpg';
   document.getElementById('btn-salir').addEventListener('click', () => {
     sessionStorage.removeItem('usuario');
     window.location.href = 'index.html';

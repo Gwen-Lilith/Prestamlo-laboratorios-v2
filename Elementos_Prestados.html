@@ -876,7 +876,7 @@
         document.getElementById('nav-nombre').textContent = usr.nombre.toUpperCase();
         document.getElementById('nav-lab').textContent = usr.lab || '';
         const avatares = { admin: 'assets/images/AVATARADMINISTRADOR.jpg', profesor: 'assets/images/AVATARPROFESOR.jpg' };
-        document.getElementById('nav-avatar-img').src = avatares[usr.rol] || 'assets/images/AVATARADMINISTRADOR.jpg';
+        document.getElementById('nav-avatar-img').src = usr.foto || avatares[usr.rol] || 'assets/images/AVATARADMINISTRADOR.jpg';
         document.getElementById('btn-salir').addEventListener('click', () => {
             sessionStorage.removeItem('usuario'); window.location.href = 'index.html';
         });

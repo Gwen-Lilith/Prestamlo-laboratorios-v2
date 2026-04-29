@@ -882,7 +882,7 @@ const AVATARES = {
   profesor: 'assets/images/AVATARPROFESOR.jpg',
   usuario:  'assets/images/AVATARPROFESOR.jpg'
 };
-document.getElementById('nav-avatar-img').src = AVATARES[usuario.rol] || AVATARES.admin;
+document.getElementById('nav-avatar-img').src = usuario.foto || AVATARES[usuario.rol] || AVATARES.admin;
 document.getElementById('btn-salir').addEventListener('click', () => {
   sessionStorage.removeItem('usuario'); window.location.href = 'index.html';
 });

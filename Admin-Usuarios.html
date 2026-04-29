@@ -558,7 +558,10 @@
   document.getElementById('nav-nombre').textContent = usr.nombre.toUpperCase();
   document.getElementById('nav-lab').textContent    = usr.lab || usr.modulo || '';
   const avatares = { admin:'assets/images/AVATARADMINISTRADOR.jpg', profesor:'assets/images/AVATARPROFESOR.jpg', usuario:'assets/images/AVATARPROFESOR.jpg' };
-  document.getElementById('nav-avatar-img').src = avatares[usr.rol] || 'assets/images/AVATARADMINISTRADOR.jpg';
+  // Prioridad: foto real guardada en sessionStorage > avatar genérico por rol.
+  // Evita el "flash" donde se ve la imagen genérica antes de que volver.js
+  // sincronice con la BD.
+  document.getElementById('nav-avatar-img').src = usr.foto || avatares[usr.rol] || 'assets/images/AVATARADMINISTRADOR.jpg';
   document.getElementById('btn-salir').addEventListener('click', () => { sessionStorage.removeItem('usuario'); window.location.href = 'index.html'; });
 
   function toggleSidebar() { document.getElementById('sidebar').classList.toggle('collapsed'); }

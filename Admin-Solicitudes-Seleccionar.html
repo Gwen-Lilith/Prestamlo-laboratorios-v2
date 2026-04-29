@@ -253,7 +253,7 @@
   document.getElementById('nav-nombre').textContent = usuario.nombre.toUpperCase();
   document.getElementById('nav-lab').textContent = usuario.lab || '';
   const avatares = { admin:'assets/images/AVATARADMINISTRADOR.jpg', profesor:'assets/images/AVATARPROFESOR.jpg', usuario:'assets/images/AVATARPROFESOR.jpg' };
-  document.getElementById('nav-avatar-img').src = avatares[usuario.rol] || 'assets/images/AVATARADMINISTRADOR.jpg';
+  document.getElementById('nav-avatar-img').src = usuario.foto || avatares[usuario.rol] || 'assets/images/AVATARADMINISTRADOR.jpg';
   document.getElementById('btn-salir').addEventListener('click', () => { sessionStorage.removeItem('usuario'); window.location.href = 'index.html'; });
 
   // Todo viene del backend
