@@ -581,6 +581,19 @@
   }
   function iniciales(nombre) { return String(nombre||'').trim().split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase() || '?'; }
   function colorAvatar(id)   { return COLORES[id % COLORES.length]; }
+
+  // Helper: si el usuario tiene foto guardada en BD la muestra como background-image
+  // (asi cabe en el mismo .user-avatar / .user-detail-avatar sin cambiar CSS).
+  // Si no, cae al avatar de iniciales coloreado. Acepta clase para ajustar tamaño.
+  function avatarHTML(u, klass) {
+    klass = klass || 'user-avatar';
+    if (u.foto) {
+      // Cache-bust por si el usuario acaba de subir/cambiar la foto
+      const url = u.foto + (u.foto.includes('?') ? '' : '?t=' + Date.now());
+      return `<div class="${klass}" style="background-image:url('${url}');background-size:cover;background-position:center;background-color:#E5E7EB"></div>`;
+    }
+    return `<div class="${klass}" style="background:${colorAvatar(u.id)}">${iniciales(u.nombre)}</div>`;
+  }
   function rolLabel(rol) {
     if (rol==='auxiliar_tecnico') return '<span class="rol admin"><i class="fa-solid fa-shield-halved"></i> Admin Módulo</span>';
     if (rol==='administrador')    return '<span class="rol superadmin"><i class="fa-solid fa-crown"></i> Super Admin</span>';
@@ -640,7 +653,7 @@
     if (!pendientes.length) { cont.innerHTML = `<div class="empty-state"><i class="fa-solid fa-circle-check"></i><p>No hay usuarios pendientes</p></div>`; return; }
     cont.innerHTML = pendientes.map(p => `
       <div class="pending-item">
-        <div class="user-avatar" style="background:${colorAvatar(p.id)}">${iniciales(p.nombre)}</div>
+        ${avatarHTML(p)}
         <div class="pending-info">
           <div class="pending-name">${escapeHtml(p.nombre)}</div>
           <div class="pending-sub">${escapeHtml(p.cedula)} · ${escapeHtml(p.correo)}</div>
@@ -694,7 +707,7 @@
         : `<span title="Sin foto" style="color:#AAAABF"><i class="fa-solid fa-circle-xmark"></i></span>`;
       return `
       <tr onclick="abrirDetalle(${u.id})">
-        <td><div class="user-avatar" style="background:${colorAvatar(u.id)}">${iniciales(u.nombre)}</div></td>
+        <td>${avatarHTML(u)}</td>
         <td><div class="td-name">${escapeHtml(u.nombre)} ${fotoIcon}</div></td>
         <td>${escapeHtml(u.cedula)}</td>
         <td><div>${escapeHtml(u.correo)}</div><div class="td-sub">${escapeHtml(u.telefono)}</div></td>
@@ -845,7 +858,7 @@
 
     document.getElementById('modalDetalleBody').innerHTML = `
       <div class="user-detail-header">
-        <div class="user-detail-avatar" style="background:${colorAvatar(u.id)}">${iniciales(u.nombre)}</div>
+        ${avatarHTML(u, 'user-detail-avatar')}
         <div>
           <div class="user-detail-name">${u.nombre}</div>
           <div class="user-detail-meta">${rolLabel(u.rol)} ${estadoLabel(u.estado)}</div>

@@ -10,12 +10,21 @@
 header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../../core/Auth.php';
 require_once __DIR__ . '/../../core/Response.php';
+require_once __DIR__ . '/../../core/Notificador.php';
+require_once __DIR__ . '/../../core/Auditor.php';
 require_once __DIR__ . '/../../config/db.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') Response::error('Método no permitido.', 405);
 Auth::requireLogin();
 $user = Auth::currentUser();
 $uid  = (int)$user['n_idusuario'];
+
+// Capturar si el usuario YA tenía una foto (modificación) o es la primera (alta)
+// para diferenciar el texto de la notificación al admin.
+$pdoCheck = Database::getConnection();
+$prev = $pdoCheck->prepare("SELECT t_fotoperfil FROM usuarios WHERE n_idusuario = :id");
+$prev->execute([':id' => $uid]);
+$tieneFotoPrevia = !empty($prev->fetchColumn());
 
 // Carpeta destino (relativa a la raíz del proyecto).
 $carpetaAbs = realpath(__DIR__ . '/../../..') . DIRECTORY_SEPARATOR . 'assets' . DIRECTORY_SEPARATOR . 'fotos';
@@ -74,5 +83,32 @@ if ($rutaRelativa === null) Response::error('No se recibió ninguna imagen.');
 $pdo = Database::getConnection();
 $pdo->prepare("UPDATE usuarios SET t_fotoperfil = :p WHERE n_idusuario = :id")
     ->execute([':p' => $rutaRelativa, ':id' => $uid]);
+
+// HU-08.10: notificar a TODOS los administradores que hubo cambio de foto
+// (alta o modificación) para que puedan revisar si cumple los requisitos
+// y, si no, enviar alerta. Cada admin recibe la notificación una sola vez —
+// el sistema marca leída/no-leída por usuario, así no se duplica al refrescar.
+$nombreUsuario = trim(($user['t_nombres'] ?? '') . ' ' . ($user['t_apellidos'] ?? ''));
+if (empty($nombreUsuario)) $nombreUsuario = 'Usuario #' . $uid;
+
+$tituloNotif  = $tieneFotoPrevia
+    ? "Foto de perfil modificada"
+    : "Nueva foto de perfil cargada";
+$mensajeNotif = $tieneFotoPrevia
+    ? "$nombreUsuario actualizó su foto de perfil. Revisa que cumpla los requisitos institucionales."
+    : "$nombreUsuario subió por primera vez su foto de perfil. Revisa que cumpla los requisitos institucionales.";
+
+// El link lleva al admin a la lista de usuarios donde puede abrir el modal
+// "Moderar foto" del usuario afectado. Pasamos el id como referencia para
+// futuro deep-link.
+Notificador::notificarAdmins('alerta_foto', $tituloNotif, $mensajeNotif,
+    'Admin-Usuarios.html', $uid);
+
+// Auditar la acción del propio usuario sobre su foto
+Auditor::registrar('usuarios',
+    $tieneFotoPrevia ? 'modificar_foto_propia' : 'subir_foto_propia',
+    $uid, $uid,
+    ($tieneFotoPrevia ? 'Foto de perfil modificada' : 'Foto de perfil cargada por primera vez') .
+    " — ruta: $rutaRelativa");
 
 Response::json(['ruta' => $rutaRelativa], 200, 'Foto de perfil actualizada.');
