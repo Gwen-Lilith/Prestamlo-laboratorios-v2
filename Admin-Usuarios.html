@@ -632,6 +632,8 @@
         estado:   u.t_activo === 'S' ? 'activo' : 'inactivo',
         _activo:  u.t_activo,
         foto:     u.t_fotoperfil || null,
+        // Fecha de creación para mostrar antigüedad de los pendientes
+        fechaCreacion: u.dt_fechacreacion || '',
         prestamos: []
       }));
       // Solo los t_activo='N' aparecen como pendientes de aprobación.
@@ -655,21 +657,37 @@
   }
 
   // HU-08.04: vista de pendientes con botones Aprobar/Rechazar reales.
+  // Muestra fecha de auto-registro y un badge si lleva > 3 días esperando
+  // (lo más probable es que sea de prueba y debe rechazarse para limpiar).
   function renderPendientes() {
     const cont = document.getElementById('pending-list');
     if (!pendientes.length) { cont.innerHTML = `<div class="empty-state"><i class="fa-solid fa-circle-check"></i><p>No hay usuarios pendientes</p></div>`; return; }
-    cont.innerHTML = pendientes.map(p => `
+    const ahora = Date.now();
+    cont.innerHTML = pendientes.map(p => {
+      let fechaTxt = '', viejoBadge = '';
+      if (p.fechaCreacion) {
+        const tsCreacion = new Date(p.fechaCreacion.replace(' ', 'T')).getTime();
+        if (!isNaN(tsCreacion)) {
+          const dias = Math.floor((ahora - tsCreacion) / 86400000);
+          fechaTxt = ` · Solicitó hace ${dias===0?'hoy':(dias+' día'+(dias!==1?'s':''))}`;
+          if (dias >= 3) {
+            viejoBadge = ' <span style="background:#FEE2E2;color:#991B1B;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700;margin-left:4px"><i class="fa-solid fa-clock"></i> ANTIGUO</span>';
+          }
+        }
+      }
+      return `
       <div class="pending-item">
         ${avatarHTML(p)}
         <div class="pending-info">
-          <div class="pending-name">${escapeHtml(p.nombre)}</div>
-          <div class="pending-sub">${escapeHtml(p.cedula)} · ${escapeHtml(p.correo)}</div>
+          <div class="pending-name">${escapeHtml(p.nombre)}${viejoBadge}</div>
+          <div class="pending-sub">${escapeHtml(p.cedula)} · ${escapeHtml(p.correo)}${escapeHtml(fechaTxt)}</div>
         </div>
         <div class="pending-actions">
           <button class="btn-approve" onclick="aprobarPendiente(${p.id})"><i class="fa-solid fa-check"></i> Aprobar</button>
           <button class="btn-reject"  onclick="rechazarPendiente(${p.id})"><i class="fa-solid fa-xmark"></i> Rechazar</button>
         </div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
   }
 
   async function aprobarPendiente(id) {
@@ -797,11 +815,14 @@
         // Mostramos: info del estado + textarea con motivo actual editable +
         // tres acciones posibles: Actualizar motivo / Quitar alerta / Eliminar foto.
         info.style.display = 'block';
+        // Plazo de gracia con granularidad real (días + horas + minutos)
+        const tiempoRestante = d.texto_gracia || `${d.dias_restantes||0}/${d.dias_gracia_total} días`;
         info.innerHTML = `
           <strong><i class="fa-solid fa-triangle-exclamation"></i> Alerta enviada</strong><br>
           Fecha: <strong>${d.fecha_alerta}</strong><br>
           Por: <strong>${d.alertado_por}</strong><br>
-          Días restantes de gracia: <strong>${d.dias_restantes}/${d.dias_gracia_total}</strong><br>
+          Tiempo restante de gracia: <strong>${tiempoRestante}</strong>
+          <span style="color:#9CA3AF;font-size:11px"> (de ${d.dias_gracia_total} días)</span><br>
           ${d.puede_eliminar
             ? '<span style="color:#B45309">El plazo de gracia terminó — puedes eliminar la foto sin restricciones.</span>'
             : '<span style="color:#92400E">Aún hay plazo de gracia. Si fue por error, usa "Quitar alerta". Si es urgente, "Eliminar ahora".</span>'}

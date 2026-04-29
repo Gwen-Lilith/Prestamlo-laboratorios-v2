@@ -775,23 +775,38 @@
         if (elCan && d.t_canal_preferido) elCan.value = d.t_canal_preferido;
         actualizarCanalUI();
 
-        // HU-08.07 + HU-08.10: precargar la foto guardada en BD al avatar grande
-        // y al avatar del navbar — para que SIEMPRE se vea consistente y persista
-        // entre recargas (era el bug que el usuario reportó: "la foto se ve solo
-        // hasta que recargas").
+        // HU-08.07 + HU-08.10: sincronizar avatar con la BD.
+        // Si la BD tiene foto, mostrarla en perfil + navbar y persistir
+        // en sessionStorage. Si NO tiene (admin la eliminó o nunca subió),
+        // mostrar SOLO las iniciales y borrar la cache local — antes el
+        // navegador mantenía la foto eliminada por sessionStorage y por
+        // el src= cacheado del <img>.
+        const elPerfilImg   = document.getElementById('perfilImg');
+        const elPerfilInits = document.getElementById('perfilInitials');
+        const elNavAvatar   = document.getElementById('nav-avatar-img');
         if (d.t_fotoperfil) {
           const url = d.t_fotoperfil + '?t=' + Date.now();
-          const elPerfilImg   = document.getElementById('perfilImg');
-          const elPerfilInits = document.getElementById('perfilInitials');
-          if (elPerfilImg) {
-            elPerfilImg.src = url;
-            elPerfilImg.style.display = 'block';
-          }
-          if (elPerfilInits) elPerfilInits.style.display = 'none';
-          document.getElementById('nav-avatar-img').src = url;
-          // Compatibilidad con volver.js (lee usr.foto) — guardamos en ambas.
+          if (elPerfilImg)   { elPerfilImg.src = url; elPerfilImg.style.display = 'block'; }
+          if (elPerfilInits) { elPerfilInits.style.display = 'none'; }
+          if (elNavAvatar)   { elNavAvatar.src = url; elNavAvatar.style.display = 'block'; }
           usr.foto = d.t_fotoperfil;
           usr.fotoperfil = d.t_fotoperfil;
+          sessionStorage.setItem('usuario', JSON.stringify(usr));
+        } else {
+          // Sin foto en BD: limpiar TODO para no mostrar imagen vieja.
+          if (elPerfilImg)   { elPerfilImg.removeAttribute('src'); elPerfilImg.style.display = 'none'; }
+          if (elPerfilInits) { elPerfilInits.style.display = 'flex'; }
+          // Reemplazar el avatar genérico del navbar con un círculo de iniciales
+          // generado al vuelo (data URL en SVG). Asi nunca queda una foto vieja
+          // pegada en el <img> aunque el navegador haya cacheado el src previo.
+          if (elNavAvatar) {
+            const ini = (usr.nombre||'?').split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase() || '?';
+            const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="60" height="60"><rect width="60" height="60" fill="%237C3AED"/><text x="50%25" y="50%25" font-family="Arial,sans-serif" font-size="22" font-weight="700" fill="white" text-anchor="middle" dominant-baseline="central">${ini}</text></svg>`;
+            elNavAvatar.src = 'data:image/svg+xml;utf8,' + svg;
+          }
+          // Quitar el cache local de la foto para que volver.js NO la reaplique
+          delete usr.foto;
+          delete usr.fotoperfil;
           sessionStorage.setItem('usuario', JSON.stringify(usr));
         }
       }

@@ -145,16 +145,51 @@
     inyectarBandejaNotificaciones();
   }
 
-  // ── Avatar global: si el usuario tiene foto de perfil guardada, úsala ──
-  // El sessionStorage guarda la ruta en usr.foto tras subir o al hacer login.
-  // Se aplica a cualquier <img id="nav-avatar-img"> en páginas internas.
-  function aplicarFotoPerfil() {
+  // ── Avatar global: aplica la foto de perfil al <img> del navbar ──
+  // Verifica el ESTADO REAL en la BD (perfil/datos.php) antes de aplicar
+  // cualquier foto. Si la BD dice que ya no hay foto (admin la eliminó,
+  // usuario la borró), limpia el src y borra usr.foto del sessionStorage
+  // para que el navbar no se quede con la imagen vieja cacheada.
+  async function aplicarFotoPerfil() {
     try {
       const usr = JSON.parse(sessionStorage.getItem('usuario') || 'null');
-      if (!usr || !usr.foto) return;
-      document.querySelectorAll('#nav-avatar-img, .nav-avatar img').forEach(img => {
-        img.src = usr.foto + '?t=' + Date.now();
-      });
+      if (!usr) return;
+      const imgs = document.querySelectorAll('#nav-avatar-img, .nav-avatar img');
+      if (!imgs.length) return;
+
+      // Llamamos a la API solo si el endpoint existe en este origen.
+      // datos.php está protegido — si no hay sesión, no responde 200.
+      let fotoEnBD = null;
+      try {
+        const r = await fetch('backend/modules/perfil/datos.php?_t=' + Date.now(), {
+          credentials: 'same-origin', cache: 'no-store'
+        });
+        if (r.ok) {
+          const j = await r.json();
+          if (j && j.ok && j.data) fotoEnBD = j.data.t_fotoperfil || null;
+        }
+      } catch (_) {}
+
+      if (fotoEnBD) {
+        // Hay foto vigente: aplicarla y persistirla en sessionStorage
+        const url = fotoEnBD + '?t=' + Date.now();
+        imgs.forEach(img => { img.src = url; });
+        usr.foto = fotoEnBD;
+        usr.fotoperfil = fotoEnBD;
+        sessionStorage.setItem('usuario', JSON.stringify(usr));
+      } else if (usr.foto) {
+        // El usuario tenía foto en cache pero la BD ya no la tiene: limpiar
+        delete usr.foto;
+        delete usr.fotoperfil;
+        sessionStorage.setItem('usuario', JSON.stringify(usr));
+        // Reemplazar la imagen por iniciales en SVG (no dejar cacheado el src viejo)
+        const ini = (usr.nombre||'?').split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase() || '?';
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="60" height="60"><rect width="60" height="60" fill="%237C3AED"/><text x="50%25" y="50%25" font-family="Arial,sans-serif" font-size="22" font-weight="700" fill="white" text-anchor="middle" dominant-baseline="central">${ini}</text></svg>`;
+        imgs.forEach(img => { img.src = 'data:image/svg+xml;utf8,' + svg; });
+      } else if (usr.foto) {
+        // Caso fallback: si no se pudo consultar la BD pero hay foto local, usarla
+        imgs.forEach(img => { img.src = usr.foto + '?t=' + Date.now(); });
+      }
     } catch (_) { /* ignore */ }
   }
   if (document.readyState === 'loading') {

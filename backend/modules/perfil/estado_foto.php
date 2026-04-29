@@ -38,12 +38,38 @@ $tieneAlerta  = !empty($u['dt_alerta_foto']);
 $diasGracia   = 7; // días que tiene el usuario para actualizar tras alerta
 $venceGracia  = false;
 $diasRestantes = null;
+$horasRestantes = null;
+$minutosRestantes = null;
+$textoGracia = null;       // "6 días 23 horas restantes", "5 minutos restantes", etc.
+
 if ($tieneAlerta) {
     $tsAlerta = strtotime($u['dt_alerta_foto']);
     $tsAhora  = time();
-    $diasTranscurridos = floor(($tsAhora - $tsAlerta) / 86400);
-    $diasRestantes = max(0, $diasGracia - $diasTranscurridos);
-    $venceGracia   = $diasRestantes === 0;
+    $segundosTotalGracia = $diasGracia * 86400;     // 7 días en segundos
+    $segundosTranscurridos = max(0, $tsAhora - $tsAlerta);
+    $segundosRestantes = max(0, $segundosTotalGracia - $segundosTranscurridos);
+
+    // Granularidad real: días + horas + minutos (no solo días enteros).
+    // Antes el sistema mostraba "7/7" durante 24h aunque ya hubieran
+    // pasado horas — ahora el conteo es realista hasta el último minuto.
+    $diasRestantes    = (int)floor($segundosRestantes / 86400);
+    $horasRestantes   = (int)floor(($segundosRestantes % 86400) / 3600);
+    $minutosRestantes = (int)floor(($segundosRestantes % 3600) / 60);
+
+    $venceGracia = ($segundosRestantes <= 0);
+
+    // Texto humano amigable para mostrar en el modal
+    if ($segundosRestantes <= 0) {
+        $textoGracia = 'Plazo de gracia terminado';
+    } elseif ($diasRestantes >= 1) {
+        $textoGracia = $diasRestantes . ' día' . ($diasRestantes !== 1 ? 's' : '')
+                     . ' y ' . $horasRestantes . ' hora' . ($horasRestantes !== 1 ? 's' : '');
+    } elseif ($horasRestantes >= 1) {
+        $textoGracia = $horasRestantes . ' hora' . ($horasRestantes !== 1 ? 's' : '')
+                     . ' y ' . $minutosRestantes . ' minuto' . ($minutosRestantes !== 1 ? 's' : '');
+    } else {
+        $textoGracia = max(1, $minutosRestantes) . ' minuto' . ($minutosRestantes !== 1 ? 's' : '');
+    }
 }
 
 Response::json([
@@ -62,5 +88,8 @@ Response::json([
         : null,
     'dias_gracia_total'=> $diasGracia,
     'dias_restantes'   => $diasRestantes,
+    'horas_restantes'  => $horasRestantes,
+    'minutos_restantes'=> $minutosRestantes,
+    'texto_gracia'     => $textoGracia,
     'puede_eliminar'   => $tieneAlerta && $venceGracia && $tieneFoto
 ]);
