@@ -20,7 +20,11 @@ Auth::requireLogin();
 $user = Auth::currentUser();
 
 $data = Validator::obtenerBodyJSON();
-$id   = $data['id'] ?? 0;
+$id     = $data['id'] ?? 0;
+// HU-08.10: 'forzar' permite al admin saltar el plazo de gracia cuando lo
+// considere urgente (foto ofensiva, identidad falsa, etc.). La acción queda
+// igualmente registrada en auditoría para responsabilidad.
+$forzar = !empty($data['forzar']);
 if (!Validator::validarEntero($id)) Response::error('ID inválido.');
 
 $pdo = Database::getConnection();
@@ -39,15 +43,17 @@ if (!$esAdmin && !$esDueno) {
     Response::error('No tiene permisos para eliminar esta foto.', 403);
 }
 
-// Si admin elimina foto de OTRO usuario, debe haber alerta vigente con 7+ días.
-if ($esAdmin && !$esDueno) {
+// Si admin elimina foto de OTRO usuario:
+// - Sin 'forzar': debe haber alerta previa Y 7 días de gracia transcurridos
+// - Con 'forzar': se permite inmediato pero queda registrado como eliminación forzada
+if ($esAdmin && !$esDueno && !$forzar) {
     if (empty($u['dt_alerta_foto'])) {
-        Response::error('Primero debes enviar una alerta antes de eliminar la foto.');
+        Response::error('Primero debes enviar una alerta antes de eliminar la foto. Si es urgente, envía la solicitud con forzar=true.');
     }
     $diasTranscurridos = floor((time() - strtotime($u['dt_alerta_foto'])) / 86400);
     if ($diasTranscurridos < 7) {
         $faltan = 7 - $diasTranscurridos;
-        Response::error("Faltan $faltan día(s) de gracia desde la alerta. Aún no puedes eliminar la foto.");
+        Response::error("Faltan $faltan día(s) de gracia desde la alerta. Si es urgente puedes saltar la gracia con 'forzar'.");
     }
 }
 
@@ -66,16 +72,24 @@ $pdo->prepare("UPDATE usuarios SET
 
 // Notificar al usuario afectado (solo si quien borra es otro)
 if (!$esDueno) {
+    $detalleNotif = $forzar
+        ? 'Un administrador eliminó tu foto de perfil de manera inmediata. Por favor súbela de nuevo cumpliendo los requisitos institucionales.'
+        : 'Un administrador eliminó tu foto de perfil tras el plazo de gracia. Por favor súbela de nuevo cumpliendo los requisitos.';
     Notificador::notificar($id, 'alerta_foto',
         'Tu foto de perfil fue eliminada',
-        'Un administrador eliminó tu foto de perfil. Por favor súbela de nuevo cumpliendo los requisitos.',
-        'Admin-Foto-Perfil.html', $id);
+        $detalleNotif,
+        'dashboard-usuario.html', $id);
 }
 
-// Auditar
-Auditor::registrar('usuarios',
-    $esDueno ? 'eliminar_foto_propia' : 'eliminar_foto_admin',
-    $id, $user['n_idusuario'],
-    'Foto de perfil eliminada' . ($esDueno ? ' por el propio usuario' : ' por admin'));
+// Auditar — diferenciamos eliminación normal vs forzada para tener trazabilidad
+$accionAud = $esDueno
+    ? 'eliminar_foto_propia'
+    : ($forzar ? 'eliminar_foto_admin_forzada' : 'eliminar_foto_admin');
+$descAud = $esDueno
+    ? 'Foto de perfil eliminada por el propio usuario'
+    : ($forzar
+        ? 'Foto de perfil ELIMINADA INMEDIATAMENTE por admin (saltando gracia de 7 días)'
+        : 'Foto de perfil eliminada por admin tras plazo de gracia');
+Auditor::registrar('usuarios', $accionAud, $id, $user['n_idusuario'], $descAud);
 
 Response::json(null, 200, 'Foto eliminada correctamente.');

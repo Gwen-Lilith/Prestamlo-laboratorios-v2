@@ -754,6 +754,9 @@
     if (row) row.style.display = (canal === 'whatsapp' || canal === 'todos') ? '' : 'none';
   }
 
+  // Avatar default del navbar (se sobreescribe con la foto real si existe en BD)
+  document.getElementById('nav-avatar-img').src = 'assets/images/AVATARPROFESOR.jpg';
+
   fetch('backend/modules/perfil/datos.php', { credentials:'same-origin' })
     .then(r => r.json())
     .then(j => {
@@ -771,12 +774,27 @@
         if (elKey) elKey.value = d.t_telefono_apikey || '';
         if (elCan && d.t_canal_preferido) elCan.value = d.t_canal_preferido;
         actualizarCanalUI();
+
+        // HU-08.07 + HU-08.10: precargar la foto guardada en BD al avatar grande
+        // y al avatar del navbar — para que SIEMPRE se vea consistente y persista
+        // entre recargas (era el bug que el usuario reportó: "la foto se ve solo
+        // hasta que recargas").
+        if (d.t_fotoperfil) {
+          const url = d.t_fotoperfil + '?t=' + Date.now();
+          const elPerfilImg   = document.getElementById('perfilImg');
+          const elPerfilInits = document.getElementById('perfilInitials');
+          if (elPerfilImg) {
+            elPerfilImg.src = url;
+            elPerfilImg.style.display = 'block';
+          }
+          if (elPerfilInits) elPerfilInits.style.display = 'none';
+          document.getElementById('nav-avatar-img').src = url;
+          usr.fotoperfil = d.t_fotoperfil;
+          sessionStorage.setItem('usuario', JSON.stringify(usr));
+        }
       }
     })
     .catch(() => { actualizarCanalUI(); });
-
-  const avatarSrc = 'assets/images/AVATARPROFESOR.jpg';
-  document.getElementById('nav-avatar-img').src = avatarSrc;
 
   document.getElementById('btn-salir').addEventListener('click', () => {
     sessionStorage.removeItem('usuario'); window.location.href = 'index.html';
@@ -1302,8 +1320,23 @@
     }
   }
 
-  function cambiarFotoPerfil(e) {
+  // HU-08.07 + HU-08.10: subir la foto al servidor (no solo mostrarla en local).
+  // El endpoint subir_foto.php guarda el archivo en assets/fotos/ y actualiza la
+  // columna t_fotoperfil; el admin sólo puede moderar/eliminar fotos que están
+  // en BD, así que esta persistencia es crítica para el flujo completo.
+  async function cambiarFotoPerfil(e) {
     const file = e.target.files[0]; if(!file) return;
+
+    // Validación cliente: tipo y tamaño (evita pegar al servidor con basura)
+    const tiposOk = ['image/jpeg','image/jpg','image/png','image/webp','image/gif'];
+    if (!tiposOk.includes(file.type)) {
+      showToast('Tipo de imagen no permitido. Usa JPG, PNG, WEBP o GIF.','error'); return;
+    }
+    if (file.size > 3 * 1024 * 1024) {
+      showToast('La imagen supera 3 MB. Usa una más liviana.','error'); return;
+    }
+
+    // Vista previa inmediata (mientras sube)
     const reader = new FileReader();
     reader.onload = ev => {
       const img = document.getElementById('perfilImg');
@@ -1313,6 +1346,37 @@
       document.getElementById('nav-avatar-img').src = ev.target.result;
     };
     reader.readAsDataURL(file);
+
+    // Subida real al backend
+    try {
+      const fd = new FormData();
+      fd.append('foto', file);
+      const resp = await fetch('backend/modules/perfil/subir_foto.php', {
+        method: 'POST',
+        credentials: 'same-origin',
+        body: fd
+      });
+      const json = await resp.json();
+      if (!resp.ok || !json.ok) {
+        showToast(json.mensaje || 'No se pudo guardar la foto.','error');
+        return;
+      }
+      // Actualizar src para que apunte a la URL guardada en servidor
+      // (así sobrevive al refresh y el admin la ve también)
+      const ruta = (json.data && json.data.ruta) ? json.data.ruta : null;
+      if (ruta) {
+        // Cache-bust para que el navegador recargue al instante
+        const url = ruta + '?t=' + Date.now();
+        document.getElementById('perfilImg').src = url;
+        document.getElementById('nav-avatar-img').src = url;
+        // Persistir en sessionStorage para los próximos navigates
+        usr.fotoperfil = ruta;
+        sessionStorage.setItem('usuario', JSON.stringify(usr));
+      }
+      showToast('Foto guardada en tu perfil.','success');
+    } catch (err) {
+      showToast('No se pudo contactar al servidor.','error');
+    }
   }
 
   // ── MODALES ──

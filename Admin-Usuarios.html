@@ -535,7 +535,10 @@
     <div class="modal-footer">
       <button class="btn-secondary" onclick="cerrarModal('modalFoto')"><i class="fa-solid fa-xmark"></i> Cerrar</button>
       <button class="btn-primary" id="fotoBtnAlertar" onclick="ejecutarAlertaFoto()" style="display:none;background:#F59E0B"><i class="fa-solid fa-bell"></i> Enviar alerta</button>
-      <button class="btn-danger" id="fotoBtnEliminar" onclick="ejecutarEliminarFoto()" style="display:none"><i class="fa-solid fa-trash"></i> Eliminar foto</button>
+      <button class="btn-danger" id="fotoBtnEliminar" onclick="ejecutarEliminarFoto(false)" style="display:none"><i class="fa-solid fa-trash"></i> Eliminar foto</button>
+      <!-- HU-08.10: opción "Eliminar ahora" para casos urgentes (foto ofensiva, identidad falsa);
+           queda registrada como eliminación forzada en auditoría -->
+      <button class="btn-danger" id="fotoBtnEliminarYa" onclick="ejecutarEliminarFoto(true)" style="display:none;background:#991B1B"><i class="fa-solid fa-bolt"></i> Eliminar ahora</button>
     </div>
   </div>
 </div>
@@ -739,17 +742,20 @@
         ? '<i class="fa-solid fa-check" style="color:#16A34A"></i> Tiene foto cargada'
         : '<i class="fa-solid fa-xmark" style="color:#DC2626"></i> Sin foto';
 
-      const info     = document.getElementById('fotoAlertaInfo');
-      const motivo   = document.getElementById('fotoMotivoBox');
-      const btnAlert = document.getElementById('fotoBtnAlertar');
-      const btnElim  = document.getElementById('fotoBtnEliminar');
+      const info        = document.getElementById('fotoAlertaInfo');
+      const motivo      = document.getElementById('fotoMotivoBox');
+      const btnAlert    = document.getElementById('fotoBtnAlertar');
+      const btnElim     = document.getElementById('fotoBtnEliminar');
+      const btnElimYa   = document.getElementById('fotoBtnEliminarYa');
 
       // Reset visibilidad
       info.style.display = motivo.style.display = 'none';
-      btnAlert.style.display = btnElim.style.display = 'none';
+      btnAlert.style.display = btnElim.style.display = btnElimYa.style.display = 'none';
 
+      // El admin SIEMPRE puede eliminar inmediatamente si tiene foto;
+      // los botones disponibles dependen del estado de alerta.
       if (d.tiene_alerta) {
-        // Ya hay alerta → mostrar info y, si terminó la gracia, habilitar eliminar
+        // Ya hay alerta → mostrar info de gracia
         info.style.display = 'block';
         info.innerHTML = `
           <strong><i class="fa-solid fa-triangle-exclamation"></i> Alerta enviada</strong><br>
@@ -757,14 +763,27 @@
           Por: <strong>${d.alertado_por}</strong><br>
           Días restantes de gracia: <strong>${d.dias_restantes}/${d.dias_gracia_total}</strong><br>
           ${d.puede_eliminar
-            ? '<span style="color:#B45309">El plazo de gracia terminó. Puedes eliminar la foto.</span>'
-            : '<span style="color:#92400E">Esperar a que termine el plazo de gracia para poder eliminar.</span>'}
+            ? '<span style="color:#B45309">El plazo de gracia terminó. Puedes eliminar la foto sin restricciones.</span>'
+            : '<span style="color:#92400E">Aún hay plazo de gracia. Si es urgente, usa "Eliminar ahora" para saltar la espera.</span>'}
         `;
-        if (d.puede_eliminar) btnElim.style.display = 'inline-flex';
-      } else {
-        // Sin alerta → permitir crear alerta con motivo editable
+        if (d.puede_eliminar) {
+          // Eliminación normal (gracia cumplida)
+          btnElim.style.display = 'inline-flex';
+        } else if (d.tiene_foto) {
+          // Eliminación forzada para casos urgentes
+          btnElimYa.style.display = 'inline-flex';
+        }
+      } else if (d.tiene_foto) {
+        // Sin alerta, con foto → mostrar formulario de alerta + opción eliminar inmediato
         motivo.style.display = 'block';
         btnAlert.style.display = 'inline-flex';
+        btnElimYa.style.display = 'inline-flex';
+      } else {
+        // Sin foto → no hay nada que hacer
+        info.style.display = 'block';
+        info.style.background = '#F3F4F6';
+        info.style.borderLeftColor = '#9CA3AF';
+        info.innerHTML = '<i class="fa-solid fa-info-circle" style="color:#6B7280"></i> Este usuario no tiene foto de perfil cargada — no hay nada que moderar.';
       }
 
       document.getElementById('modalFoto').classList.add('open');
@@ -789,17 +808,22 @@
     } catch { showToast('No se pudo contactar al servidor.','error'); }
   }
 
-  async function ejecutarEliminarFoto() {
+  // forzar=true salta el plazo de gracia (caso urgente: foto ofensiva, identidad falsa, etc.)
+  async function ejecutarEliminarFoto(forzar) {
     if (!_fotoModerarId) return;
+    if (forzar) {
+      // Confirmación adicional para no eliminar por accidente saltando la gracia
+      if (!confirm('¿Eliminar la foto AHORA mismo, saltando el plazo de gracia?\n\nEsta acción quedará registrada en auditoría como eliminación forzada y se notificará al usuario.')) return;
+    }
     try {
       const r = await fetch(API + 'perfil/eliminar_foto.php', {
         method:'POST', credentials:'same-origin',
         headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ id: _fotoModerarId })
+        body: JSON.stringify({ id: _fotoModerarId, forzar: !!forzar })
       });
       const j = await r.json();
       if (!r.ok || !j.ok) { showToast(j.mensaje||'No se pudo eliminar.','error'); return; }
-      showToast('Foto eliminada.','warning');
+      showToast(forzar ? 'Foto eliminada inmediatamente.' : 'Foto eliminada.','warning');
       cerrarModal('modalFoto');
       await refrescarTodo();
     } catch { showToast('No se pudo contactar al servidor.','error'); }
