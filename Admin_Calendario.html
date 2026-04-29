@@ -351,6 +351,7 @@
 
   // Solicitudes por día (desde el backend).
   // { 'YYYY-MM-DD': [{id, solicitante, elemento, laboratorio, estado}] }
+  // Estructura mantenida por compatibilidad (puede ser usada por otras vistas), pero ya no se llena en este calendario.
   let solicitudesPorDia = {};
 
   const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -429,16 +430,9 @@
       el.textContent=d;
       if(holidays[key]){ el.classList.add('holiday'); } else { el.classList.add('available'); cntDisp++; }
 
-      // Marca visual si hay préstamos ese día (backend).
-      const sols = solicitudesPorDia[key] || [];
-      if (sols.length) {
-        el.style.position = 'relative';
-        el.title = sols.map(s => `#${s.id} ${s.elemento} — ${s.solicitante} (${s.estado})`).join('\n');
-        const dot = document.createElement('span');
-        dot.style.cssText = 'position:absolute;bottom:4px;right:4px;min-width:16px;height:16px;border-radius:8px;background:#C0186A;color:#fff;font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;padding:0 4px';
-        dot.textContent = sols.length;
-        el.appendChild(dot);
-      }
+      // El calendario de admin solo muestra disponibilidad (verde) vs no-hábil (rojo).
+      // Los detalles de solicitudes se ven en otra vista — aquí no los repintamos
+      // para no contaminar la lectura del calendario.
 
       el.addEventListener('click',()=>toggleHoliday(key));
       grid.appendChild(el);
@@ -520,7 +514,9 @@
   }
 
   (async () => {
-    await Promise.all([cargarSolicitudesCalendario(), cargarHolidays()]);
+    // El calendario de admin solo necesita los días no-hábiles; los préstamos
+    // detallados viven en su propia vista para no saturar visualmente.
+    await cargarHolidays();
     renderCalendar();
   })();
 </script>

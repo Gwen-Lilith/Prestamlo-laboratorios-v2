@@ -608,33 +608,58 @@
             <div class="perfil-section">
               <div class="form-section-title"><i class="fa-solid fa-pen"></i> Editar Datos</div>
               <div class="form-row">
-                <div class="form-group">
+                <div class="form-group" style="flex:2">
                   <label class="form-label">Nombre</label>
                   <div class="input-wrap"><i class="input-icon fa-solid fa-user"></i><input class="form-control" type="text" id="edit-p-nombre"/></div>
                 </div>
-                <div class="form-group">
-                  <label class="form-label">Teléfono <span style="font-weight:400;color:#6b7280;font-size:.78em">(con prefijo país, ej. +57301...)</span></label>
-                  <div class="input-wrap"><i class="input-icon fa-solid fa-phone"></i><input class="form-control" type="text" id="edit-p-telefono" placeholder="+573001234567"/></div>
+                <div class="form-group" style="flex:1.5">
+                  <label class="form-label">Teléfono</label>
+                  <!-- Selector de prefijo país (Colombia por defecto) + número local -->
+                  <div style="display:flex;gap:6px">
+                    <select class="form-control" id="edit-p-prefijo" style="max-width:120px;flex:0 0 auto">
+                      <option value="+57">🇨🇴 +57</option>
+                      <option value="+58">🇻🇪 +58</option>
+                      <option value="+593">🇪🇨 +593</option>
+                      <option value="+51">🇵🇪 +51</option>
+                      <option value="+507">🇵🇦 +507</option>
+                      <option value="+1">🇺🇸 +1</option>
+                      <option value="+52">🇲🇽 +52</option>
+                      <option value="+34">🇪🇸 +34</option>
+                      <option value="+54">🇦🇷 +54</option>
+                      <option value="+56">🇨🇱 +56</option>
+                      <option value="+55">🇧🇷 +55</option>
+                      <option value="+33">🇫🇷 +33</option>
+                      <option value="+44">🇬🇧 +44</option>
+                      <option value="+49">🇩🇪 +49</option>
+                    </select>
+                    <div class="input-wrap" style="flex:1"><i class="input-icon fa-solid fa-phone"></i><input class="form-control" type="text" id="edit-p-telefono" placeholder="3001234567"/></div>
+                  </div>
                 </div>
               </div>
 
               <!-- HU-07.04: Configuración multi-canal de notificaciones (correo / whatsapp / inapp) -->
-              <div class="form-section-title" style="margin-top:4px"><i class="fa-solid fa-bell"></i> Notificaciones</div>
+              <div class="form-section-title" style="margin-top:4px"><i class="fa-solid fa-bell"></i> Cómo quieres recibir las notificaciones</div>
               <div class="form-row">
                 <div class="form-group">
-                  <label class="form-label">Canal preferido</label>
+                  <label class="form-label">Medio preferido</label>
                   <div class="input-wrap"><i class="input-icon fa-solid fa-paper-plane"></i>
-                    <select class="form-control" id="edit-p-canal">
-                      <option value="inapp">Solo aplicación (campanita)</option>
-                      <option value="correo">Aplicación + correo electrónico</option>
-                      <option value="whatsapp">Aplicación + WhatsApp</option>
-                      <option value="todos">Aplicación + correo + WhatsApp</option>
+                    <select class="form-control" id="edit-p-canal" onchange="actualizarCanalUI()">
+                      <option value="inapp">Solo dentro de la app (campanita)</option>
+                      <option value="correo">App + correo electrónico</option>
+                      <option value="whatsapp">App + WhatsApp</option>
+                      <option value="todos">App + correo + WhatsApp</option>
                     </select>
                   </div>
                 </div>
-                <div class="form-group">
-                  <label class="form-label">API key WhatsApp <span style="font-weight:400;color:#6b7280;font-size:.78em">(CallMeBot — opcional)</span></label>
-                  <div class="input-wrap"><i class="input-icon fa-brands fa-whatsapp"></i><input class="form-control" type="text" id="edit-p-apikey" placeholder="Sin clave envía solo enlace wa.me"/></div>
+                <div class="form-group" id="row-apikey">
+                  <label class="form-label">Clave personal de WhatsApp <span style="font-weight:400;color:#6b7280;font-size:.78em">(opcional)</span></label>
+                  <div class="input-wrap"><i class="input-icon fa-brands fa-whatsapp"></i><input class="form-control" type="text" id="edit-p-apikey" placeholder="Déjalo vacío si no la tienes"/></div>
+                  <div style="font-size:11px;color:#6b7280;margin-top:4px;line-height:1.45">
+                    Sin la clave, las notificaciones llegarán como un <strong>enlace a WhatsApp Web</strong> que el sistema genera automáticamente.
+                    Si quieres que el mensaje te llegue al chat sin un solo clic, sigue
+                    <a href="https://www.callmebot.com/blog/free-api-whatsapp-messages/" target="_blank" rel="noopener" style="color:#7C3AED;text-decoration:underline">esta guía gratuita</a>
+                    para obtener tu clave personal.
+                  </div>
                 </div>
               </div>
 
@@ -710,20 +735,45 @@
 
   // HU-08.07 + HU-07.04: precargar datos completos del perfil desde la BD
   // (teléfono, API key WhatsApp, canal preferido) la primera vez.
+  // El teléfono guardado en BD viene con prefijo (ej. +573001234567); separamos
+  // prefijo y número local para mostrar el selector + el input por separado.
+  function separarPrefijo(telefono) {
+    if (!telefono) return { prefijo: '+57', numero: '' };
+    const PREFS = ['+593','+507','+1','+52','+34','+54','+56','+55','+33','+44','+49','+57','+58','+51'];
+    for (const p of PREFS) {
+      if (telefono.startsWith(p)) return { prefijo: p, numero: telefono.slice(p.length) };
+    }
+    // Si no detecta prefijo conocido, asume Colombia
+    return { prefijo: '+57', numero: telefono.replace(/^\+/, '') };
+  }
+
+  // HU-07.04: muestra/oculta el campo de clave WhatsApp según el canal seleccionado
+  function actualizarCanalUI() {
+    const canal = document.getElementById('edit-p-canal')?.value || 'inapp';
+    const row   = document.getElementById('row-apikey');
+    if (row) row.style.display = (canal === 'whatsapp' || canal === 'todos') ? '' : 'none';
+  }
+
   fetch('backend/modules/perfil/datos.php', { credentials:'same-origin' })
     .then(r => r.json())
     .then(j => {
       if (j && j.ok && j.data) {
         const d = j.data;
-        const elTel = document.getElementById('edit-p-telefono');
-        const elKey = document.getElementById('edit-p-apikey');
-        const elCan = document.getElementById('edit-p-canal');
-        if (elTel) elTel.value = d.t_telefono || '';
+        const elTel  = document.getElementById('edit-p-telefono');
+        const elPref = document.getElementById('edit-p-prefijo');
+        const elKey  = document.getElementById('edit-p-apikey');
+        const elCan  = document.getElementById('edit-p-canal');
+        if (elTel || elPref) {
+          const sep = separarPrefijo(d.t_telefono || '');
+          if (elPref) elPref.value = sep.prefijo;
+          if (elTel)  elTel.value  = sep.numero;
+        }
         if (elKey) elKey.value = d.t_telefono_apikey || '';
         if (elCan && d.t_canal_preferido) elCan.value = d.t_canal_preferido;
+        actualizarCanalUI();
       }
     })
-    .catch(() => {/* sin BD usamos los valores en blanco */});
+    .catch(() => { actualizarCanalUI(); });
 
   const avatarSrc = 'assets/images/AVATARPROFESOR.jpg';
   document.getElementById('nav-avatar-img').src = avatarSrc;
@@ -1189,18 +1239,21 @@
 
   // ── PERFIL (HU-08.07 + HU-07.04) — actualiza datos personales, canal multi-notif y password en BD ──
   async function guardarPerfil() {
-    const nombre   = document.getElementById('edit-p-nombre').value.trim();
-    const telefono = document.getElementById('edit-p-telefono')?.value.trim() || '';
-    const apikey   = document.getElementById('edit-p-apikey')?.value.trim() || '';
-    const canal    = document.getElementById('edit-p-canal')?.value || 'inapp';
-    const pass     = document.getElementById('edit-p-pass').value;
-    const pass2    = document.getElementById('edit-p-pass2').value;
+    const nombre     = document.getElementById('edit-p-nombre').value.trim();
+    const prefijo    = document.getElementById('edit-p-prefijo')?.value || '+57';
+    const numeroOnly = (document.getElementById('edit-p-telefono')?.value || '').replace(/\D/g,'');
+    // El teléfono se guarda completo en formato internacional (ej. +573001234567).
+    const telefono   = numeroOnly ? (prefijo + numeroOnly) : '';
+    const apikey     = document.getElementById('edit-p-apikey')?.value.trim() || '';
+    const canal      = document.getElementById('edit-p-canal')?.value || 'inapp';
+    const pass       = document.getElementById('edit-p-pass').value;
+    const pass2      = document.getElementById('edit-p-pass2').value;
     if (!nombre) { showToast('El nombre no puede estar vacío.','error'); return; }
     if (pass && pass !== pass2) { showToast('Las contraseñas no coinciden.','error'); return; }
     if (pass && pass.length < 4) { showToast('La contraseña debe tener mínimo 4 caracteres.','error'); return; }
-    // HU-07.04: si elige whatsapp como canal pero no hay teléfono, avisar.
-    if ((canal === 'whatsapp' || canal === 'todos') && !telefono) {
-      showToast('Para usar WhatsApp debes ingresar tu teléfono con prefijo país.','warning'); return;
+    // HU-07.04: si elige WhatsApp/todos como canal pero no hay teléfono, avisar.
+    if ((canal === 'whatsapp' || canal === 'todos') && !numeroOnly) {
+      showToast('Para usar WhatsApp debes escribir tu número (sin el prefijo).','warning'); return;
     }
 
     // Separar nombre completo en nombres + apellidos.

@@ -508,6 +508,38 @@
   </div>
 </div>
 
+<!-- MODAL MODERAR FOTO (HU-08.10) — UI intuitiva para alertar/eliminar foto de perfil -->
+<div class="modal-overlay" id="modalFoto">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <div class="modal-title">
+        <div class="modal-title-icon" style="background:#7C3AED"><i class="fa-solid fa-camera"></i></div>
+        <span>Moderación de foto de perfil</span>
+      </div>
+      <button class="modal-close" onclick="cerrarModal('modalFoto')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <div id="fotoUserBox" style="display:flex;align-items:center;gap:14px;padding:14px;background:#F9FAFB;border-radius:10px;margin-bottom:18px">
+        <div id="fotoAvatar" style="width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#E5E7EB;color:#fff;font-weight:700;font-size:22px;background-size:cover;background-position:center"></div>
+        <div style="flex:1">
+          <div id="fotoNombre" style="font-weight:600;font-size:16px;color:#111"></div>
+          <div id="fotoEstado" style="font-size:13px;color:#6B7280;margin-top:2px"></div>
+        </div>
+      </div>
+      <div id="fotoAlertaInfo" style="display:none;padding:12px 14px;border-radius:8px;background:#FEF3C7;border-left:4px solid #F59E0B;margin-bottom:14px;font-size:13px;line-height:1.6"></div>
+      <div id="fotoMotivoBox" style="display:none">
+        <label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px">Motivo de la alerta (lo verá el usuario)</label>
+        <textarea id="fotoMotivo" rows="3" style="width:100%;padding:10px 12px;border:1.5px solid #D1D5DB;border-radius:8px;font-family:inherit;font-size:14px;resize:vertical;box-sizing:border-box">Tu foto de perfil no cumple con los requisitos. Por favor actualízala.</textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="cerrarModal('modalFoto')"><i class="fa-solid fa-xmark"></i> Cerrar</button>
+      <button class="btn-primary" id="fotoBtnAlertar" onclick="ejecutarAlertaFoto()" style="display:none;background:#F59E0B"><i class="fa-solid fa-bell"></i> Enviar alerta</button>
+      <button class="btn-danger" id="fotoBtnEliminar" onclick="ejecutarEliminarFoto()" style="display:none"><i class="fa-solid fa-trash"></i> Eliminar foto</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast-container" id="toastContainer"></div>
 
 <script>
@@ -678,51 +710,99 @@
     }).join('');
   }
 
-  // Moderación de foto (HU-08.10): alerta o elimina según estado.
+  // Moderación de foto (HU-08.10): abre modal interno con UI clara — sin confirm()/prompt().
+  // El modal muestra: avatar del usuario, estado de la foto, alerta previa si la hay,
+  // y los botones que correspondan según el estado del flujo de gracia.
+  let _fotoModerarId = null;
   async function moderarFoto(id) {
+    _fotoModerarId = id;
     try {
       const resp = await fetch(API + 'perfil/estado_foto.php?id=' + id + '&_t=' + Date.now(),
         { credentials:'same-origin' });
       const json = await resp.json();
       if (!resp.ok || !json.ok) { showToast(json.mensaje || 'No se pudo cargar.','error'); return; }
       const d = json.data;
-      let txt = `Usuario: ${d.usuario.nombre}\n`;
-      txt += d.tiene_foto ? '✓ Tiene foto\n' : '✗ Sin foto\n';
-      if (d.tiene_alerta) {
-        txt += `\n⚠ Alerta enviada el ${d.fecha_alerta}\n`;
-        txt += `Por: ${d.alertado_por}\n`;
-        txt += `Días restantes de gracia: ${d.dias_restantes}/${d.dias_gracia_total}\n`;
-        if (d.puede_eliminar) txt += '\n¿Eliminar la foto ahora? (Sí / Cancelar)';
-        else                  txt += '\nEsperar a que termine el plazo de gracia.';
-      } else {
-        txt += '\n¿Enviar alerta al usuario para que actualice su foto?\n(Sí / Cancelar)';
-      }
-      const confirmar = confirm(txt);
-      if (!confirmar) return;
 
-      if (!d.tiene_alerta) {
-        const motivo = prompt('Motivo de la alerta:', 'Tu foto de perfil no cumple con los requisitos. Por favor actualízala.');
-        if (motivo === null) return;
-        const r = await fetch(API + 'perfil/alertar_foto.php', {
-          method:'POST', credentials:'same-origin',
-          headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ id, motivo })
-        });
-        const j = await r.json();
-        if (!r.ok || !j.ok) { showToast(j.mensaje||'No se pudo alertar.','error'); return; }
-        showToast('Alerta enviada al usuario.','success');
-      } else if (d.puede_eliminar) {
-        const r = await fetch(API + 'perfil/eliminar_foto.php', {
-          method:'POST', credentials:'same-origin',
-          headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ id })
-        });
-        const j = await r.json();
-        if (!r.ok || !j.ok) { showToast(j.mensaje||'No se pudo eliminar.','error'); return; }
-        showToast('Foto eliminada.','warning');
+      // Avatar: foto si la tiene, iniciales si no.
+      const av = document.getElementById('fotoAvatar');
+      if (d.tiene_foto && d.usuario.foto) {
+        av.style.backgroundImage = `url('${d.usuario.foto}')`;
+        av.textContent = '';
+      } else {
+        av.style.backgroundImage = '';
+        av.style.background = '#7C3AED';
+        av.textContent = (d.usuario.nombre||'?').split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase();
       }
-      await refrescarTodo();
+
+      document.getElementById('fotoNombre').textContent = d.usuario.nombre;
+      document.getElementById('fotoEstado').innerHTML = d.tiene_foto
+        ? '<i class="fa-solid fa-check" style="color:#16A34A"></i> Tiene foto cargada'
+        : '<i class="fa-solid fa-xmark" style="color:#DC2626"></i> Sin foto';
+
+      const info     = document.getElementById('fotoAlertaInfo');
+      const motivo   = document.getElementById('fotoMotivoBox');
+      const btnAlert = document.getElementById('fotoBtnAlertar');
+      const btnElim  = document.getElementById('fotoBtnEliminar');
+
+      // Reset visibilidad
+      info.style.display = motivo.style.display = 'none';
+      btnAlert.style.display = btnElim.style.display = 'none';
+
+      if (d.tiene_alerta) {
+        // Ya hay alerta → mostrar info y, si terminó la gracia, habilitar eliminar
+        info.style.display = 'block';
+        info.innerHTML = `
+          <strong><i class="fa-solid fa-triangle-exclamation"></i> Alerta enviada</strong><br>
+          Fecha: <strong>${d.fecha_alerta}</strong><br>
+          Por: <strong>${d.alertado_por}</strong><br>
+          Días restantes de gracia: <strong>${d.dias_restantes}/${d.dias_gracia_total}</strong><br>
+          ${d.puede_eliminar
+            ? '<span style="color:#B45309">El plazo de gracia terminó. Puedes eliminar la foto.</span>'
+            : '<span style="color:#92400E">Esperar a que termine el plazo de gracia para poder eliminar.</span>'}
+        `;
+        if (d.puede_eliminar) btnElim.style.display = 'inline-flex';
+      } else {
+        // Sin alerta → permitir crear alerta con motivo editable
+        motivo.style.display = 'block';
+        btnAlert.style.display = 'inline-flex';
+      }
+
+      document.getElementById('modalFoto').classList.add('open');
     } catch (err) { showToast('No se pudo contactar al servidor.','error'); }
+  }
+
+  async function ejecutarAlertaFoto() {
+    if (!_fotoModerarId) return;
+    const motivo = document.getElementById('fotoMotivo').value.trim();
+    if (!motivo) { showToast('El motivo no puede estar vacío.','warning'); return; }
+    try {
+      const r = await fetch(API + 'perfil/alertar_foto.php', {
+        method:'POST', credentials:'same-origin',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ id: _fotoModerarId, motivo })
+      });
+      const j = await r.json();
+      if (!r.ok || !j.ok) { showToast(j.mensaje||'No se pudo alertar.','error'); return; }
+      showToast('Alerta enviada al usuario.','success');
+      cerrarModal('modalFoto');
+      await refrescarTodo();
+    } catch { showToast('No se pudo contactar al servidor.','error'); }
+  }
+
+  async function ejecutarEliminarFoto() {
+    if (!_fotoModerarId) return;
+    try {
+      const r = await fetch(API + 'perfil/eliminar_foto.php', {
+        method:'POST', credentials:'same-origin',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ id: _fotoModerarId })
+      });
+      const j = await r.json();
+      if (!r.ok || !j.ok) { showToast(j.mensaje||'No se pudo eliminar.','error'); return; }
+      showToast('Foto eliminada.','warning');
+      cerrarModal('modalFoto');
+      await refrescarTodo();
+    } catch { showToast('No se pudo contactar al servidor.','error'); }
   }
 
   // Recarga datos del backend y re-renderiza todo.
@@ -760,8 +840,14 @@
       ? `<button class="btn-warning" onclick="toggleEstado(${u.id})"><i class="fa-solid fa-user-slash"></i> Desactivar</button>`
       : `<button class="btn-success" onclick="toggleEstado(${u.id})"><i class="fa-solid fa-user-check"></i> Activar</button>`;
 
+    // HU-08.10: si el usuario tiene foto, mostrar botón "Moderar foto" para abrir el modal interno
+    const moderarBtn = u.foto
+      ? `<button class="btn-secondary" onclick="cerrarModal('modalDetalle'); moderarFoto(${u.id})" style="background:#7C3AED;color:#fff;border-color:#7C3AED"><i class="fa-solid fa-camera"></i> Moderar foto</button>`
+      : '';
+
     document.getElementById('modalDetalleFooter').innerHTML = `
       <button class="btn-secondary" onclick="cerrarModal('modalDetalle')">Cerrar</button>
+      ${moderarBtn}
       <select class="filter-select" id="selectRolModal" style="height:36px">
         ${['profesor','auxiliar_tecnico','administrador'].map(r=>`<option value="${r}" ${r===u.rol?'selected':''}>${{profesor:'Usuario',auxiliar_tecnico:'Admin Módulo',administrador:'Super Admin'}[r]}</option>`).join('')}
       </select>
