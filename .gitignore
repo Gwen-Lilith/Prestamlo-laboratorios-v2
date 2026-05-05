@@ -37,3 +37,22 @@ tmp/
 node_modules/
 dist/
 build/
+
+# ───── Configuración con credenciales (NUNCA debe ir al repo) ─────
+# El config.php real contiene credenciales de BD, JWT_SECRET y datos
+# sensibles. Cada instalación debe tener su propio config.php derivado
+# de config.example.php (que SÍ va al repo, con placeholders).
+backend/config/config.php
+
+# ───── Fotos subidas por usuarios (datos de prueba) ─────
+# Las fotos las suben los usuarios del sistema en runtime; no son código.
+assets/fotos/u*
+
+# ───── Exports SQL temporales / fallidos ─────
+EXPORT_*.sql
+backend/sql/EXPORT_*.sql
+
+# ───── Generadores temporales y entregables locales ─────
+generar_requerimientos_pdf.py
+NUV-Requerimientos-*.pdf
+prestamo-laboratorios-front-*.zip

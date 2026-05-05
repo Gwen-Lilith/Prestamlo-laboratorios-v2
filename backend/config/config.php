@@ -1,52 +1,57 @@
 <?php
 /**
- * Configuración general del sistema
+ * Configuración general — VERSIÓN DESARROLLO LOCAL (XAMPP)
  * Sistema de Préstamo de Laboratorio - UPB Bucaramanga
+ *
+ * ╔══════════════════════════════════════════════════════════════════════╗
+ * ║  ⚠️  ESTE ARCHIVO NO DEBE SUBIRSE AL REPOSITORIO PÚBLICO              ║
+ * ║                                                                      ║
+ * ║  Está incluido en .gitignore. Sirve solo para desarrollo local       ║
+ * ║  con XAMPP estándar (root sin contraseña).                           ║
+ * ║                                                                      ║
+ * ║  Para PRODUCCIÓN: copiar config.example.php → config.php             ║
+ * ║  y reemplazar los placeholders por las credenciales del CTIC.        ║
+ * ╚══════════════════════════════════════════════════════════════════════╝
  */
 
-// Configuración de base de datos (XAMPP estándar)
-define('DB_HOST', 'localhost');
-define('DB_NAME', 'Proyectointegrador');
-define('DB_USER', 'root');
-define('DB_PASS', '');
+// ── BD (XAMPP estándar para desarrollo) ─────────────────────────────────
+define('DB_HOST',    'localhost');
+define('DB_NAME',    'Proyectointegrador');
+define('DB_USER',    'root');
+define('DB_PASS',    '');
 define('DB_CHARSET', 'utf8mb4');
 
-// URL base del proyecto (ajustar según ubicación en htdocs)
+// ── URL base (XAMPP htdocs/prestamo-laboratorios/) ──────────────────────
 define('BASE_URL', '/prestamo-laboratorios/');
 
-// ── Configuración LDAP / Directorio Activo UPB ──
-// Credenciales entregadas por el CTIC. El servidor LDAP está en la red
-// interna de la UPB; desde fuera del campus estas conexiones fallarán.
+// ── LDAP UPB (solo dentro de la red institucional) ──────────────────────
 define('LDAP_URL',         'ldap://10.146.36.100:389');
-define('LDAP_SERVER_HOST', 'ldap://polilla.upbbga.edu.co:389');   // fallback por hostname
+define('LDAP_SERVER_HOST', 'ldap://polilla.upbbga.edu.co:389');
 define('LDAP_DOMAIN',      'bga.upb');
 define('LDAP_BASE_DN',     'OU=OU Empleados,DC=bga,DC=upb');
 
-// ── JWT (HU-08.01) ──
-// Secreto firmado HMAC-SHA256. CAMBIAR en producción. Generado con random_bytes.
-define('JWT_SECRET',     'NUV_UPB_BGA_2026_*7tHk!9pZeR$2qXmW#3vYsAfL_secreto_jwt_cambiar_en_prod');
-define('JWT_ISSUER',     'sistema-prestamo-upb-bga');
-define('JWT_TTL_HOURS',  8);   // tiempo de vida del access token
+// ── JWT (HU-08.01) ──────────────────────────────────────────────────────
+// Secret SOLO para desarrollo local. Cualquiera con XAMPP puede leerlo —
+// para producción se genera uno único en el config.php del despliegue.
+define('JWT_SECRET',     'desarrollo_local_xampp_NO_USAR_EN_PRODUCCION');
+define('JWT_ISSUER',     'sistema-prestamo-upb-bga-dev');
+define('JWT_TTL_HOURS',  8);
 
-// ── SMTP / Correo (HU-07.04) ──
-// Si SMTP_HOST queda vacío usa la función mail() nativa de PHP (requiere
-// sendmail configurado en XAMPP). En producción, configurar al SMTP UPB.
-define('SMTP_HOST',     '');                         // ej. smtp.upb.edu.co
+// ── SMTP (vacío en desarrollo — usa mail() de PHP si está disponible) ───
+define('SMTP_HOST',     '');
 define('SMTP_PORT',     587);
-define('SMTP_USER',     '');                         // ej. notif-prestamos@upb.edu.co
+define('SMTP_USER',     '');
 define('SMTP_PASS',     '');
 define('SMTP_FROM',     'no-reply@upb.edu.co');
 define('SMTP_FROM_NAME','Sistema Préstamo Laboratorios UPB');
 
-// ── WhatsApp (HU-07.04) — vía CallMeBot, API pública gratuita ──
-// Si CALLMEBOT_API_KEY queda vacío, los enlaces wa.me se generan pero no
-// se hacen llamadas API automáticas.
-define('CALLMEBOT_API_KEY', '');     // se obtiene activando el bot en WhatsApp
+// ── WhatsApp (cada usuario activa el suyo desde Mi Perfil) ──────────────
+define('CALLMEBOT_API_KEY', '');
 
-// Zona horaria
+// ── Zona horaria ────────────────────────────────────────────────────────
 date_default_timezone_set('America/Bogota');
 
-// Configuración de sesión segura
+// ── Sesión: 'Lax' funciona tanto en desarrollo como en producción ───────
 ini_set('session.cookie_httponly', 1);
-ini_set('session.cookie_samesite', 'Strict');
+ini_set('session.cookie_samesite', 'Lax');
 ini_set('session.use_strict_mode', 1);
